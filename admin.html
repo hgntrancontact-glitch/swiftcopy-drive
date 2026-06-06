@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Panel — SwiftCopy.Drive</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, getDocs, updateDoc, serverTimestamp, where }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ── CẤU HÌNH FIREBASE — giống index.html ─────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyDu5D6bB-FxJl2E71Ls17GwHVtqZV0FwF8",
+  authDomain: "swiftcopy-drive.firebaseapp.com",
+  projectId: "swiftcopy-drive",
+  storageBucket: "swiftcopy-drive.firebasestorage.app",
+  messagingSenderId: "477488339991",
+  appId: "1:477488339991:web:7d47100631b846b1189052"
+};
+// ── EMAIL ADMIN — thay bằng email của bạn ─────────────────
+const ADMIN_EMAIL = "hgntran.contact@gmail.com";
+// ──────────────────────────────────────────────────────────
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+let currentUser = null;
+
+onAuthStateChanged(auth, user => {
+  if (!user) { showSection('login'); return; }
+  if (user.email !== ADMIN_EMAIL) {
+    showSection('denied');
+    signOut(auth);
+    return;
+  }
+  currentUser = user;
+  document.getElementById('adminEmail').textContent = user.email;
+  showSection('panel');
+  loadStats();
+  loadUsers();
+});
+
+async function loadStats() {
+  try {
+    const [usersSnap, histSnap] = await Promise.all([
+      getDocs(collection(db,'users')),
+      getDocs(collection(db,'history'))
+    ]);
+    const users    = usersSnap.docs.map(d => d.data());
+    const approved = users.filter(u => u.approved).length;
+    const pending  = users.filter(u => !u.approved).length;
+
+    document.getElementById('statTotal').textContent    = users.length;
+    document.getElementById('statApproved').textContent = approved;
+    document.getElementById('statPending').textContent  = pending;
+    document.getElementById('statJobs').textContent     = histSnap.size;
+  } catch(e) { console.error(e); }
+}
+
+async function loadUsers() {
+  const tbody = document.getElementById('usersBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">Đang tải...</td></tr>';
+  try {
+    const snap = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
+    if (snap.empty) {
+      tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">Chưa có người dùng nào.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = snap.docs.map(d => {
+      const u  = d.data();
+      const uid= d.id;
+      const dt = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString('vi-VN') : '—';
+      const statusBadge = u.approved
+        ? `<span class="badge green">✓ Đã duyệt</span>`
+        : `<span class="badge yellow">⏳ Chờ duyệt</span>`;
+      const action = u.approved
+        ? `<button class="btn-action revoke" onclick="toggleUser('${uid}', false)">Hủy kích hoạt</button>`
+        : `<button class="btn-action approve" onclick="toggleUser('${uid}', true)">✓ Kích hoạt</button>`;
+      return `<tr data-uid="${uid}">
+        <td>
+          <div class="user-cell">
+            <img class="user-av" src="${u.photoURL||''}" onerror="this.style.display='none'"/>
+            <div>
+              <div class="user-name">${u.displayName||'—'}</div>
+              <div class="user-email">${u.email}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="uid-text">${uid.slice(0,12)}…</span></td>
+        <td class="status-cell">${statusBadge}</td>
+        <td class="date-cell">${dt}</td>
+        <td class="action-cell">${action}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`;
+  }
+}
+
+async function loadHistory() {
+  const tbody = document.getElementById('histBody');
+  tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">Đang tải...</td></tr>';
+  try {
+    const snap = await getDocs(query(collection(db,'history'), orderBy('createdAt','desc')));
+    if (snap.empty) {
+      tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">Chưa có lịch sử nào.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = snap.docs.map(d => {
+      const h  = d.data();
+      const dt = h.createdAt?.toDate ? h.createdAt.toDate().toLocaleString('vi-VN') : '—';
+      return `<tr>
+        <td class="date-cell">${dt}</td>
+        <td><div class="user-email">${h.email||'—'}</div></td>
+        <td class="folder-cell" title="${h.srcName}">📁 ${h.srcName||'—'}</td>
+        <td class="folder-cell" title="${h.destName}">📁 ${h.destName||'—'}</td>
+        <td>
+          <span class="badge green">${h.copied||0} copy</span>
+          ${h.failed>0?`<span class="badge red">${h.failed} lỗi</span>`:''}
+        </td>
+        <td class="date-cell">${h.elapsed||0}s</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" class="loading-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`;
+  }
+}
+
+window.toggleUser = async (uid, approve) => {
+  const btn = document.querySelector(`tr[data-uid="${uid}"] .btn-action`);
+  if (btn) { btn.disabled=true; btn.textContent='...'; }
+  try {
+    await updateDoc(doc(db,'users',uid), {
+      approved: approve,
+      approvedAt: approve ? serverTimestamp() : null,
+      approvedBy: currentUser.email
+    });
+    showToast(approve ? '✓ Đã kích hoạt!' : '✓ Đã hủy kích hoạt', approve?'ok':'warn');
+    await loadUsers();
+    await loadStats();
+  } catch(e) {
+    showToast('Lỗi: '+e.message, 'err');
+    if (btn) { btn.disabled=false; }
+  }
+};
+
+window.switchTab = (tab) => {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.tab-pane').forEach(p => p.style.display = p.id==='pane-'+tab ? 'block' : 'none');
+  if (tab==='history') loadHistory();
+};
+
+function showSection(name) {
+  ['login','denied','panel'].forEach(s => {
+    const el = document.getElementById('section-'+s);
+    if (el) el.style.display = s===name ? 'block' : 'none';
+  });
+}
+
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+window.handleAdminLogin  = () => signInWithPopup(auth, provider).catch(e => showToast('Lỗi: '+e.message,'err'));
+window.handleAdminLogout = () => signOut(auth);
+window.refreshUsers      = loadUsers;
+window.refreshStats      = loadStats;
+</script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --white:#fff;--off:#f8f9fb;
+  --gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;
+  --gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;
+  --gray-700:#374151;--gray-800:#1f2937;--gray-900:#111827;
+  --brand:#0052cc;--brand-light:#e8f0fe;--brand-dark:#003d99;
+  --green:#16a34a;--green-light:#dcfce7;
+  --red:#dc2626;--red-light:#fee2e2;
+  --yellow:#d97706;--yellow-light:#fef3c7;
+  --purple:#7c3aed;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08);
+  --shadow:0 4px 16px rgba(0,0,0,.08);
+  --shadow-lg:0 20px 48px rgba(0,0,0,.12);
+}
+body{font-family:'Sora',sans-serif;background:var(--off);color:var(--gray-800);min-height:100vh}
+
+.navbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow-sm);position:sticky;top:0;z-index:100}
+.nav-brand{font-size:16px;font-weight:800;color:var(--brand);letter-spacing:-.5px}
+.nav-brand span{color:#dc2626}
+.nav-badge{background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px}
+.nav-right{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--gray-500)}
+.btn-sm{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--gray-200);background:var(--white);color:var(--gray-600);transition:.15s}
+.btn-sm:hover{background:var(--gray-100)}
+
+/* SECTIONS */
+#section-login,#section-denied,#section-panel{display:none}
+
+/* LOGIN */
+.center-wrap{min-height:calc(100vh - 60px);display:flex;align-items:center;justify-content:center}
+.auth-card{background:var(--white);border:1px solid var(--gray-200);border-radius:20px;padding:48px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shadow)}
+.auth-card h2{font-size:22px;font-weight:700;margin-bottom:8px}
+.auth-card p{font-size:14px;color:var(--gray-500);margin-bottom:28px}
+.btn-google{display:inline-flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--gray-300);border-radius:12px;padding:12px 24px;font-size:14px;font-weight:600;color:var(--gray-800);cursor:pointer;box-shadow:var(--shadow-sm);transition:.2s;font-family:inherit}
+.btn-google:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
+.btn-google svg{width:18px;height:18px}
+.denied-icon{font-size:48px;margin-bottom:16px}
+
+/* PANEL */
+.container{max-width:1000px;margin:0 auto;padding:24px 16px}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-box{background:var(--white);border:1px solid var(--gray-200);border-radius:12px;padding:20px;text-align:center;box-shadow:var(--shadow-sm)}
+.stat-box .num{font-size:32px;font-weight:800;line-height:1;margin-bottom:4px}
+.stat-box .lbl{font-size:12px;color:var(--gray-400);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.stat-box.blue .num{color:var(--brand)}
+.stat-box.green .num{color:var(--green)}
+.stat-box.yellow .num{color:var(--yellow)}
+.stat-box.purple .num{color:var(--purple)}
+
+/* TABS */
+.tabs{display:flex;gap:2px;background:var(--gray-100);border-radius:12px;padding:4px;margin-bottom:20px}
+.tab-btn{flex:1;padding:9px;font-size:13px;font-weight:600;font-family:inherit;border:none;background:none;border-radius:9px;cursor:pointer;color:var(--gray-500);transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.tab-btn.active{background:var(--white);color:var(--gray-900);box-shadow:var(--shadow-sm)}
+
+/* CARD/TABLE */
+.card{background:var(--white);border:1px solid var(--gray-200);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.card-head{padding:14px 20px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between}
+.card-head h3{font-size:14px;font-weight:700}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--gray-50);padding:10px 16px;font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;text-align:left;border-bottom:1px solid var(--gray-200)}
+tbody tr{transition:.1s}
+tbody tr:hover{background:var(--gray-50)}
+tbody td{padding:12px 16px;border-bottom:1px solid var(--gray-100);font-size:13px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+.loading-cell{text-align:center;color:var(--gray-400);padding:40px!important}
+
+.user-cell{display:flex;align-items:center;gap:10px}
+.user-av{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--gray-200);flex-shrink:0}
+.user-name{font-size:13px;font-weight:600;color:var(--gray-800)}
+.user-email{font-size:11px;color:var(--gray-400)}
+.uid-text{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gray-400)}
+.status-cell{white-space:nowrap}
+.date-cell{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gray-400);white-space:nowrap}
+.action-cell{white-space:nowrap}
+.folder-cell{max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;margin-right:4px}
+.badge.green{background:var(--green-light);color:var(--green)}
+.badge.red{background:var(--red-light);color:var(--red)}
+.badge.yellow{background:var(--yellow-light);color:var(--yellow)}
+
+.btn-action{padding:5px 14px;border-radius:7px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:.15s}
+.btn-action.approve{background:var(--green-light);color:var(--green)}
+.btn-action.approve:hover:not(:disabled){background:var(--green);color:#fff}
+.btn-action.revoke{background:var(--red-light);color:var(--red)}
+.btn-action.revoke:hover:not(:disabled){background:var(--red);color:#fff}
+.btn-action:disabled{opacity:.5;cursor:not-allowed}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--gray-900);color:#fff;font-size:13px;padding:10px 20px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:2000;white-space:nowrap;box-shadow:var(--shadow-lg)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.warn{background:var(--yellow)}
+.toast.err{background:var(--red)}
+.toast.ok{background:var(--green)}
+
+@media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div>
+    <span class="nav-brand">SwiftCopy<span>.</span>Drive</span>
+    <span class="nav-badge">ADMIN</span>
+  </div>
+  <div class="nav-right">
+    <span id="adminEmail"></span>
+    <button class="btn-sm" onclick="handleAdminLogout()">Đăng xuất</button>
+  </div>
+</nav>
+
+<!-- LOGIN -->
+<div id="section-login">
+  <div class="center-wrap">
+    <div class="auth-card">
+      <div style="font-size:40px;margin-bottom:16px">🔐</div>
+      <h2>Admin Panel</h2>
+      <p>Đăng nhập bằng tài khoản admin để quản lý người dùng SwiftCopy.Drive</p>
+      <button class="btn-google" onclick="handleAdminLogin()">
+        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Đăng nhập với Google
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DENIED -->
+<div id="section-denied">
+  <div class="center-wrap">
+    <div class="auth-card">
+      <div class="denied-icon">🚫</div>
+      <h2>Không có quyền truy cập</h2>
+      <p>Tài khoản của bạn không phải admin. Vui lòng liên hệ quản trị viên.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="section-panel">
+  <div class="container">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-box blue"><div class="num" id="statTotal">—</div><div class="lbl">Tổng người dùng</div></div>
+      <div class="stat-box green"><div class="num" id="statApproved">—</div><div class="lbl">Đã kích hoạt</div></div>
+      <div class="stat-box yellow"><div class="num" id="statPending">—</div><div class="lbl">Chờ duyệt</div></div>
+      <div class="stat-box purple"><div class="num" id="statJobs">—</div><div class="lbl">Tổng lần copy</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="users" onclick="switchTab('users')">👥 Người dùng</button>
+      <button class="tab-btn" data-tab="history" onclick="switchTab('history')">🕐 Lịch sử copy</button>
+    </div>
+
+    <!-- USERS -->
+    <div id="pane-users">
+      <div class="card">
+        <div class="card-head">
+          <h3>👥 Danh sách người dùng</h3>
+          <button class="btn-sm" onclick="refreshUsers()">↺ Làm mới</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Người dùng</th>
+            <th>UID</th>
+            <th>Trạng thái</th>
+            <th>Ngày đăng ký</th>
+            <th>Thao tác</th>
+          </tr></thead>
+          <tbody id="usersBody">
+            <tr><td colspan="5" class="loading-cell">Đang tải...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="pane-history" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <h3>🕐 Lịch sử copy toàn hệ thống</h3>
+          <button class="btn-sm" onclick="loadHistory()">↺ Làm mới</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Thời gian</th>
+            <th>Người dùng</th>
+            <th>Drive nguồn</th>
+            <th>Drive đích</th>
+            <th>Kết quả</th>
+            <th>Thời lượng</th>
+          </tr></thead>
+          <tbody id="histBody">
+            <tr><td colspan="6" class="loading-cell">Chưa có dữ liệu.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+</body>
+</html>
