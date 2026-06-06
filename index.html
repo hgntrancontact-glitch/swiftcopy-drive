@@ -5,933 +5,762 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>SwiftCopy.Drive — Sao chép Google Drive tốc độ cao</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, addDoc, collection, query, where, orderBy, getDocs, serverTimestamp }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-// ── CẤU HÌNH FIREBASE ── Thay bằng config của bạn ──────────
-const firebaseConfig = {
-  apiKey: "AIzaSyDu5D6bB-FxJl2E71Ls17GwHVtqZV0FwF8",
-  authDomain: "swiftcopy-drive.firebaseapp.com",
-  projectId: "swiftcopy-drive",
-  storageBucket: "swiftcopy-drive.firebasestorage.app",
-  messagingSenderId: "477488339991",
-  appId: "1:477488339991:web:7d47100631b846b1189052"
-};
-// ────────────────────────────────────────────────────────────
-
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db   = getFirestore(app);
-const provider = new GoogleAuthProvider();
-provider.addScope('https://www.googleapis.com/auth/drive');
-
-// ── STATE ────────────────────────────────────────────────────
-let currentUser  = null;
-let accessToken  = null;
-let copyWorker   = null;
-let stopFlag     = false;
-let copyStats    = { copied:0, failed:0, folders:0, skipped:0,
-                     copiedFiles:[], failedFiles:[], folderList:[], skippedFiles:[] };
-
-// ── GOOGLE DRIVE API ─────────────────────────────────────────
-const FOLDER_MIME   = 'application/vnd.google-apps.folder';
-const SHORTCUT_MIME = 'application/vnd.google-apps.shortcut';
-const API = 'https://www.googleapis.com/drive/v3';
-
-async function driveGet(path, params={}) {
-  const url = new URL(API + path);
-  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` }});
-  if (!r.ok) throw new Error(`Drive API ${r.status}: ${await r.text()}`);
-  return r.json();
-}
-async function drivePost(path, body) {
-  const r = await fetch(API + path, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if (!r.ok) throw new Error(`Drive API ${r.status}: ${await r.text()}`);
-  return r.json();
-}
-
-function extractFolderId(s) {
-  s = s.trim();
-  let m = s.match(/\/folders\/([a-zA-Z0-9_-]+)/);
-  if (m) return m[1];
-  m = s.match(/id=([a-zA-Z0-9_-]+)/);
-  if (m) return m[1];
-  if (/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
-  throw new Error('Không nhận diện được Folder ID');
-}
-
-async function getFolderName(fid) {
-  try { return (await driveGet(`/files/${fid}`, { fields:'name', supportsAllDrives:true })).name; }
-  catch { return 'Unknown'; }
-}
-
-async function listItems(folderId) {
-  let results=[], pt=null;
-  do {
-    const params = {
-      q: `'${folderId}' in parents and trashed=false`,
-      pageSize: 100,
-      fields: 'nextPageToken,files(id,name,mimeType)',
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
-      ...(pt ? {pageToken:pt} : {})
-    };
-    const resp = await driveGet('/files', params);
-    results.push(...(resp.files||[]));
-    pt = resp.nextPageToken;
-  } while (pt);
-  return results;
-}
-
-async function getExistingNames(folderId) {
-  const items = await listItems(folderId);
-  return new Set(items.map(i=>i.name));
-}
-
-async function copyFile(fileId, destId) {
-  for (let attempt=0; attempt<3; attempt++) {
-    try {
-      await drivePost(`/files/${fileId}/copy`, { parents:[destId] });
-      return { ok:true };
-    } catch(e) {
-      const code = parseInt(e.message.match(/\d+/)?.[0]);
-      if ([429,500,503].includes(code)) { await sleep(Math.pow(2,attempt)*1000); continue; }
-      if (code===403) return { ok:false, reason:'Không có quyền copy' };
-      if (code===404) return { ok:false, reason:'File không tìm thấy' };
-      return { ok:false, reason:`Lỗi API (${code})` };
-    }
-  }
-  return { ok:false, reason:'Hết số lần thử' };
-}
-
-async function createFolderSmart(name, parentId) {
-  const resp = await driveGet('/files', {
-    q: `'${parentId}' in parents and name='${name.replace(/'/g,"\\'")}' and mimeType='${FOLDER_MIME}' and trashed=false`,
-    fields:'files(id)', supportsAllDrives:true, includeItemsFromAllDrives:true
-  });
-  if (resp.files?.length) return resp.files[0].id;
-  const r = await drivePost('/files', { name, mimeType:FOLDER_MIME, parents:[parentId] });
-  return r.id;
-}
-
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-
-// ── COPY LOGIC ───────────────────────────────────────────────
-async function copyRecursive(srcId, destId, path='') {
-  if (stopFlag) return;
-  const items     = await listItems(srcId);
-  const destNames = await getExistingNames(destId);
-  for (const item of items) {
-    if (stopFlag) return;
-    const { name, id, mimeType } = item;
-    const fullPath = path ? `${path} › ${name}` : name;
-    if (mimeType === FOLDER_MIME) {
-      const newId = await createFolderSmart(name, destId);
-      copyStats.folders++;
-      copyStats.folderList.push({ name, path: fullPath });
-      log(`▣ ${name}`, 'folder');
-      updateStats();
-      await copyRecursive(id, newId, fullPath);
-    } else if (mimeType === SHORTCUT_MIME) {
-      copyStats.failed++;
-      copyStats.failedFiles.push({ name, path:fullPath, reason:'Shortcut — bỏ qua' });
-      log(`⏭ Shortcut: ${name}`, 'skip');
-      updateStats();
-    } else {
-      if (destNames.has(name)) {
-        copyStats.skipped++;
-        copyStats.skippedFiles.push({ name, path:fullPath });
-        log(`⏭ Đã có: ${name}`, 'skip');
-        updateStats();
-        continue;
-      }
-      const res = await copyFile(id, destId);
-      if (res.ok) {
-        copyStats.copied++;
-        copyStats.copiedFiles.push({ name, path:fullPath });
-        log(`✓ ${name}`, 'ok');
-      } else {
-        copyStats.failed++;
-        copyStats.failedFiles.push({ name, path:fullPath, reason:res.reason,
-          link:`https://drive.google.com/file/d/${id}/view` });
-        log(`✗ ${name} — ${res.reason}`, 'err');
-      }
-      updateStats();
-    }
-  }
-}
-
-async function startCopy() {
-  const srcVal  = document.getElementById('srcInput').value.trim();
-  const destVal = document.getElementById('destInput').value.trim();
-  if (!srcVal || !destVal) { showToast('Nhập đủ Drive nguồn và Drive đích!', 'warn'); return; }
-
-  stopFlag  = false;
-  copyStats = { copied:0, failed:0, folders:0, skipped:0,
-                copiedFiles:[], failedFiles:[], folderList:[], skippedFiles:[] };
-
-  document.getElementById('logPanel').innerHTML = '';
-  document.getElementById('reportSection').style.display = 'none';
-  document.getElementById('statsRow').style.display = 'flex';
-  updateStats();
-  setRunning(true);
-
-  const t0 = Date.now();
-  try {
-    const srcId   = extractFolderId(srcVal);
-    const destId  = extractFolderId(destVal);
-    const srcName = await getFolderName(srcId);
-    const dstName = await getFolderName(destId);
-
-    setStatus(`Đang sao chép "${srcName}" → "${dstName}"`);
-    log(`Nguồn: ${srcName}`, 'info');
-    log(`Đích: ${dstName}`, 'info');
-
-    const topItems = await listItems(srcId);
-    const fp = Math.max(0, (parseInt(document.getElementById('fromPage').value)||1)-1);
-    const tp = parseInt(document.getElementById('toPage').value)||0;
-    const selected = tp > 0 ? topItems.slice(fp, tp) : topItems.slice(fp);
-
-    if (!selected.length) { showToast('Không tìm thấy mục nào!', 'warn'); setRunning(false); return; }
-    log(`Bắt đầu sao chép ${selected.length} mục...`, 'info');
-    setProgress(0, selected.length);
-
-    const destExisting = await getExistingNames(destId);
-    let idx = 0;
-    for (const item of selected) {
-      if (stopFlag) break;
-      idx++;
-      setProgress(idx-1, selected.length);
-      setStatus(`[${idx}/${selected.length}] ${item.name}`);
-      const { name, id, mimeType } = item;
-      if (mimeType === FOLDER_MIME) {
-        const newId = await createFolderSmart(name, destId);
-        copyStats.folders++;
-        copyStats.folderList.push({ name, path:name });
-        log(`▣ ${name}`, 'folder');
-        await copyRecursive(id, newId, name);
-      } else {
-        if (destExisting.has(name)) {
-          copyStats.skipped++;
-          copyStats.skippedFiles.push({ name, path:name });
-          log(`⏭ Đã có: ${name}`, 'skip');
-          updateStats();
-          setProgress(idx, selected.length);
-          continue;
-        }
-        const res = await copyFile(id, destId);
-        if (res.ok) { copyStats.copied++; copyStats.copiedFiles.push({ name, path:name }); log(`✓ ${name}`,'ok'); }
-        else { copyStats.failed++; copyStats.failedFiles.push({ name, path:name, reason:res.reason, link:`https://drive.google.com/file/d/${id}/view` }); log(`✗ ${name} — ${res.reason}`,'err'); }
-      }
-      updateStats();
-      setProgress(idx, selected.length);
-    }
-
-    const elapsed = Math.round((Date.now()-t0)/1000);
-    setProgress(selected.length, selected.length, stopFlag ? 'paused' : 'done');
-    if (stopFlag) {
-      setStatus('⏸ Đã dừng — nhấn Bắt đầu để tiếp tục');
-    } else {
-      setStatus(`✓ Hoàn thành trong ${elapsed}s`);
-      await saveHistory(srcId, srcName, destId, dstName, elapsed);
-      showReport(elapsed);
-    }
-  } catch(e) {
-    log(`✗ Lỗi: ${e.message}`, 'err');
-    setStatus('✗ Lỗi — xem Activity Log');
-  } finally {
-    setRunning(false);
-  }
-}
-
-// ── FIREBASE ─────────────────────────────────────────────────
-async function saveHistory(srcId, srcName, destId, destName, elapsed) {
-  try {
-    await addDoc(collection(db,'history'), {
-      uid: currentUser.uid,
-      email: currentUser.email,
-      srcId, srcName, destId, destName,
-      copied: copyStats.copied, failed: copyStats.failed,
-      folders: copyStats.folders, skipped: copyStats.skipped,
-      elapsed,
-      createdAt: serverTimestamp()
-    });
-  } catch(e) { console.error('Save history error', e); }
-}
-
-async function loadHistory() {
-  const histEl = document.getElementById('historyList');
-  histEl.innerHTML = '<div class="hist-loading">Đang tải...</div>';
-  try {
-    const q = query(
-      collection(db,'history'),
-      where('uid','==',currentUser.uid),
-      orderBy('createdAt','desc')
-    );
-    const snap = await getDocs(q);
-    if (snap.empty) { histEl.innerHTML = '<div class="hist-empty">Chưa có lịch sử sao chép nào.</div>'; return; }
-    histEl.innerHTML = snap.docs.map(d => {
-      const h = d.data();
-      const dt = h.createdAt?.toDate ? h.createdAt.toDate().toLocaleString('vi-VN') : '—';
-      return `<div class="hist-item">
-        <div class="hist-meta">
-          <span class="hist-date">${dt}</span>
-          <span class="hist-badges">
-            <span class="badge green">${h.copied} đã copy</span>
-            ${h.failed>0?`<span class="badge red">${h.failed} lỗi</span>`:''}
-            ${h.skipped>0?`<span class="badge purple">${h.skipped} đã có</span>`:''}
-          </span>
-        </div>
-        <div class="hist-names">
-          <span class="hist-src">📁 ${h.srcName}</span>
-          <span class="hist-arrow">→</span>
-          <span class="hist-dest">📁 ${h.destName}</span>
-        </div>
-        <div class="hist-elapsed">⏱ ${h.elapsed}s · ${h.folders} thư mục</div>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    histEl.innerHTML = `<div class="hist-error">Lỗi tải lịch sử: ${e.message}</div>`;
-  }
-}
-
-// ── AUTH ──────────────────────────────────────────────────────
-async function handleLogin() {
-  try {
-    const result = await signInWithPopup(auth, provider);
-    const cred   = GoogleAuthProvider.credentialFromResult(result);
-    accessToken  = cred.accessToken;
-    currentUser  = result.user;
-    await ensureUserDoc(result.user);
-  } catch(e) {
-    showToast('Đăng nhập thất bại: ' + e.message, 'err');
-  }
-}
-
-async function ensureUserDoc(user) {
-  const ref = doc(db,'users', user.uid);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      approved: false,
-      createdAt: serverTimestamp()
-    });
-  }
-}
-
-async function checkApproval() {
-  if (!currentUser) return false;
-  const snap = await getDoc(doc(db,'users', currentUser.uid));
-  return snap.exists() && snap.data().approved === true;
-}
-
-onAuthStateChanged(auth, async user => {
-  if (user) {
-    currentUser = user;
-    // Lấy lại access token từ session (nếu có)
-    try {
-      const result = await user.getIdTokenResult();
-      // accessToken cần được lấy lại qua re-login nếu expire
-    } catch {}
-    showSection('checking');
-    const approved = await checkApproval();
-    if (approved) {
-      renderUser(user);
-      showSection('app');
-      loadHistory();
-    } else {
-      showSection('pending');
-    }
-  } else {
-    currentUser = null;
-    accessToken = null;
-    showSection('landing');
-  }
-});
-
-// ── UI HELPERS ───────────────────────────────────────────────
-function showSection(name) {
-  ['landing','checking','pending','app'].forEach(s => {
-    const el = document.getElementById('section-'+s);
-    if (el) el.style.display = s===name ? 'block' : 'none';
-  });
-}
-
-function renderUser(user) {
-  document.getElementById('userAvatar').src = user.photoURL || '';
-  document.getElementById('userName').textContent = user.displayName || user.email;
-  document.getElementById('userEmail').textContent = user.email;
-}
-
-function setRunning(running) {
-  document.getElementById('btnStart').style.display = running ? 'none' : 'flex';
-  document.getElementById('btnStop').style.display  = running ? 'flex' : 'none';
-  document.getElementById('btnScan').disabled        = running;
-}
-
-function setStatus(msg) {
-  document.getElementById('statusLabel').textContent = msg;
-}
-
-function setProgress(val, max, state='running') {
-  const bar  = document.getElementById('progressBar');
-  const fill = document.getElementById('progressFill');
-  const pct  = max ? Math.round(val/max*100) : 0;
-  fill.style.width = pct+'%';
-  fill.className   = 'progress-fill ' + state;
-  bar.title        = `${val}/${max}`;
-}
-
-function log(msg, level='ok') {
-  const colors = { ok:'#16a34a', err:'#dc2626', info:'#2563eb', skip:'#9ca3af', folder:'#7c3aed' };
-  const icons  = { ok:'✓', err:'✗', info:'→', skip:'⏭', folder:'▣' };
-  const panel  = document.getElementById('logPanel');
-  const el     = document.createElement('div');
-  el.className = 'log-line';
-  const ts     = new Date().toLocaleTimeString('vi-VN');
-  el.innerHTML = `<span class="log-ts">${ts}</span><span class="log-icon" style="color:${colors[level]||'#555'}">${icons[level]||'·'}</span><span class="log-msg">${msg}</span>`;
-  panel.appendChild(el);
-  panel.scrollTop = panel.scrollHeight;
-}
-
-function updateStats() {
-  document.getElementById('statCopied').textContent  = copyStats.copied;
-  document.getElementById('statFailed').textContent  = copyStats.failed;
-  document.getElementById('statFolders').textContent = copyStats.folders;
-  document.getElementById('statSkipped').textContent = copyStats.skipped;
-  const skipCard = document.getElementById('skipCard');
-  if (skipCard) skipCard.style.display = copyStats.skipped > 0 ? 'flex' : 'none';
-}
-
-function showReport(elapsed) {
-  const sec = document.getElementById('reportSection');
-  document.getElementById('repCopied').textContent  = copyStats.copied;
-  document.getElementById('repFailed').textContent  = copyStats.failed;
-  document.getElementById('repFolders').textContent = copyStats.folders;
-  document.getElementById('repSkipped').textContent = copyStats.skipped;
-  document.getElementById('repElapsed').textContent = elapsed + 's';
-  sec.style.display = 'block';
-}
-
-function showModal(type) {
-  const modal    = document.getElementById('detailModal');
-  const title    = document.getElementById('modalTitle');
-  const body     = document.getElementById('modalBody');
-  const map = {
-    copied:  { label:'Đã copy',  data: copyStats.copiedFiles,  color:'#16a34a' },
-    failed:  { label:'Lỗi',      data: copyStats.failedFiles,  color:'#dc2626' },
-    folders: { label:'Thư mục',  data: copyStats.folderList,   color:'#7c3aed' },
-    skip:    { label:'Đã có',    data: copyStats.skippedFiles, color:'#6366f1' },
-  };
-  const cfg = map[type];
-  title.textContent = cfg.label + ` (${cfg.data.length})`;
-  body.innerHTML = cfg.data.length === 0
-    ? '<p style="color:#999;text-align:center;padding:32px 0">Không có mục nào.</p>'
-    : cfg.data.slice(0,500).map((f,i) => `
-      <div class="modal-item">
-        <span class="modal-idx">${i+1}</span>
-        <div class="modal-info">
-          <div class="modal-name">${f.name}</div>
-          ${f.path ? `<div class="modal-path">${f.path}</div>` : ''}
-          ${f.reason ? `<span class="modal-reason">${f.reason}</span>` : ''}
-        </div>
-        ${f.link ? `<a href="${f.link}" target="_blank" class="modal-link">↗</a>` : ''}
-      </div>`).join('') + (cfg.data.length>500?`<p style="color:#999;font-size:12px;text-align:center;padding:12px">...+${cfg.data.length-500} mục</p>`:'');
-  modal.style.display = 'flex';
-}
-
-function showToast(msg, type='info') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className   = 'toast show ' + type;
-  setTimeout(()=>t.classList.remove('show'), 3000);
-}
-
-function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
-  document.querySelectorAll('.tab-pane').forEach(p => p.style.display = p.id==='pane-'+tab ? 'block' : 'none');
-  if (tab==='history') loadHistory();
-}
-
-// Expose to global
-window.handleLogin   = handleLogin;
-window.handleLogout  = () => signOut(auth);
-window.startCopy     = startCopy;
-window.stopCopy      = () => { stopFlag=true; };
-window.showModal     = showModal;
-window.switchTab     = switchTab;
-window.closeModal    = () => document.getElementById('detailModal').style.display='none';
-window.handleRelogin = async () => {
-  try {
-    const result = await signInWithPopup(auth, provider);
-    const cred   = GoogleAuthProvider.credentialFromResult(result);
-    accessToken  = cred.accessToken;
-    showToast('Đã cập nhật quyền Drive!', 'ok');
-  } catch(e) { showToast('Lỗi: '+e.message,'err'); }
-};
-</script>
-
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --white:#ffffff;
-  --off:#f8f9fb;
-  --gray-50:#f9fafb;
-  --gray-100:#f3f4f6;
-  --gray-200:#e5e7eb;
-  --gray-300:#d1d5db;
-  --gray-400:#9ca3af;
-  --gray-500:#6b7280;
-  --gray-600:#4b5563;
-  --gray-700:#374151;
-  --gray-800:#1f2937;
-  --gray-900:#111827;
-  --brand:#0052cc;
-  --brand-light:#e8f0fe;
-  --brand-dark:#003d99;
-  --green:#16a34a;
-  --green-light:#dcfce7;
-  --red:#dc2626;
-  --red-light:#fee2e2;
-  --purple:#7c3aed;
-  --purple-light:#ede9fe;
-  --indigo:#4f46e5;
-  --indigo-light:#eef2ff;
-  --amber:#d97706;
-  --amber-light:#fef3c7;
-  --radius:12px;
-  --shadow-sm:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
-  --shadow:0 4px 16px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.05);
-  --shadow-lg:0 20px 48px rgba(0,0,0,.12),0 8px 20px rgba(0,0,0,.06);
+  --white:#fff;--off:#f8f9fb;
+  --g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;
+  --g400:#9ca3af;--g500:#6b7280;--g600:#4b5563;
+  --g700:#374151;--g800:#1f2937;--g900:#111827;
+  --brand:#0052cc;--brandl:#e8f0fe;--brandd:#003d99;
+  --green:#16a34a;--greenl:#dcfce7;
+  --red:#dc2626;--redl:#fee2e2;
+  --purple:#7c3aed;--purplel:#ede9fe;
+  --indigo:#4f46e5;--indigol:#eef2ff;
+  --amber:#d97706;--amberl:#fef3c7;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+  --shm:0 4px 16px rgba(0,0,0,.08);
+  --shl:0 20px 48px rgba(0,0,0,.12);
+  --r:12px;
 }
-html{scroll-behavior:smooth}
-body{font-family:'Sora',sans-serif;background:var(--off);color:var(--gray-800);min-height:100vh;line-height:1.5}
+body{font-family:'Sora',sans-serif;background:var(--off);color:var(--g800);min-height:100vh;line-height:1.5}
 
-/* ── NAVBAR ── */
-.navbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
-.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-logo{font-size:18px;font-weight:800;color:var(--brand);letter-spacing:-.5px}
-.nav-logo span{color:var(--red)}
-.nav-badge{background:var(--brand);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.3px}
-.nav-user{display:flex;align-items:center;gap:10px}
-.nav-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--gray-200)}
-.nav-name{font-size:13px;font-weight:500;color:var(--gray-700)}
-.nav-email{font-size:11px;color:var(--gray-400)}
-.btn-logout{background:none;border:1px solid var(--gray-200);color:var(--gray-500);font-size:12px;font-family:inherit;padding:5px 12px;border-radius:8px;cursor:pointer;transition:.15s}
-.btn-logout:hover{background:var(--gray-100);color:var(--gray-700)}
-.btn-reauth{background:var(--brand-light);border:1px solid var(--brand);color:var(--brand);font-size:12px;font-family:inherit;padding:5px 12px;border-radius:8px;cursor:pointer;transition:.15s}
-.btn-reauth:hover{background:var(--brand);color:#fff}
+/* NAVBAR */
+.nav{background:var(--white);border-bottom:1px solid var(--g200);height:58px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--sh)}
+.nav-logo{font-size:17px;font-weight:800;color:var(--brand);letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
+.nav-logo b{color:var(--red)}
+.badge{background:var(--brand);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-av{width:30px;height:30px;border-radius:50%;border:2px solid var(--g200);object-fit:cover}
+.nav-info{display:flex;flex-direction:column}
+.nav-name{font-size:12px;font-weight:600;color:var(--g700);line-height:1.3}
+.nav-email{font-size:10px;color:var(--g400);line-height:1.3}
+.btn-xs{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--g200);background:var(--white);color:var(--g600);transition:.15s}
+.btn-xs:hover{background:var(--g100)}
+.btn-xs.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn-xs.primary:hover{background:var(--brandd)}
 
-/* ── SECTIONS ── */
-#section-landing,#section-checking,#section-pending,#section-app{display:none}
+/* SECTIONS */
+#s-land,#s-check,#s-pend,#s-app{display:none}
 
-/* ── LANDING ── */
-.landing{min-height:calc(100vh - 60px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;background:linear-gradient(160deg,#f0f5ff 0%,#fafafa 50%,#fff5f5 100%)}
-.landing-icon{width:72px;height:72px;background:linear-gradient(135deg,var(--brand),var(--indigo));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 24px;box-shadow:0 8px 32px rgba(0,82,204,.25)}
-.landing h1{font-size:clamp(28px,5vw,48px);font-weight:800;color:var(--gray-900);margin-bottom:12px;letter-spacing:-1px;line-height:1.15}
-.landing h1 .accent{color:var(--brand)}
-.landing h1 .dot{color:var(--red)}
-.landing-sub{font-size:16px;color:var(--gray-500);max-width:480px;margin:0 auto 32px;font-weight:400}
-.features{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:40px;max-width:600px}
-.feature-pill{background:var(--white);border:1px solid var(--gray-200);border-radius:999px;padding:8px 16px;font-size:13px;color:var(--gray-600);display:flex;align-items:center;gap:6px;box-shadow:var(--shadow-sm)}
-.feature-pill .icon{font-size:15px}
-.btn-google{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--gray-300);border-radius:12px;padding:14px 28px;font-size:15px;font-weight:600;color:var(--gray-800);cursor:pointer;box-shadow:var(--shadow);transition:.2s;font-family:inherit}
-.btn-google:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
-.btn-google svg{width:20px;height:20px;flex-shrink:0}
-.pricing-note{margin-top:20px;font-size:13px;color:var(--gray-400)}
-.pricing-note strong{color:var(--brand)}
+/* LANDING */
+.land{min-height:calc(100vh - 58px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;background:linear-gradient(160deg,#eef4ff 0%,#fafafa 60%,#fff5f5 100%)}
+.land-icon{width:68px;height:68px;background:linear-gradient(135deg,var(--brand),var(--indigo));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 20px;box-shadow:0 8px 28px rgba(0,82,204,.25)}
+.land h1{font-size:clamp(26px,5vw,46px);font-weight:800;color:var(--g900);margin-bottom:10px;letter-spacing:-1px;line-height:1.15}
+.land-sub{font-size:15px;color:var(--g500);max-width:460px;margin:0 auto 28px}
+.feats{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:36px;max-width:580px}
+.feat{background:var(--white);border:1px solid var(--g200);border-radius:999px;padding:7px 14px;font-size:12px;color:var(--g600);display:flex;align-items:center;gap:5px;box-shadow:var(--sh)}
+.btn-google{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--g300);border-radius:12px;padding:13px 26px;font-size:14px;font-weight:600;color:var(--g800);cursor:pointer;box-shadow:var(--shm);transition:.2s;font-family:inherit}
+.btn-google:hover{box-shadow:var(--shl);transform:translateY(-1px)}
+.btn-google svg{width:18px;height:18px;flex-shrink:0}
+.price-note{margin-top:16px;font-size:12px;color:var(--g400)}
+.price-note strong{color:var(--brand)}
 
-/* ── CHECKING ── */
-.checking{min-height:calc(100vh - 60px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
-.checking-spinner{width:40px;height:40px;border:3px solid var(--gray-200);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite}
+/* CHECKING */
+.check-wrap{min-height:calc(100vh - 58px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spin{width:36px;height:36px;border:3px solid var(--g200);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.checking p{font-size:15px;color:var(--gray-500)}
 
-/* ── PENDING ── */
-.pending{min-height:calc(100vh - 60px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px}
-.pending-card{background:var(--white);border:1px solid var(--gray-200);border-radius:20px;padding:48px;max-width:420px;box-shadow:var(--shadow)}
-.pending-icon{font-size:48px;margin-bottom:20px}
-.pending h2{font-size:22px;font-weight:700;color:var(--gray-900);margin-bottom:8px}
-.pending p{font-size:14px;color:var(--gray-500);line-height:1.7}
-.pending .status-badge{display:inline-flex;align-items:center;gap:6px;background:var(--amber-light);color:var(--amber);font-size:12px;font-weight:600;padding:6px 14px;border-radius:999px;margin:20px 0;border:1px solid #fcd34d}
-.pending .contact-note{font-size:12px;color:var(--gray-400);margin-top:16px}
+/* PENDING */
+.pend-wrap{min-height:calc(100vh - 58px);display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.pend-card{background:var(--white);border:1px solid var(--g200);border-radius:20px;padding:44px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shm)}
+.pend-card h2{font-size:20px;font-weight:700;margin-bottom:8px}
+.pend-card p{font-size:13px;color:var(--g500);line-height:1.7}
+.status-pill{display:inline-flex;align-items:center;gap:6px;background:var(--amberl);color:var(--amber);font-size:12px;font-weight:600;padding:5px 14px;border-radius:999px;margin:16px 0;border:1px solid #fcd34d}
+.pend-note{font-size:11px;color:var(--g400);margin-top:12px}
 
-/* ── APP LAYOUT ── */
-.app-container{max-width:860px;margin:0 auto;padding:24px 16px}
+/* APP */
+.app{max-width:840px;margin:0 auto;padding:20px 16px}
 
-/* ── TABS ── */
-.tabs{display:flex;gap:2px;background:var(--gray-100);border-radius:12px;padding:4px;margin-bottom:24px}
-.tab-btn{flex:1;padding:9px;font-size:13px;font-weight:600;font-family:inherit;border:none;background:none;border-radius:9px;cursor:pointer;color:var(--gray-500);transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
-.tab-btn.active{background:var(--white);color:var(--gray-900);box-shadow:var(--shadow-sm)}
-.tab-btn:hover:not(.active){color:var(--gray-700)}
+/* TABS */
+.tabs{display:flex;gap:2px;background:var(--g100);border-radius:12px;padding:3px;margin-bottom:20px}
+.tab{flex:1;padding:8px;font-size:13px;font-weight:600;font-family:inherit;border:none;background:none;border-radius:10px;cursor:pointer;color:var(--g500);transition:.15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.tab.on{background:var(--white);color:var(--g900);box-shadow:var(--sh)}
 
-/* ── CARD ── */
-.card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:16px}
-.card-header{padding:16px 20px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between}
-.card-title{font-size:14px;font-weight:700;color:var(--gray-800);display:flex;align-items:center;gap:8px}
-.card-title .icon{font-size:16px}
-.card-body{padding:20px}
+/* CARD */
+.card{background:var(--white);border:1px solid var(--g200);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:14px}
+.card-h{padding:14px 18px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
+.card-t{font-size:13px;font-weight:700;color:var(--g800);display:flex;align-items:center;gap:7px}
+.card-b{padding:18px}
 
-/* ── FORM ── */
-.form-group{margin-bottom:14px}
-.form-label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
-.form-input{width:100%;padding:10px 14px;border:1px solid var(--gray-200);border-radius:10px;font-size:13px;font-family:inherit;color:var(--gray-800);background:var(--white);transition:.15s;outline:none}
-.form-input:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-light)}
-.form-input::placeholder{color:var(--gray-300)}
-.form-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end}
-.form-hint{font-size:11px;color:var(--gray-400);margin-top:4px}
+/* FORM */
+.fg{margin-bottom:12px}
+.fl{display:block;font-size:11px;font-weight:700;color:var(--g500);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.fi{width:100%;padding:9px 12px;border:1.5px solid var(--g200);border-radius:9px;font-size:13px;font-family:inherit;color:var(--g800);background:var(--white);transition:.15s;outline:none}
+.fi:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brandl)}
+.fi::placeholder{color:var(--g300)}
+.fhint{font-size:11px;color:var(--g400);margin-top:3px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
-/* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:.15s;text-decoration:none}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-primary{background:var(--brand);color:#fff}
-.btn-primary:hover:not(:disabled){background:var(--brand-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,82,204,.3)}
-.btn-danger{background:var(--red);color:#fff}
-.btn-danger:hover{background:#b91c1c}
-.btn-outline{background:var(--white);color:var(--gray-600);border:1px solid var(--gray-200)}
-.btn-outline:hover:not(:disabled){background:var(--gray-50);color:var(--gray-800)}
-.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:.15s}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-p{background:var(--brand);color:#fff}
+.btn-p:hover:not(:disabled){background:var(--brandd);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,82,204,.3)}
+.btn-d{background:var(--red);color:#fff}
+.btn-d:hover{background:#b91c1c}
+.btn-o{background:var(--white);color:var(--g600);border:1.5px solid var(--g200)}
+.btn-o:hover:not(:disabled){background:var(--g100)}
+.brow{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 
-/* ── PROGRESS ── */
-.progress-wrap{margin:16px 0 8px}
-.progress-track{height:6px;background:var(--gray-100);border-radius:999px;overflow:hidden}
-.progress-fill{height:100%;border-radius:999px;background:var(--brand);transition:width .4s ease;width:0}
-.progress-fill.done{background:var(--green)}
-.progress-fill.paused{background:var(--amber)}
-.status-label{font-size:12px;color:var(--gray-500);margin-top:6px;min-height:18px;font-family:'JetBrains Mono',monospace}
+/* PROGRESS */
+.prog-wrap{margin:14px 0 6px}
+.prog-track{height:5px;background:var(--g100);border-radius:999px;overflow:hidden}
+.prog-fill{height:100%;border-radius:999px;background:var(--brand);transition:width .4s;width:0}
+.prog-fill.done{background:var(--green)}
+.prog-fill.paused{background:var(--amber)}
+.prog-fill.running{background:var(--brand)}
+.status-lbl{font-size:11px;color:var(--g500);margin-top:5px;min-height:16px;font-family:'JetBrains Mono',monospace}
 
-/* ── STATS ROW ── */
-.stats-row{display:none;gap:10px;margin-bottom:16px}
-.stat-card{flex:1;background:var(--white);border:1px solid var(--gray-200);border-radius:12px;padding:14px 12px;text-align:center;cursor:pointer;transition:.15s;min-width:0}
-.stat-card:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
-.stat-num{font-size:24px;font-weight:800;line-height:1;margin-bottom:4px}
-.stat-label{font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;opacity:.8}
-.stat-hint{font-size:10px;color:var(--gray-400);margin-top:3px}
-.stat-card.green .stat-num{color:var(--green)}
-.stat-card.green{border-color:#bbf7d0;background:#f0fdf4}
-.stat-card.red .stat-num{color:var(--red)}
-.stat-card.red{border-color:#fecaca;background:#fff5f5}
-.stat-card.purple .stat-num{color:var(--purple)}
-.stat-card.purple{border-color:#ddd6fe;background:#faf5ff}
-.stat-card.indigo .stat-num{color:var(--indigo)}
-.stat-card.indigo{border-color:#c7d2fe;background:#eef2ff}
+/* STATS */
+.stats{display:flex;gap:8px;margin:14px 0}
+.sc{flex:1;background:var(--white);border:1.5px solid var(--g200);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:.15s;min-width:0}
+.sc:hover{box-shadow:var(--shm);transform:translateY(-1px)}
+.sc-n{font-size:22px;font-weight:800;line-height:1;margin-bottom:3px}
+.sc-l{font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;opacity:.8}
+.sc-h{font-size:9px;color:var(--g400);margin-top:2px}
+.sc.gr{border-color:#bbf7d0;background:#f0fdf4}.sc.gr .sc-n{color:var(--green)}
+.sc.re{border-color:#fecaca;background:#fff5f5}.sc.re .sc-n{color:var(--red)}
+.sc.pu{border-color:#ddd6fe;background:#faf5ff}.sc.pu .sc-n{color:var(--purple)}
+.sc.in{border-color:#c7d2fe;background:#eef2ff}.sc.in .sc-n{color:var(--indigo)}
 
-/* ── LOG ── */
-.log-panel{height:180px;overflow-y:auto;background:var(--gray-900);border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace}
-.log-panel::-webkit-scrollbar{width:4px}
-.log-panel::-webkit-scrollbar-track{background:transparent}
-.log-panel::-webkit-scrollbar-thumb{background:#374151;border-radius:2px}
-.log-line{display:flex;gap:8px;align-items:baseline;padding:2px 0;font-size:11px;line-height:1.6}
-.log-ts{color:#4b5563;flex-shrink:0;font-size:10px}
-.log-icon{flex-shrink:0;width:12px}
-.log-msg{color:#d1d5db;word-break:break-all}
+/* LOG */
+.log-box{height:160px;overflow-y:auto;background:#0f172a;border-radius:9px;padding:10px;font-family:'JetBrains Mono',monospace}
+.log-box::-webkit-scrollbar{width:3px}
+.log-box::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
+.ll{display:flex;gap:7px;align-items:baseline;padding:1px 0;font-size:11px;line-height:1.6}
+.ll-ts{color:#475569;flex-shrink:0;font-size:10px}
+.ll-ic{flex-shrink:0;width:12px}
+.ll-msg{color:#cbd5e1;word-break:break-all}
 
-/* ── REPORT ── */
-#reportSection{display:none}
-.report-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.report-cell{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px 8px;text-align:center}
-.report-cell .num{font-size:20px;font-weight:800;color:var(--gray-900)}
-.report-cell .lbl{font-size:10px;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
-.report-banner{margin-top:12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500}
-.report-banner.ok{background:var(--green-light);color:var(--green);border:1px solid #86efac}
-.report-banner.warn{background:var(--amber-light);color:var(--amber);border:1px solid #fcd34d}
+/* REPORT */
+.rep-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.rep-cell{background:var(--g50,#f9fafb);border:1px solid var(--g200);border-radius:8px;padding:12px 6px;text-align:center}
+.rep-cell .n{font-size:20px;font-weight:800;color:var(--g900)}
+.rep-cell .l{font-size:10px;color:var(--g400);text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.rep-banner{margin-top:10px;padding:10px 14px;border-radius:9px;font-size:13px;font-weight:500}
+.rep-banner.ok{background:var(--greenl);color:var(--green);border:1px solid #86efac}
+.rep-banner.warn{background:var(--amberl);color:var(--amber);border:1px solid #fcd34d}
 
-/* ── HISTORY ── */
-.hist-loading,.hist-empty,.hist-error{padding:40px;text-align:center;color:var(--gray-400);font-size:14px}
-.hist-item{padding:16px 20px;border-bottom:1px solid var(--gray-100);transition:.1s}
-.hist-item:last-child{border-bottom:none}
-.hist-item:hover{background:var(--gray-50)}
-.hist-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.hist-date{font-size:11px;color:var(--gray-400);font-family:'JetBrains Mono',monospace}
-.hist-badges{display:flex;gap:6px}
-.badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px}
-.badge.green{background:var(--green-light);color:var(--green)}
-.badge.red{background:var(--red-light);color:var(--red)}
-.badge.purple{background:var(--purple-light);color:var(--purple)}
-.hist-names{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--gray-700);margin-bottom:4px;flex-wrap:wrap}
-.hist-arrow{color:var(--gray-300)}
-.hist-elapsed{font-size:11px;color:var(--gray-400)}
+/* HISTORY */
+.hist-empty,.hist-load,.hist-err{padding:36px;text-align:center;color:var(--g400);font-size:13px}
+.hi{padding:14px 18px;border-bottom:1px solid var(--g100);transition:.1s}
+.hi:last-child{border-bottom:none}
+.hi:hover{background:var(--g50,#f9fafb)}
+.hi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hi-dt{font-size:10px;color:var(--g400);font-family:'JetBrains Mono',monospace}
+.hi-badges{display:flex;gap:5px}
+.hbadge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px}
+.hbadge.g{background:var(--greenl);color:var(--green)}
+.hbadge.r{background:var(--redl);color:var(--red)}
+.hbadge.p{background:var(--purplel);color:var(--purple)}
+.hi-names{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--g700);flex-wrap:wrap}
+.hi-arrow{color:var(--g300)}
+.hi-foot{font-size:10px;color:var(--g400);margin-top:3px}
 
-/* ── MODAL ── */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:20px}
-.modal{background:var(--white);border-radius:16px;width:100%;max-width:540px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
-.modal-head{padding:16px 20px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between}
-.modal-head h3{font-size:15px;font-weight:700;color:var(--gray-900)}
-.modal-close{background:none;border:none;font-size:20px;color:var(--gray-400);cursor:pointer;line-height:1;padding:2px 8px;border-radius:6px}
-.modal-close:hover{background:var(--gray-100);color:var(--gray-700)}
-.modal-body{overflow-y:auto;flex:1;padding:8px 0}
-.modal-item{display:flex;align-items:flex-start;gap:10px;padding:8px 20px;border-bottom:1px solid var(--gray-100)}
-.modal-item:last-child{border-bottom:none}
-.modal-idx{font-size:11px;color:var(--gray-400);min-width:24px;flex-shrink:0;padding-top:2px;font-family:'JetBrains Mono',monospace}
-.modal-info{flex:1;min-width:0}
-.modal-name{font-size:13px;color:var(--gray-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.modal-path{font-size:11px;color:var(--gray-400);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.modal-reason{font-size:11px;background:var(--red-light);color:var(--red);padding:2px 8px;border-radius:999px;margin-top:4px;display:inline-block}
-.modal-link{color:var(--brand);font-size:12px;text-decoration:none;flex-shrink:0;padding-top:2px}
-.modal-link:hover{text-decoration:underline}
+/* TIP */
+.tip{background:#fffbeb;border:1px solid #fcd34d;border-radius:9px;padding:9px 13px;font-size:12px;color:#92400e;margin-bottom:14px;display:flex;gap:7px}
 
-/* ── TOAST ── */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--gray-900);color:#fff;font-size:13px;padding:10px 20px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:2000;white-space:nowrap;box-shadow:var(--shadow-lg)}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--white);border-radius:14px;width:100%;max-width:520px;max-height:78vh;display:flex;flex-direction:column;box-shadow:var(--shl)}
+.modal-h{padding:14px 18px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
+.modal-h h3{font-size:14px;font-weight:700}
+.modal-cls{background:none;border:none;font-size:20px;color:var(--g400);cursor:pointer;padding:0 6px;border-radius:6px;line-height:1}
+.modal-cls:hover{background:var(--g100)}
+.modal-b{overflow-y:auto;flex:1}
+.mi{display:flex;align-items:flex-start;gap:9px;padding:8px 18px;border-bottom:1px solid var(--g100)}
+.mi:last-child{border-bottom:none}
+.mi-idx{font-size:10px;color:var(--g400);min-width:22px;flex-shrink:0;font-family:'JetBrains Mono',monospace;padding-top:2px}
+.mi-info{flex:1;min-width:0}
+.mi-name{font-size:12px;color:var(--g800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-path{font-size:10px;color:var(--g400);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-reason{font-size:10px;background:var(--redl);color:var(--red);padding:2px 7px;border-radius:999px;margin-top:3px;display:inline-block}
+.mi-link{color:var(--brand);font-size:11px;text-decoration:none;flex-shrink:0}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--g900);color:#fff;font-size:12px;padding:9px 18px;border-radius:9px;opacity:0;transition:.25s;pointer-events:none;z-index:999;box-shadow:var(--shl)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.warn{background:var(--amber)}
 .toast.err{background:var(--red)}
 .toast.ok{background:var(--green)}
 
-/* ── TIP BOX ── */
-.tip-box{background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:16px;display:flex;gap:8px;align-items:flex-start}
-.tip-box .tip-icon{font-size:14px;flex-shrink:0;margin-top:1px}
-
-@media(max-width:600px){
-  .report-grid{grid-template-columns:repeat(3,1fr)}
-  .form-row{grid-template-columns:1fr 1fr}
-  .stats-row{flex-wrap:wrap}
-  .stat-card{min-width:calc(50% - 5px)}
+@media(max-width:580px){
+  .rep-grid{grid-template-columns:repeat(3,1fr)}
+  .frow{grid-template-columns:1fr}
+  .stats{flex-wrap:wrap}
+  .sc{min-width:calc(50% - 4px)}
 }
 </style>
 </head>
 <body>
 
-<!-- NAVBAR -->
-<nav class="navbar">
-  <a class="nav-brand" href="#">
-    <span class="nav-logo">SwiftCopy<span>.</span>Drive</span>
-    <span class="nav-badge">Pro</span>
-  </a>
-  <div class="nav-user" id="navUser" style="display:none">
-    <img id="userAvatar" class="nav-avatar" src="" alt=""/>
-    <div>
-      <div class="nav-name" id="userName"></div>
-      <div class="nav-email" id="userEmail"></div>
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">SwiftCopy<b>.</b>Drive <span class="badge">Pro</span></div>
+  <div class="nav-right" id="navRight" style="display:none">
+    <img id="navAv" class="nav-av" src="" alt=""/>
+    <div class="nav-info">
+      <span id="navName" class="nav-name"></span>
+      <span id="navEmail" class="nav-email"></span>
     </div>
-    <button class="btn-reauth" onclick="handleRelogin()">🔑 Cấp quyền Drive</button>
-    <button class="btn-logout" onclick="handleLogout()">Đăng xuất</button>
+    <button class="btn-xs primary" onclick="reAuth()">🔑 Cấp quyền Drive</button>
+    <button class="btn-xs" onclick="doLogout()">Đăng xuất</button>
   </div>
 </nav>
 
-<!-- SECTION: LANDING -->
-<div id="section-landing">
-  <div class="landing">
-    <div class="landing-icon">📋</div>
-    <h1><span class="accent">SwiftCopy</span><span class="dot">.</span>Drive</h1>
-    <p class="landing-sub">Sao chép toàn bộ thư mục Google Drive — kể cả Shared Drive — về Drive của bạn. Nhanh, an toàn, chạy thẳng trên trình duyệt.</p>
-    <div class="features">
-      <div class="feature-pill"><span class="icon">⚡</span> Sao chép tốc độ cao</div>
-      <div class="feature-pill"><span class="icon">📂</span> Hỗ trợ Shared Drive</div>
-      <div class="feature-pill"><span class="icon">🔄</span> Resume nếu bị gián đoạn</div>
-      <div class="feature-pill"><span class="icon">📊</span> Báo cáo chi tiết</div>
-      <div class="feature-pill"><span class="icon">🕐</span> Lịch sử sao chép</div>
+<!-- LANDING -->
+<div id="s-land">
+  <div class="land">
+    <div class="land-icon">📋</div>
+    <h1>SwiftCopy<span style="color:var(--red)">.</span>Drive</h1>
+    <p class="land-sub">Sao chép toàn bộ thư mục Google Drive — kể cả Shared Drive — về Drive của bạn. Nhanh, an toàn, chạy thẳng trên trình duyệt.</p>
+    <div class="feats">
+      <div class="feat">⚡ Sao chép tốc độ cao</div>
+      <div class="feat">📂 Hỗ trợ Shared Drive</div>
+      <div class="feat">🔄 Resume nếu bị gián đoạn</div>
+      <div class="feat">📊 Báo cáo chi tiết</div>
+      <div class="feat">🕐 Lịch sử sao chép</div>
     </div>
-    <button class="btn-google" onclick="handleLogin()">
-      <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+    <button class="btn-google" onclick="doLogin()">
+      <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66 2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
       Đăng nhập bằng Google
     </button>
-    <p class="pricing-note">Mua 1 lần · Dùng vĩnh viễn · <strong>Liên hệ để được cấp quyền sau khi thanh toán</strong></p>
+    <p class="price-note">Mua 1 lần · Dùng vĩnh viễn · <strong>Liên hệ admin sau khi thanh toán</strong></p>
   </div>
 </div>
 
-<!-- SECTION: CHECKING -->
-<div id="section-checking">
-  <div class="checking">
-    <div class="checking-spinner"></div>
-    <p>Đang kiểm tra tài khoản...</p>
+<!-- CHECKING -->
+<div id="s-check">
+  <div class="check-wrap">
+    <div class="spin"></div>
+    <p style="color:var(--g500);font-size:14px">Đang kiểm tra tài khoản...</p>
   </div>
 </div>
 
-<!-- SECTION: PENDING -->
-<div id="section-pending">
-  <div class="pending">
-    <div class="pending-card">
-      <div class="pending-icon">⏳</div>
+<!-- PENDING -->
+<div id="s-pend">
+  <div class="pend-wrap">
+    <div class="pend-card">
+      <div style="font-size:44px;margin-bottom:16px">⏳</div>
       <h2>Chờ kích hoạt</h2>
-      <p>Tài khoản của bạn đã được ghi nhận. Sau khi thanh toán, admin sẽ kích hoạt tài khoản trong thời gian sớm nhất.</p>
-      <div class="status-badge">
-        <span>🟡</span> Đang chờ duyệt
-      </div>
-      <p class="contact-note">Nếu đã thanh toán và chưa được kích hoạt sau 24h, vui lòng liên hệ admin.</p>
+      <p>Tài khoản đã được ghi nhận. Sau khi thanh toán, admin sẽ kích hoạt trong thời gian sớm nhất.</p>
+      <div class="status-pill">🟡 Đang chờ duyệt</div>
+      <p class="pend-note">Đã thanh toán nhưng chưa được kích hoạt sau 24h? Liên hệ admin.</p>
       <br/>
-      <button class="btn btn-outline" onclick="window.location.reload()">🔄 Kiểm tra lại</button>
+      <button class="btn btn-o" style="margin:0 auto" onclick="location.reload()">🔄 Kiểm tra lại</button>
     </div>
   </div>
 </div>
 
-<!-- SECTION: APP -->
-<div id="section-app">
-  <div class="app-container">
+<!-- APP -->
+<div id="s-app">
+  <div class="app">
 
-    <!-- TABS -->
     <div class="tabs">
-      <button class="tab-btn active" data-tab="copy" onclick="switchTab('copy')">📋 Sao chép</button>
-      <button class="tab-btn" data-tab="history" onclick="switchTab('history')">🕐 Lịch sử</button>
+      <button class="tab on" data-t="copy" onclick="gotoTab('copy')">📋 Sao chép</button>
+      <button class="tab" data-t="hist" onclick="gotoTab('hist')">🕐 Lịch sử</button>
     </div>
 
-    <!-- TAB: COPY -->
-    <div id="pane-copy">
-
-      <!-- TIP -->
-      <div class="tip-box">
-        <span class="tip-icon">💡</span>
-        <span>Nhấn <b>🔑 Cấp quyền Drive</b> trên navbar trước khi sao chép lần đầu để cấp quyền truy cập Google Drive.</span>
+    <!-- COPY TAB -->
+    <div id="t-copy">
+      <div class="tip">
+        <span>💡</span>
+        <span>Nhấn <b>🔑 Cấp quyền Drive</b> ở góc trên phải <b>trước khi sao chép lần đầu</b> để cấp quyền truy cập Google Drive.</span>
       </div>
 
-      <!-- INPUT CARD -->
       <div class="card">
-        <div class="card-header">
-          <span class="card-title"><span class="icon">🔗</span> Cấu hình nguồn & đích</span>
-        </div>
-        <div class="card-body">
-          <div class="form-group">
-            <label class="form-label">Drive nguồn (Shared Drive)</label>
-            <input id="srcInput" class="form-input" type="text" placeholder="Dán URL hoặc Folder ID Drive nguồn"/>
+        <div class="card-h"><span class="card-t">🔗 Cấu hình nguồn &amp; đích</span></div>
+        <div class="card-b">
+          <div class="fg">
+            <label class="fl">Drive nguồn (Shared Drive)</label>
+            <input id="srcInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive nguồn"/>
           </div>
-          <div class="form-group">
-            <label class="form-label">Drive bạn tải về</label>
-            <input id="destInput" class="form-input" type="text" placeholder="Dán URL hoặc Folder ID Drive đích"/>
+          <div class="fg">
+            <label class="fl">Drive bạn tải về</label>
+            <input id="destInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive đích"/>
           </div>
-          <div class="form-row">
-            <div class="form-group" style="margin-bottom:0">
-              <label class="form-label">Từ trang</label>
-              <input id="fromPage" class="form-input" type="number" value="1" min="1"/>
+          <div class="frow">
+            <div class="fg" style="margin-bottom:0">
+              <label class="fl">Từ trang</label>
+              <input id="fromPage" class="fi" type="number" value="1" min="1"/>
             </div>
-            <div class="form-group" style="margin-bottom:0">
-              <label class="form-label">Đến trang</label>
-              <input id="toPage" class="form-input" type="number" value="0" min="0"/>
-              <div class="form-hint">0 = tất cả · mỗi trang 100 mục</div>
+            <div class="fg" style="margin-bottom:0">
+              <label class="fl">Đến trang</label>
+              <input id="toPage" class="fi" type="number" value="0" min="0"/>
+              <div class="fhint">0 = tất cả · mỗi trang 100 mục</div>
             </div>
-            <div style="display:flex;flex-direction:column;justify-content:flex-end">
-              <div class="btn-row">
-                <button id="btnStart" class="btn btn-primary" onclick="startCopy()">▷ Bắt đầu sao chép</button>
-                <button id="btnStop" class="btn btn-danger" onclick="stopCopy()" style="display:none">■ Dừng lại</button>
-              </div>
-            </div>
+          </div>
+          <div class="brow">
+            <button id="btnStart" class="btn btn-p" onclick="startCopy()">▷ Bắt đầu sao chép</button>
+            <button id="btnStop" class="btn btn-d" onclick="stopCopy()" style="display:none">■ Dừng lại</button>
           </div>
         </div>
       </div>
 
-      <!-- PROGRESS CARD -->
       <div class="card">
-        <div class="card-header">
-          <span class="card-title"><span class="icon">⚡</span> Tiến trình</span>
-        </div>
-        <div class="card-body">
-          <div class="progress-wrap">
-            <div class="progress-track">
-              <div id="progressFill" class="progress-fill"></div>
-            </div>
+        <div class="card-h"><span class="card-t">⚡ Tiến trình</span></div>
+        <div class="card-b">
+          <div class="prog-wrap">
+            <div class="prog-track"><div id="progFill" class="prog-fill"></div></div>
           </div>
-          <div id="statusLabel" class="status-label">Chưa bắt đầu</div>
+          <div id="statusLbl" class="status-lbl">Chưa bắt đầu</div>
 
-          <!-- STATS -->
-          <div id="statsRow" class="stats-row">
-            <div class="stat-card green" onclick="showModal('copied')">
-              <div id="statCopied" class="stat-num">0</div>
-              <div class="stat-label">Đã copy</div>
-              <div class="stat-hint">▾ Xem danh sách</div>
+          <div id="statsRow" class="stats" style="display:none">
+            <div class="sc gr" onclick="openModal('copied')">
+              <div id="sCopied" class="sc-n">0</div>
+              <div class="sc-l">Đã copy</div>
+              <div class="sc-h">▾ Xem</div>
             </div>
-            <div class="stat-card red" onclick="showModal('failed')">
-              <div id="statFailed" class="stat-num">0</div>
-              <div class="stat-label">Lỗi</div>
-              <div class="stat-hint">▾ Xem danh sách</div>
+            <div class="sc re" onclick="openModal('failed')">
+              <div id="sFailed" class="sc-n">0</div>
+              <div class="sc-l">Lỗi</div>
+              <div class="sc-h">▾ Xem</div>
             </div>
-            <div class="stat-card purple" onclick="showModal('folders')">
-              <div id="statFolders" class="stat-num">0</div>
-              <div class="stat-label">Thư mục</div>
-              <div class="stat-hint">▾ Xem danh sách</div>
+            <div class="sc pu" onclick="openModal('folders')">
+              <div id="sFolders" class="sc-n">0</div>
+              <div class="sc-l">Thư mục</div>
+              <div class="sc-h">▾ Xem</div>
             </div>
-            <div id="skipCard" class="stat-card indigo" onclick="showModal('skip')" style="display:none">
-              <div id="statSkipped" class="stat-num">0</div>
-              <div class="stat-label">Đã có</div>
-              <div class="stat-hint">▾ Xem danh sách</div>
+            <div id="skipCard" class="sc in" onclick="openModal('skip')" style="display:none">
+              <div id="sSkipped" class="sc-n">0</div>
+              <div class="sc-l">Đã có</div>
+              <div class="sc-h">▾ Xem</div>
             </div>
           </div>
 
-          <!-- LOG -->
-          <div style="margin-top:16px">
-            <div style="font-size:11px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Activity Log</div>
-            <div id="logPanel" class="log-panel"></div>
+          <div style="margin-top:14px">
+            <div style="font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Activity Log</div>
+            <div id="logBox" class="log-box"></div>
           </div>
         </div>
       </div>
 
-      <!-- REPORT -->
-      <div id="reportSection" class="card">
-        <div class="card-header">
-          <span class="card-title"><span class="icon">📊</span> Báo cáo kết quả</span>
-        </div>
-        <div class="card-body">
-          <div class="report-grid">
-            <div class="report-cell"><div class="num" id="repCopied" style="color:var(--green)">0</div><div class="lbl">Đã copy</div></div>
-            <div class="report-cell"><div class="num" id="repFailed" style="color:var(--red)">0</div><div class="lbl">Lỗi</div></div>
-            <div class="report-cell"><div class="num" id="repFolders" style="color:var(--purple)">0</div><div class="lbl">Thư mục</div></div>
-            <div class="report-cell"><div class="num" id="repSkipped" style="color:var(--indigo)">0</div><div class="lbl">Đã có</div></div>
-            <div class="report-cell"><div class="num" id="repElapsed" style="color:var(--gray-700)">—</div><div class="lbl">Thời gian</div></div>
+      <div id="repCard" class="card" style="display:none">
+        <div class="card-h"><span class="card-t">📊 Báo cáo kết quả</span></div>
+        <div class="card-b">
+          <div class="rep-grid">
+            <div class="rep-cell"><div class="n" id="rCopied" style="color:var(--green)">0</div><div class="l">Đã copy</div></div>
+            <div class="rep-cell"><div class="n" id="rFailed" style="color:var(--red)">0</div><div class="l">Lỗi</div></div>
+            <div class="rep-cell"><div class="n" id="rFolders" style="color:var(--purple)">0</div><div class="l">Thư mục</div></div>
+            <div class="rep-cell"><div class="n" id="rSkipped" style="color:var(--indigo)">0</div><div class="l">Đã có</div></div>
+            <div class="rep-cell"><div class="n" id="rElapsed" style="color:var(--g700)">—</div><div class="l">Thời gian</div></div>
           </div>
-          <div id="reportBanner" class="report-banner ok">✓ Sao chép hoàn tất!</div>
+          <div id="repBanner" class="rep-banner ok">✓ Sao chép hoàn tất!</div>
         </div>
-      </div>
-
-    </div><!-- /pane-copy -->
-
-    <!-- TAB: HISTORY -->
-    <div id="pane-history" style="display:none">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title"><span class="icon">🕐</span> Lịch sử sao chép</span>
-          <button class="btn btn-outline" style="font-size:12px;padding:6px 14px" onclick="loadHistory()">↺ Làm mới</button>
-        </div>
-        <div id="historyList"></div>
       </div>
     </div>
 
-  </div><!-- /app-container -->
-</div><!-- /section-app -->
+    <!-- HIST TAB -->
+    <div id="t-hist" style="display:none">
+      <div class="card">
+        <div class="card-h">
+          <span class="card-t">🕐 Lịch sử sao chép</span>
+          <button class="btn-xs" onclick="loadHist()">↺ Làm mới</button>
+        </div>
+        <div id="histList"><div class="hist-load">Đang tải...</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <!-- MODAL -->
-<div id="detailModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+<div id="modalOv" class="modal-ov" onclick="if(event.target===this)closeModal()">
   <div class="modal">
-    <div class="modal-head">
+    <div class="modal-h">
       <h3 id="modalTitle">Chi tiết</h3>
-      <button class="modal-close" onclick="closeModal()">×</button>
+      <button class="modal-cls" onclick="closeModal()">×</button>
     </div>
-    <div id="modalBody" class="modal-body"></div>
+    <div id="modalBody" class="modal-b"></div>
   </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<script>
-// Show navbar user info when logged in
-const _origRenderUser = window.renderUser;
-document.addEventListener('DOMContentLoaded', ()=>{});
+<!-- FIREBASE + APP LOGIC -->
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, addDoc, collection,
+         query, where, orderBy, getDocs, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Patch: show navbar user after login
-const _origShowSection = window.showSection;
-function patchNavbar(user){
-  const nu = document.getElementById('navUser');
-  if(user && nu) nu.style.display='flex';
-  else if(nu) nu.style.display='none';
-}
-// Override showSection to handle navbar
-const origShow = window.showSection;
-window.showSection = function(name){
-  origShow(name);
-  const nu = document.getElementById('navUser');
-  if(nu) nu.style.display = name==='app' ? 'flex' : 'none';
+// ── THAY FIREBASE CONFIG CỦA BẠN VÀO ĐÂY ──────────────────
+const fbCfg = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
+// ────────────────────────────────────────────────────────────
+
+const app  = initializeApp(fbCfg);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// Provider với scope Drive
+const provider = new GoogleAuthProvider();
+provider.addScope('https://www.googleapis.com/auth/drive');
+
+// ── STATE ────────────────────────────────────────────────────
+let gUser   = null;
+let gToken  = null;   // Google OAuth access token (Drive API)
+let stopFlag = false;
+let stats   = newStats();
+
+function newStats(){ return { copied:0,failed:0,folders:0,skipped:0,
+  copiedFiles:[],failedFiles:[],folderList:[],skippedFiles:[] }; }
+
+// ── AUTH ──────────────────────────────────────────────────────
+window.doLogin = async () => {
+  try {
+    const res = await signInWithPopup(auth, provider);
+    gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
+  } catch(e){ toast('Đăng nhập thất bại: '+e.message,'err'); }
+};
+
+window.doLogout = () => signOut(auth);
+
+window.reAuth = async () => {
+  try {
+    const res = await signInWithPopup(auth, provider);
+    gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
+    toast('✓ Đã cấp quyền Drive!','ok');
+  } catch(e){ toast('Lỗi: '+e.message,'err'); }
+};
+
+onAuthStateChanged(auth, async u => {
+  if (!u){ gUser=null; gToken=null; sec('land'); return; }
+  gUser = u;
+  sec('check');
+  try {
+    await ensureUser(u);
+    const snap = await getDoc(doc(db,'users',u.uid));
+    const approved = snap.exists() && snap.data().approved === true;
+    setNavUser(u);
+    if (approved){ sec('app'); loadHist(); }
+    else sec('pend');
+  } catch(e){
+    // Nếu Firestore lỗi vẫn hiển thị pending
+    setNavUser(u);
+    sec('pend');
+  }
+});
+
+async function ensureUser(u){
+  const ref  = doc(db,'users',u.uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()){
+    await setDoc(ref,{
+      email: u.email, displayName: u.displayName,
+      photoURL: u.photoURL, approved:false,
+      createdAt: serverTimestamp()
+    });
+  }
+}
+
+// ── DRIVE API ─────────────────────────────────────────────────
+const BASE = 'https://www.googleapis.com/drive/v3';
+const FMIME = 'application/vnd.google-apps.folder';
+const SMIME = 'application/vnd.google-apps.shortcut';
+
+function hdr(){ return { Authorization:'Bearer '+gToken, 'Content-Type':'application/json' }; }
+
+async function dget(path, p={}){
+  if (!gToken) throw new Error('Chưa cấp quyền Drive — nhấn 🔑 Cấp quyền Drive trên navbar');
+  const url = new URL(BASE+path);
+  Object.entries(p).forEach(([k,v])=>url.searchParams.set(k,v));
+  const r = await fetch(url, { headers: hdr() });
+  if (!r.ok){ const t=await r.text(); throw new Error(`Drive ${r.status}: ${t.slice(0,120)}`); }
+  return r.json();
+}
+async function dpost(path, body){
+  if (!gToken) throw new Error('Chưa cấp quyền Drive — nhấn 🔑 Cấp quyền Drive trên navbar');
+  const r = await fetch(BASE+path, { method:'POST', headers:hdr(), body:JSON.stringify(body) });
+  if (!r.ok){ const t=await r.text(); throw new Error(`Drive ${r.status}: ${t.slice(0,120)}`); }
+  return r.json();
+}
+
+function fid(s){
+  s=s.trim();
+  let m=s.match(/\/folders\/([a-zA-Z0-9_-]+)/); if(m) return m[1];
+  m=s.match(/id=([a-zA-Z0-9_-]+)/); if(m) return m[1];
+  if(/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
+  throw new Error('Không nhận diện được Folder ID: '+s);
+}
+async function fname(id){ try{ return (await dget('/files/'+id,{fields:'name',supportsAllDrives:true})).name; }catch{ return 'Unknown'; } }
+async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+async function listItems(fid){
+  let res=[],pt=null;
+  do {
+    const p={q:`'${fid}' in parents and trashed=false`,pageSize:100,
+             fields:'nextPageToken,files(id,name,mimeType)',
+             supportsAllDrives:true,includeItemsFromAllDrives:true};
+    if(pt) p.pageToken=pt;
+    const r = await dget('/files',p);
+    res.push(...(r.files||[]));
+    pt=r.nextPageToken;
+  } while(pt);
+  return res;
+}
+async function existNames(fid){ return new Set((await listItems(fid)).map(i=>i.name)); }
+
+async function copyFile(fileId, destId){
+  for(let i=0;i<3;i++){
+    if(stopFlag) return {ok:false,reason:'Đã dừng'};
+    try{
+      await dpost('/files/'+fileId+'/copy',{parents:[destId]});
+      return {ok:true};
+    }catch(e){
+      const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
+      if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*1000);continue;}
+      if(c===403) return {ok:false,reason:'Không có quyền copy'};
+      if(c===404) return {ok:false,reason:'File không tìm thấy'};
+      return {ok:false,reason:e.message.slice(0,80)};
+    }
+  }
+  return {ok:false,reason:'Hết số lần thử'};
+}
+
+async function mkFolder(name, parentId){
+  const r=await dget('/files',{
+    q:`'${parentId}' in parents and name='${name.replace(/'/g,"\\'")}' and mimeType='${FMIME}' and trashed=false`,
+    fields:'files(id)',supportsAllDrives:true,includeItemsFromAllDrives:true
+  });
+  if(r.files?.length) return r.files[0].id;
+  return (await dpost('/files',{name,mimeType:FMIME,parents:[parentId]})).id;
+}
+
+async function copyRec(srcId, destId, path=''){
+  if(stopFlag) return;
+  const items = await listItems(srcId);
+  const dnames = await existNames(destId);
+  for(const item of items){
+    if(stopFlag) return;
+    const {name,id,mimeType}=item;
+    const fp = path?`${path} › ${name}`:name;
+    if(mimeType===FMIME){
+      const nid = await mkFolder(name,destId);
+      stats.folders++; stats.folderList.push({name,path:fp});
+      addLog(`▣ ${name}`,'folder'); updStats();
+      await copyRec(id,nid,fp);
+    } else if(mimeType===SMIME){
+      stats.failed++; stats.failedFiles.push({name,path:fp,reason:'Shortcut — bỏ qua'});
+      addLog(`⏭ Shortcut: ${name}`,'skip'); updStats();
+    } else {
+      if(dnames.has(name)){
+        stats.skipped++; stats.skippedFiles.push({name,path:fp});
+        addLog(`⏭ Đã có: ${name}`,'skip'); updStats(); continue;
+      }
+      const res = await copyFile(id,destId);
+      if(res.ok){ stats.copied++; stats.copiedFiles.push({name,path:fp}); addLog(`✓ ${name}`,'ok'); }
+      else { stats.failed++; stats.failedFiles.push({name,path:fp,reason:res.reason,link:`https://drive.google.com/file/d/${id}/view`}); addLog(`✗ ${name} — ${res.reason}`,'err'); }
+      updStats();
+    }
+  }
+}
+
+// ── START COPY ────────────────────────────────────────────────
+window.startCopy = async () => {
+  if(!gToken){ toast('Nhấn 🔑 Cấp quyền Drive trước!','warn'); return; }
+  const sv=document.getElementById('srcInput').value.trim();
+  const dv=document.getElementById('destInput').value.trim();
+  if(!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
+
+  stopFlag=false; stats=newStats();
+  document.getElementById('logBox').innerHTML='';
+  document.getElementById('repCard').style.display='none';
+  document.getElementById('statsRow').style.display='flex';
+  document.getElementById('skipCard').style.display='none';
+  updStats(); setRunning(true);
+
+  const t0=Date.now();
+  try {
+    const srcId  = fid(sv), destId=fid(dv);
+    const sn=await fname(srcId), dn=await fname(destId);
+    setStatus(`Đang sao chép "${sn}" → "${dn}"`);
+    addLog(`Nguồn: ${sn}`,'info'); addLog(`Đích: ${dn}`,'info');
+
+    const top = await listItems(srcId);
+    const fp  = Math.max(0,(parseInt(document.getElementById('fromPage').value)||1)-1);
+    const tp  = parseInt(document.getElementById('toPage').value)||0;
+    const sel = tp>0 ? top.slice(fp,tp) : top.slice(fp);
+    if(!sel.length){ toast('Không tìm thấy mục nào!','warn'); setRunning(false); return; }
+
+    setProgress(0,sel.length);
+    addLog(`Bắt đầu ${sel.length} mục...`,'info');
+    const dex = await existNames(destId);
+
+    for(let i=0;i<sel.length;i++){
+      if(stopFlag) break;
+      const {name,id,mimeType}=sel[i];
+      setProgress(i,sel.length); setStatus(`[${i+1}/${sel.length}] ${name}`);
+      if(mimeType===FMIME){
+        const nid=await mkFolder(name,destId);
+        stats.folders++; stats.folderList.push({name,path:name});
+        addLog(`▣ ${name}`,'folder'); await copyRec(id,nid,name);
+      } else {
+        if(dex.has(name)){
+          stats.skipped++; stats.skippedFiles.push({name,path:name});
+          addLog(`⏭ Đã có: ${name}`,'skip'); updStats(); setProgress(i+1,sel.length); continue;
+        }
+        const res=await copyFile(id,destId);
+        if(res.ok){ stats.copied++; stats.copiedFiles.push({name,path:name}); addLog(`✓ ${name}`,'ok'); }
+        else { stats.failed++; stats.failedFiles.push({name,path:name,reason:res.reason,link:`https://drive.google.com/file/d/${id}/view`}); addLog(`✗ ${name} — ${res.reason}`,'err'); }
+      }
+      updStats(); setProgress(i+1,sel.length);
+    }
+
+    const el=Math.round((Date.now()-t0)/1000);
+    setProgress(sel.length,sel.length,stopFlag?'paused':'done');
+    if(stopFlag){ setStatus('⏸ Đã dừng — nhấn Bắt đầu để tiếp tục'); }
+    else { setStatus(`✓ Hoàn thành trong ${el}s`); await saveHist(srcId,sn,destId,dn,el); showReport(el); }
+  } catch(e){ addLog(`✗ ${e.message}`,'err'); setStatus('✗ Lỗi — xem Activity Log'); toast(e.message,'err'); }
+  finally { setRunning(false); }
+};
+
+window.stopCopy = ()=>{ stopFlag=true; };
+
+// ── FIRESTORE HISTORY ─────────────────────────────────────────
+async function saveHist(si,sn,di,dn,el){
+  try { await addDoc(collection(db,'history'),{
+    uid:gUser.uid, email:gUser.email,
+    srcId:si, srcName:sn, destId:di, destName:dn,
+    copied:stats.copied, failed:stats.failed,
+    folders:stats.folders, skipped:stats.skipped,
+    elapsed:el, createdAt:serverTimestamp()
+  }); } catch(e){ console.warn('saveHist',e); }
+}
+
+window.loadHist = async () => {
+  const el = document.getElementById('histList');
+  el.innerHTML='<div class="hist-load">Đang tải...</div>';
+  try {
+    const q=query(collection(db,'history'),where('uid','==',gUser.uid),orderBy('createdAt','desc'));
+    const snap=await getDocs(q);
+    if(snap.empty){ el.innerHTML='<div class="hist-empty">Chưa có lịch sử sao chép nào.</div>'; return; }
+    el.innerHTML=snap.docs.map(d=>{
+      const h=d.data();
+      const dt=h.createdAt?.toDate?h.createdAt.toDate().toLocaleString('vi-VN'):'—';
+      return `<div class="hi">
+        <div class="hi-top">
+          <span class="hi-dt">${dt}</span>
+          <span class="hi-badges">
+            <span class="hbadge g">${h.copied} copy</span>
+            ${h.failed>0?`<span class="hbadge r">${h.failed} lỗi</span>`:''}
+            ${h.skipped>0?`<span class="hbadge p">${h.skipped} đã có</span>`:''}
+          </span>
+        </div>
+        <div class="hi-names"><span>📁 ${h.srcName||'—'}</span><span class="hi-arrow">→</span><span>📁 ${h.destName||'—'}</span></div>
+        <div class="hi-foot">⏱ ${h.elapsed||0}s · ${h.folders||0} thư mục</div>
+      </div>`;
+    }).join('');
+  } catch(e){ el.innerHTML=`<div class="hist-err">Lỗi: ${e.message}</div>`; }
+};
+
+// ── UI HELPERS ────────────────────────────────────────────────
+function sec(name){
+  ['land','check','pend','app'].forEach(s=>{
+    const el=document.getElementById('s-'+s);
+    if(el) el.style.display=s===name?'block':'none';
+  });
+  const nr=document.getElementById('navRight');
+  if(nr) nr.style.display=name==='app'?'flex':'none';
+}
+
+function setNavUser(u){
+  document.getElementById('navAv').src=u.photoURL||'';
+  document.getElementById('navName').textContent=u.displayName||u.email;
+  document.getElementById('navEmail').textContent=u.email;
+}
+
+function setRunning(r){
+  document.getElementById('btnStart').style.display=r?'none':'inline-flex';
+  document.getElementById('btnStop').style.display=r?'inline-flex':'none';
+}
+
+function setStatus(msg){ document.getElementById('statusLbl').textContent=msg; }
+
+function setProgress(v,max,state='running'){
+  const f=document.getElementById('progFill');
+  f.style.width=(max?Math.round(v/max*100):0)+'%';
+  f.className='prog-fill '+state;
+}
+
+function addLog(msg,lv='ok'){
+  const C={ok:'#4ade80',err:'#f87171',info:'#60a5fa',skip:'#475569',folder:'#c084fc'};
+  const I={ok:'✓',err:'✗',info:'→',skip:'⏭',folder:'▣'};
+  const b=document.getElementById('logBox');
+  const d=document.createElement('div'); d.className='ll';
+  const ts=new Date().toLocaleTimeString('vi-VN');
+  d.innerHTML=`<span class="ll-ts">${ts}</span><span class="ll-ic" style="color:${C[lv]||'#94a3b8'}">${I[lv]||'·'}</span><span class="ll-msg">${msg}</span>`;
+  b.appendChild(d); b.scrollTop=b.scrollHeight;
+}
+
+function updStats(){
+  document.getElementById('sCopied').textContent=stats.copied;
+  document.getElementById('sFailed').textContent=stats.failed;
+  document.getElementById('sFolders').textContent=stats.folders;
+  document.getElementById('sSkipped').textContent=stats.skipped;
+  document.getElementById('skipCard').style.display=stats.skipped>0?'flex':'none';
+}
+
+function showReport(el){
+  document.getElementById('rCopied').textContent=stats.copied;
+  document.getElementById('rFailed').textContent=stats.failed;
+  document.getElementById('rFolders').textContent=stats.folders;
+  document.getElementById('rSkipped').textContent=stats.skipped;
+  document.getElementById('rElapsed').textContent=el+'s';
+  const b=document.getElementById('repBanner');
+  if(stats.failed===0){ b.className='rep-banner ok'; b.textContent=`✓ Hoàn tất — ${stats.copied} file đã về Drive của bạn.`; }
+  else { b.className='rep-banner warn'; b.textContent=`⚠ ${stats.copied} thành công, ${stats.failed} lỗi — nhấn ô Lỗi để xem chi tiết.`; }
+  document.getElementById('repCard').style.display='block';
+}
+
+window.gotoTab = (t)=>{
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  document.getElementById('t-copy').style.display=t==='copy'?'block':'none';
+  document.getElementById('t-hist').style.display=t==='hist'?'block':'none';
+  if(t==='hist') loadHist();
+};
+
+window.openModal = (type)=>{
+  const map={
+    copied:{label:'Đã copy',data:stats.copiedFiles},
+    failed:{label:'Lỗi',data:stats.failedFiles},
+    folders:{label:'Thư mục',data:stats.folderList},
+    skip:{label:'Đã có',data:stats.skippedFiles}
+  };
+  const cfg=map[type];
+  document.getElementById('modalTitle').textContent=`${cfg.label} (${cfg.data.length})`;
+  document.getElementById('modalBody').innerHTML = cfg.data.length===0
+    ? '<p style="color:var(--g400);text-align:center;padding:28px">Không có mục nào.</p>'
+    : cfg.data.slice(0,300).map((f,i)=>`
+      <div class="mi">
+        <span class="mi-idx">${i+1}</span>
+        <div class="mi-info">
+          <div class="mi-name">${f.name}</div>
+          ${f.path?`<div class="mi-path">${f.path}</div>`:''}
+          ${f.reason?`<span class="mi-reason">${f.reason}</span>`:''}
+        </div>
+        ${f.link?`<a href="${f.link}" target="_blank" class="mi-link">↗</a>`:''}
+      </div>`).join('')
+      +(cfg.data.length>300?`<p style="color:var(--g400);font-size:11px;text-align:center;padding:10px">...+${cfg.data.length-300} mục</p>`:'');
+  document.getElementById('modalOv').style.display='flex';
+};
+window.closeModal = ()=>{ document.getElementById('modalOv').style.display='none'; };
+
+function toast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast on '+(type||'');
+  setTimeout(()=>t.classList.remove('on'),3200);
+}
 </script>
 </body>
 </html>
