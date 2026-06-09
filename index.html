@@ -2,231 +2,260 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>SwiftCopy.Drive — Sao chép Google Drive tốc độ cao</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --white:#fff;--off:#f8f9fb;
-  --g100:#f3f4f6;--g200:#e5e7eb;--g300:#d1d5db;
-  --g400:#9ca3af;--g500:#6b7280;--g600:#4b5563;
-  --g700:#374151;--g800:#1f2937;--g900:#111827;
-  --brand:#0052cc;--brandl:#e8f0fe;--brandd:#003d99;
-  --green:#16a34a;--greenl:#dcfce7;
-  --red:#dc2626;--redl:#fee2e2;
-  --purple:#7c3aed;--purplel:#ede9fe;
-  --indigo:#4f46e5;--indigol:#eef2ff;
-  --amber:#d97706;--amberl:#fef3c7;
-  --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
-  --shm:0 4px 16px rgba(0,0,0,.08);
-  --shl:0 20px 48px rgba(0,0,0,.12);
-  --r:12px;
+  --bg:#f9f9f7;
+  --surface:#ffffff;
+  --surface2:#f4f4f1;
+  --border:#e8e8e3;
+  --border2:#d8d8d0;
+  --text:#111110;
+  --text2:#555550;
+  --text3:#999990;
+  --brand:#111110;
+  --yellow:#f5c518;
+  --yellow-dark:#d4a800;
+  --red:#e8291c;
+  --red-light:#fff0ee;
+  --red-border:#ffd0cc;
+  --green:#1a9950;
+  --green-light:#edfaf3;
+  --green-border:#b8e8cd;
+  --purple:#6b3fa0;
+  --purple-light:#f5f0ff;
+  --r:10px;
+  --r2:14px;
+  --shadow:0 1px 4px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
+  --shadow2:0 4px 20px rgba(0,0,0,.08);
 }
-body{font-family:'Sora',sans-serif;background:var(--off);color:var(--g800);min-height:100vh;line-height:1.5}
+html{font-size:15px}
+body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased}
 
-/* NAVBAR */
-.nav{background:var(--white);border-bottom:1px solid var(--g200);height:58px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--sh)}
-.nav-logo{font-size:17px;font-weight:800;color:var(--brand);letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
-.nav-logo b{color:var(--red)}
-.badge{background:var(--brand);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+/* ── NAVBAR ── */
+.nav{background:var(--surface);border-bottom:1.5px solid var(--border);height:54px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo{font-family:'Nunito',sans-serif;font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.nav-logo .dot{color:var(--red)}
+.nav-sub{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.3px;padding:2px 8px;border:1.5px solid var(--border2);border-radius:6px}
 .nav-right{display:flex;align-items:center;gap:8px}
-.nav-av{width:30px;height:30px;border-radius:50%;border:2px solid var(--g200);object-fit:cover}
-.nav-info{display:flex;flex-direction:column}
-.nav-name{font-size:12px;font-weight:600;color:var(--g700);line-height:1.3}
-.nav-email{font-size:10px;color:var(--g400);line-height:1.3}
-.btn-xs{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--g200);background:var(--white);color:var(--g600);transition:.15s}
-.btn-xs:hover{background:var(--g100)}
-.btn-xs.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
-.btn-xs.primary:hover{background:var(--brandd)}
+.nav-av{width:30px;height:30px;border-radius:50%;border:2px solid var(--border);object-fit:cover}
+.nav-info .nav-name{font-size:12px;font-weight:700;color:var(--text);line-height:1.3}
+.nav-info .nav-email{font-size:10px;color:var(--text3);line-height:1.3}
+.btn-sm{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:.15s;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2)}
+.btn-sm:hover{background:var(--surface2);color:var(--text)}
+.btn-sm.accent{background:var(--yellow);color:var(--text);border-color:var(--yellow-dark)}
+.btn-sm.accent:hover{background:var(--yellow-dark)}
 
-/* SECTIONS */
+/* ── SECTIONS ── */
 #s-land,#s-check,#s-pend,#s-app{display:none}
 
-/* LANDING */
-.land{min-height:calc(100vh - 58px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;background:linear-gradient(160deg,#eef4ff 0%,#fafafa 60%,#fff5f5 100%)}
-.land-icon{width:68px;height:68px;background:linear-gradient(135deg,var(--brand),var(--indigo));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 20px;box-shadow:0 8px 28px rgba(0,82,204,.25)}
-.land h1{font-size:clamp(26px,5vw,46px);font-weight:800;color:var(--g900);margin-bottom:10px;letter-spacing:-1px;line-height:1.15}
-.land-sub{font-size:15px;color:var(--g500);max-width:460px;margin:0 auto 28px}
-.feats{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:36px;max-width:580px}
-.feat{background:var(--white);border:1px solid var(--g200);border-radius:999px;padding:7px 14px;font-size:12px;color:var(--g600);display:flex;align-items:center;gap:5px;box-shadow:var(--sh)}
-.btn-google{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--g300);border-radius:12px;padding:13px 26px;font-size:14px;font-weight:600;color:var(--g800);cursor:pointer;box-shadow:var(--shm);transition:.2s;font-family:inherit}
-.btn-google:hover{box-shadow:var(--shl);transform:translateY(-1px)}
+/* ── LANDING ── */
+.land{min-height:calc(100vh - 54px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;text-align:center;background:var(--bg)}
+.land-badge{display:inline-flex;align-items:center;gap:6px;background:var(--yellow);color:var(--text);font-size:11px;font-weight:800;padding:4px 12px;border-radius:999px;margin-bottom:20px;letter-spacing:.3px}
+.land h1{font-family:'Nunito',sans-serif;font-size:clamp(28px,5vw,50px);font-weight:800;color:var(--text);margin-bottom:12px;letter-spacing:-1.5px;line-height:1.1}
+.land h1 .dot{color:var(--red)}
+.land-sub{font-size:15px;color:var(--text2);max-width:440px;margin:0 auto 28px;line-height:1.7}
+.feats{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:36px;max-width:600px}
+.feat{background:var(--surface);border:1.5px solid var(--border);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:7px}
+.feat i{color:var(--text3);font-size:13px}
+.btn-google{display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r2);padding:13px 24px;font-size:14px;font-weight:700;color:var(--text);cursor:pointer;box-shadow:var(--shadow);transition:.2s;font-family:inherit}
+.btn-google:hover{box-shadow:var(--shadow2);transform:translateY(-1px)}
 .btn-google svg{width:18px;height:18px;flex-shrink:0}
-.price-note{margin-top:16px;font-size:12px;color:var(--g400)}
-.price-note strong{color:var(--brand)}
+.price-note{margin-top:14px;font-size:12px;color:var(--text3)}
+.price-note b{color:var(--text2)}
 
-/* CHECKING */
-.check-wrap{min-height:calc(100vh - 58px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-.spin{width:36px;height:36px;border:3px solid var(--g200);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite}
+/* ── CHECKING ── */
+.check-wrap{min-height:calc(100vh - 54px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spin{width:34px;height:34px;border:3px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* PENDING */
-.pend-wrap{min-height:calc(100vh - 58px);display:flex;align-items:center;justify-content:center;padding:40px 20px}
-.pend-card{background:var(--white);border:1px solid var(--g200);border-radius:20px;padding:44px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shm)}
-.pend-card h2{font-size:20px;font-weight:700;margin-bottom:8px}
-.pend-card p{font-size:13px;color:var(--g500);line-height:1.7}
-.status-pill{display:inline-flex;align-items:center;gap:6px;background:var(--amberl);color:var(--amber);font-size:12px;font-weight:600;padding:5px 14px;border-radius:999px;margin:16px 0;border:1px solid #fcd34d}
-.pend-note{font-size:11px;color:var(--g400);margin-top:12px}
+/* ── PENDING ── */
+.pend-wrap{min-height:calc(100vh - 54px);display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.pend-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:44px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shadow2)}
+.pend-card .pend-icon{font-size:44px;margin-bottom:18px}
+.pend-card h2{font-family:'Nunito',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px}
+.pend-card p{font-size:13px;color:var(--text2);line-height:1.7}
+.pend-pill{display:inline-flex;align-items:center;gap:6px;background:var(--yellow);color:var(--text);font-size:11px;font-weight:800;padding:5px 14px;border-radius:999px;margin:14px 0}
+.pend-note{font-size:11px;color:var(--text3);margin-top:12px}
 
-/* APP */
-.app{max-width:840px;margin:0 auto;padding:20px 16px}
+/* ── APP ── */
+.app{max-width:820px;margin:0 auto;padding:20px 16px}
 
-/* TABS */
-.tabs{display:flex;gap:2px;background:var(--g100);border-radius:12px;padding:3px;margin-bottom:20px}
-.tab{flex:1;padding:8px;font-size:13px;font-weight:600;font-family:inherit;border:none;background:none;border-radius:10px;cursor:pointer;color:var(--g500);transition:.15s;display:flex;align-items:center;justify-content:center;gap:5px}
-.tab.on{background:var(--white);color:var(--g900);box-shadow:var(--sh)}
-
-/* CARD */
-.card{background:var(--white);border:1px solid var(--g200);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:14px}
-.card-h{padding:14px 18px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
-.card-t{font-size:13px;font-weight:700;color:var(--g800);display:flex;align-items:center;gap:7px}
+/* ── CARD ── */
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.card-h{padding:13px 18px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
+.card-t{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.card-t i{color:var(--text3);font-size:14px}
 .card-b{padding:18px}
 
-/* FORM */
-.fg{margin-bottom:12px}
-.fl{display:block;font-size:11px;font-weight:700;color:var(--g500);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
-.fi{width:100%;padding:9px 12px;border:1.5px solid var(--g200);border-radius:9px;font-size:13px;font-family:inherit;color:var(--g800);background:var(--white);transition:.15s;outline:none}
-.fi:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brandl)}
-.fi::placeholder{color:var(--g300)}
-.fhint{font-size:11px;color:var(--g400);margin-top:3px}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* ── TIP ── */
+.tip{background:#fffbea;border:1.5px solid #f0d060;border-radius:var(--r);padding:10px 14px;font-size:12px;color:#7a6000;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start}
+.tip i{color:#d4a800;font-size:14px;flex-shrink:0;margin-top:1px}
 
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:.15s}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-p{background:var(--brand);color:#fff}
-.btn-p:hover:not(:disabled){background:var(--brandd);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,82,204,.3)}
-.btn-d{background:var(--red);color:#fff}
-.btn-d:hover{background:#b91c1c}
-.btn-o{background:var(--white);color:var(--g600);border:1.5px solid var(--g200)}
-.btn-o:hover:not(:disabled){background:var(--g100)}
+/* ── FORM ── */
+.fg{margin-bottom:12px}
+.fl{display:block;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.fi{width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;font-family:inherit;color:var(--text);background:var(--surface);transition:.15s;outline:none}
+.fi:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(0,0,0,.06)}
+.fi::placeholder{color:var(--text3)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fhint{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid transparent;transition:.15s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn i{font-size:13px}
+.btn-black{background:var(--text);color:#fff;border-color:var(--text)}
+.btn-black:hover:not(:disabled){background:#333;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-red:hover:not(:disabled){background:#c0241a}
+.btn-yellow{background:var(--yellow);color:var(--text);border-color:var(--yellow-dark)}
+.btn-yellow:hover:not(:disabled){background:var(--yellow-dark)}
+.btn-outline{background:var(--surface);color:var(--text2);border-color:var(--border2)}
+.btn-outline:hover:not(:disabled){background:var(--surface2);color:var(--text)}
 .brow{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 
-/* PROGRESS */
+/* ── PROGRESS ── */
 .prog-wrap{margin:14px 0 6px}
-.prog-track{height:5px;background:var(--g100);border-radius:999px;overflow:hidden}
-.prog-fill{height:100%;border-radius:999px;background:var(--brand);transition:width .4s;width:0}
+.prog-track{height:8px;background:var(--surface2);border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+.prog-fill{height:100%;border-radius:999px;background:var(--text);transition:width .4s;width:0}
 .prog-fill.done{background:var(--green)}
-.prog-fill.paused{background:var(--amber)}
-.prog-fill.running{background:var(--brand)}
-.status-lbl{font-size:11px;color:var(--g500);margin-top:5px;min-height:16px;font-family:'JetBrains Mono',monospace}
+.prog-fill.paused{background:var(--yellow-dark)}
+.prog-fill.scanning{background:var(--purple)}
+.status-lbl{font-size:11px;color:var(--text3);margin-top:5px;min-height:16px;font-family:monospace}
 
-/* STATS */
+/* ── STATS ── */
 .stats{display:flex;gap:8px;margin:14px 0}
-.sc{flex:1;background:var(--white);border:1.5px solid var(--g200);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:.15s;min-width:0}
-.sc:hover{box-shadow:var(--shm);transform:translateY(-1px)}
-.sc-n{font-size:22px;font-weight:800;line-height:1;margin-bottom:3px}
-.sc-l{font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;opacity:.8}
-.sc-h{font-size:9px;color:var(--g400);margin-top:2px}
-.sc.gr{border-color:#bbf7d0;background:#f0fdf4}.sc.gr .sc-n{color:var(--green)}
-.sc.re{border-color:#fecaca;background:#fff5f5}.sc.re .sc-n{color:var(--red)}
-.sc.pu{border-color:#ddd6fe;background:#faf5ff}.sc.pu .sc-n{color:var(--purple)}
-.sc.in{border-color:#c7d2fe;background:#eef2ff}.sc.in .sc-n{color:var(--indigo)}
+.sc{flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:12px 8px;text-align:center;cursor:pointer;transition:.15s;min-width:0}
+.sc:hover{box-shadow:var(--shadow2);border-color:var(--border2);transform:translateY(-1px)}
+.sc-n{font-family:'Nunito',sans-serif;font-size:22px;font-weight:800;line-height:1;margin-bottom:3px}
+.sc-l{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;opacity:.8}
+.sc-h{font-size:10px;color:var(--text3);margin-top:3px}
+.sc.gr{border-color:var(--green-border);background:var(--green-light)}.sc.gr .sc-n{color:var(--green)}
+.sc.re{border-color:var(--red-border);background:var(--red-light)}.sc.re .sc-n{color:var(--red)}
+.sc.pu{border-color:#d9caee;background:var(--purple-light)}.sc.pu .sc-n{color:var(--purple)}
 
-/* LOG */
-.log-box{height:160px;overflow-y:auto;background:#0f172a;border-radius:9px;padding:10px;font-family:'JetBrains Mono',monospace}
-.log-box::-webkit-scrollbar{width:3px}
-.log-box::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
-.ll{display:flex;gap:7px;align-items:baseline;padding:1px 0;font-size:11px;line-height:1.6}
-.ll-ts{color:#475569;flex-shrink:0;font-size:10px}
-.ll-ic{flex-shrink:0;width:12px}
-.ll-msg{color:#cbd5e1;word-break:break-all}
+/* ── LOG ── */
+.log-wrap{position:relative;margin-top:14px}
+.log-lbl{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.log-box{height:160px;overflow-y:auto;background:#111110;border-radius:var(--r);padding:10px 12px;font-family:'Courier New',monospace;scrollbar-width:thin;scrollbar-color:#555 #222}
+.log-box::-webkit-scrollbar{width:8px}
+.log-box::-webkit-scrollbar-track{background:#222;border-radius:4px}
+.log-box::-webkit-scrollbar-thumb{background:#555;border-radius:4px;border:2px solid #222}
+.log-box::-webkit-scrollbar-thumb:hover{background:#777}
+.ll{display:flex;gap:7px;align-items:baseline;padding:1.5px 0;font-size:11px;line-height:1.6}
+.ll-ts{color:#444;flex-shrink:0;font-size:10px}
+.ll-ic{flex-shrink:0;width:14px;text-align:center}
+.ll-msg{color:#ccc;word-break:break-all}
 
-/* REPORT */
-.rep-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.rep-cell{background:var(--g50,#f9fafb);border:1px solid var(--g200);border-radius:8px;padding:12px 6px;text-align:center}
-.rep-cell .n{font-size:20px;font-weight:800;color:var(--g900)}
-.rep-cell .l{font-size:10px;color:var(--g400);text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
-.rep-banner{margin-top:10px;padding:10px 14px;border-radius:9px;font-size:13px;font-weight:500}
-.rep-banner.ok{background:var(--greenl);color:var(--green);border:1px solid #86efac}
-.rep-banner.warn{background:var(--amberl);color:var(--amber);border:1px solid #fcd34d}
+/* ── SCAN RESULT ── */
+.scan-box{margin-top:14px;border-radius:var(--r);overflow:hidden;border:1.5px solid var(--border)}
+.scan-ok{padding:12px 16px;background:var(--green-light);border-color:var(--green-border);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--green)}
+.scan-err-head{padding:10px 16px;background:var(--red-light);border-bottom:1.5px solid var(--red-border);display:flex;align-items:center;justify-content:space-between}
+.scan-err-title{font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:7px}
+.scan-err-count{font-size:11px;font-weight:800;background:var(--red);color:#fff;padding:2px 8px;border-radius:999px}
+.scan-tree{max-height:240px;overflow-y:auto;background:var(--surface)}
 
-/* HISTORY */
-.hist-empty,.hist-load,.hist-err{padding:36px;text-align:center;color:var(--g400);font-size:13px}
-.hi{padding:14px 18px;border-bottom:1px solid var(--g100);transition:.1s}
-.hi:last-child{border-bottom:none}
-.hi:hover{background:var(--g50,#f9fafb)}
-.hi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.hi-dt{font-size:10px;color:var(--g400);font-family:'JetBrains Mono',monospace}
-.hi-badges{display:flex;gap:5px}
-.hbadge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px}
-.hbadge.g{background:var(--greenl);color:var(--green)}
-.hbadge.r{background:var(--redl);color:var(--red)}
-.hbadge.p{background:var(--purplel);color:var(--purple)}
-.hi-names{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--g700);flex-wrap:wrap}
-.hi-arrow{color:var(--g300)}
-.hi-foot{font-size:10px;color:var(--g400);margin-top:3px}
+/* ── TREE ITEM ── */
+.tree-item{display:flex;align-items:center;gap:8px;padding:7px 16px;border-bottom:1px solid var(--border);position:relative;font-size:12px}
+.tree-item:last-child{border-bottom:none}
+.tree-item.is-folder{background:var(--surface2);font-weight:700}
+.tree-item.is-file{color:var(--text2)}
+.tree-connector{width:1px;background:var(--border2);align-self:stretch;flex-shrink:0;margin-left:10px}
+.tree-h-line{width:8px;height:1px;background:var(--border2);flex-shrink:0}
+.tree-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tree-reason{font-size:10px;background:var(--red-light);color:var(--red);padding:2px 8px;border-radius:999px;flex-shrink:0;font-weight:600;border:1px solid var(--red-border)}
+.tree-count{font-size:10px;background:var(--surface2);color:var(--text3);padding:2px 7px;border-radius:999px;flex-shrink:0;border:1px solid var(--border)}
 
-/* TIP */
-.tip{background:#fffbeb;border:1px solid #fcd34d;border-radius:9px;padding:9px 13px;font-size:12px;color:#92400e;margin-bottom:14px;display:flex;gap:7px}
+/* ── REPORT ── */
+.rep-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.rep-cell{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);padding:12px 8px;text-align:center}
+.rep-cell .n{font-family:'Nunito',sans-serif;font-size:22px;font-weight:800;color:var(--text)}
+.rep-cell .l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.rep-banner{margin-top:10px;padding:10px 14px;border-radius:var(--r);font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.rep-banner.ok{background:var(--green-light);color:var(--green);border:1.5px solid var(--green-border)}
+.rep-banner.warn{background:#fff9ea;color:#7a5a00;border:1.5px solid #f0d060}
 
-/* MODAL */
-.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:16px}
-.modal{background:var(--white);border-radius:14px;width:100%;max-width:520px;max-height:78vh;display:flex;flex-direction:column;box-shadow:var(--shl)}
-.modal-h{padding:14px 18px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between}
-.modal-h h3{font-size:14px;font-weight:700}
-.modal-cls{background:none;border:none;font-size:20px;color:var(--g400);cursor:pointer;padding:0 6px;border-radius:6px;line-height:1}
-.modal-cls:hover{background:var(--g100)}
+/* ── MODAL ── */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--surface);border-radius:var(--r2);width:100%;max-width:540px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);border:1.5px solid var(--border)}
+.modal-h{padding:14px 18px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-h h3{font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+.modal-sort{font-size:11px;color:var(--text3);padding:4px 10px;background:var(--surface2);border-radius:999px;border:1px solid var(--border);display:flex;align-items:center;gap:5px}
+.modal-sort i{font-size:11px}
+.modal-cls{background:none;border:1.5px solid var(--border2);color:var(--text2);cursor:pointer;padding:3px 10px;border-radius:7px;font-size:13px;font-family:inherit;transition:.15s}
+.modal-cls:hover{background:var(--surface2)}
 .modal-b{overflow-y:auto;flex:1}
-.mi{display:flex;align-items:flex-start;gap:9px;padding:8px 18px;border-bottom:1px solid var(--g100)}
+.mi{display:flex;align-items:flex-start;gap:9px;padding:8px 16px;border-bottom:1px solid var(--border);position:relative}
 .mi:last-child{border-bottom:none}
-.mi-idx{font-size:10px;color:var(--g400);min-width:22px;flex-shrink:0;font-family:'JetBrains Mono',monospace;padding-top:2px}
+.mi.is-folder{background:var(--surface2)}
+.mi-idx{font-size:10px;color:var(--text3);min-width:22px;flex-shrink:0;font-family:monospace;padding-top:2px}
+.mi-icon{font-size:14px;flex-shrink:0;margin-top:1px}
 .mi-info{flex:1;min-width:0}
-.mi-name{font-size:12px;color:var(--g800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mi-path{font-size:10px;color:var(--g400);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mi-reason{font-size:10px;background:var(--redl);color:var(--red);padding:2px 7px;border-radius:999px;margin-top:3px;display:inline-block}
-.mi-link{color:var(--brand);font-size:11px;text-decoration:none;flex-shrink:0}
+.mi-name{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.mi-path{font-size:10px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-reason{font-size:10px;background:var(--red-light);color:var(--red);padding:2px 7px;border-radius:999px;margin-top:3px;display:inline-block;border:1px solid var(--red-border);font-weight:600}
+.mi-link{color:var(--text2);font-size:12px;text-decoration:none;flex-shrink:0;padding-top:2px}
+.mi-link:hover{color:var(--text)}
+.mi-count{font-size:10px;background:var(--surface);color:var(--text3);padding:2px 7px;border-radius:999px;border:1px solid var(--border);flex-shrink:0}
 
-/* TOAST */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--g900);color:#fff;font-size:12px;padding:9px 18px;border-radius:9px;opacity:0;transition:.25s;pointer-events:none;z-index:999;box-shadow:var(--shl)}
+/* ── RESUME BANNER ── */
+.resume-banner{background:#fffbea;border:1.5px solid #f0d060;border-radius:var(--r);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.resume-text{font-size:13px;color:#7a5a00;font-weight:600;display:flex;align-items:center;gap:7px}
+.resume-text i{font-size:14px}
+.resume-btns{display:flex;gap:7px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--text);color:#fff;font-size:12px;font-weight:600;padding:9px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:999;box-shadow:var(--shadow2)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.warn{background:var(--amber)}
+.toast.warn{background:var(--yellow-dark);color:var(--text)}
 .toast.err{background:var(--red)}
 .toast.ok{background:var(--green)}
 
-@media(max-width:580px){
-  .rep-grid{grid-template-columns:repeat(3,1fr)}
-  .frow{grid-template-columns:1fr}
-  .stats{flex-wrap:wrap}
-  .sc{min-width:calc(50% - 4px)}
-}
+@media(max-width:580px){.rep-grid{grid-template-columns:repeat(2,1fr)}.frow{grid-template-columns:1fr}.stats{flex-wrap:wrap}.sc{min-width:calc(50% - 4px)}}
 </style>
 </head>
 <body>
 
 <!-- NAV -->
 <nav class="nav">
-  <div class="nav-logo">SwiftCopy<b>.</b>Drive <span class="badge">Pro</span></div>
+  <div class="nav-brand">
+    <span class="nav-logo">SwiftCopy<span class="dot">.</span>Drive</span>
+    <span class="nav-sub">by Swiftstreet</span>
+  </div>
   <div class="nav-right" id="navRight" style="display:none">
     <img id="navAv" class="nav-av" src="" alt=""/>
     <div class="nav-info">
       <span id="navName" class="nav-name"></span>
       <span id="navEmail" class="nav-email"></span>
     </div>
-    <button class="btn-xs primary" onclick="reAuth()">🔑 Cấp quyền Drive</button>
-    <button class="btn-xs" onclick="doLogout()">Đăng xuất</button>
+    <button class="btn-sm accent" onclick="reAuth()"><i class="fa-solid fa-key" style="font-size:11px"></i> Cấp quyền Drive</button>
+    <button class="btn-sm" onclick="doLogout()">Đăng xuất</button>
   </div>
 </nav>
 
 <!-- LANDING -->
 <div id="s-land">
   <div class="land">
-    <div class="land-icon">📋</div>
-    <h1>SwiftCopy<span style="color:var(--red)">.</span>Drive</h1>
-    <p class="land-sub">Sao chép toàn bộ thư mục Google Drive — kể cả Shared Drive — về Drive của bạn. Nhanh, an toàn, chạy thẳng trên trình duyệt.</p>
+    <div class="land-badge"><i class="fa-solid fa-bolt"></i> Công cụ sao chép Drive #1</div>
+    <h1>SwiftCopy<span class="dot">.</span>Drive</h1>
+    <p class="land-sub">Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn, chạy thẳng trên trình duyệt.</p>
     <div class="feats">
-      <div class="feat">⚡ Sao chép tốc độ cao</div>
-      <div class="feat">📂 Hỗ trợ Shared Drive</div>
-      <div class="feat">🔄 Resume nếu bị gián đoạn</div>
-      <div class="feat">📊 Báo cáo chi tiết</div>
-      <div class="feat">🕐 Lịch sử sao chép</div>
+      <div class="feat"><i class="fa-regular fa-bolt"></i> Sao chép tốc độ cực nhanh</div>
+      <div class="feat"><i class="fa-regular fa-shield-check"></i> Kiểm tra Drive lỗi trước</div>
+      <div class="feat"><i class="fa-regular fa-chart-bar"></i> Báo cáo kết quả chi tiết</div>
+      <div class="feat"><i class="fa-regular fa-timeline"></i> Theo dõi hành trình sao chép</div>
     </div>
     <button class="btn-google" onclick="doLogin()">
       <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66 2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
       Đăng nhập bằng Google
     </button>
-    <p class="price-note">Mua 1 lần · Dùng vĩnh viễn · <strong>Liên hệ admin sau khi thanh toán</strong></p>
+    <p class="price-note">Mua 1 lần · Dùng vĩnh viễn · <b>Liên hệ admin sau khi thanh toán</b></p>
   </div>
 </div>
 
@@ -234,7 +263,7 @@ body{font-family:'Sora',sans-serif;background:var(--off);color:var(--g800);min-h
 <div id="s-check">
   <div class="check-wrap">
     <div class="spin"></div>
-    <p style="color:var(--g500);font-size:14px">Đang kiểm tra tài khoản...</p>
+    <p style="color:var(--text3);font-size:14px;font-weight:600">Đang kiểm tra tài khoản...</p>
   </div>
 </div>
 
@@ -242,13 +271,13 @@ body{font-family:'Sora',sans-serif;background:var(--off);color:var(--g800);min-h
 <div id="s-pend">
   <div class="pend-wrap">
     <div class="pend-card">
-      <div style="font-size:44px;margin-bottom:16px">⏳</div>
+      <div class="pend-icon">⏳</div>
       <h2>Chờ kích hoạt</h2>
       <p>Tài khoản đã được ghi nhận. Sau khi thanh toán, admin sẽ kích hoạt trong thời gian sớm nhất.</p>
-      <div class="status-pill">🟡 Đang chờ duyệt</div>
+      <div class="pend-pill"><i class="fa-solid fa-circle" style="font-size:8px;color:#d4a800"></i> Đang chờ duyệt</div>
       <p class="pend-note">Đã thanh toán nhưng chưa được kích hoạt sau 24h? Liên hệ admin.</p>
       <br/>
-      <button class="btn btn-o" style="margin:0 auto" onclick="location.reload()">🔄 Kiểm tra lại</button>
+      <button class="btn btn-outline" style="margin:0 auto" onclick="location.reload()"><i class="fa-regular fa-rotate-right"></i> Kiểm tra lại</button>
     </div>
   </div>
 </div>
@@ -257,108 +286,97 @@ body{font-family:'Sora',sans-serif;background:var(--off);color:var(--g800);min-h
 <div id="s-app">
   <div class="app">
 
-    <div class="tabs">
-      <button class="tab on" data-t="copy" onclick="gotoTab('copy')">📋 Sao chép</button>
-      <button class="tab" data-t="hist" onclick="gotoTab('hist')">🕐 Lịch sử</button>
+    <!-- RESUME BANNER (hiện khi có session cũ) -->
+    <div id="resumeBanner" class="resume-banner" style="display:none">
+      <div class="resume-text"><i class="fa-regular fa-clock-rotate-left"></i> Phát hiện phiên sao chép chưa hoàn tất. Tiếp tục?</div>
+      <div class="resume-btns">
+        <button class="btn btn-black" onclick="resumeSession()"><i class="fa-regular fa-play"></i> Tiếp tục</button>
+        <button class="btn btn-outline" onclick="clearSession()"><i class="fa-regular fa-trash"></i> Bỏ qua</button>
+      </div>
     </div>
 
-    <!-- COPY TAB -->
-    <div id="t-copy">
-      <div class="tip">
-        <span>💡</span>
-        <span>Nhấn <b>🔑 Cấp quyền Drive</b> ở góc trên phải <b>trước khi sao chép lần đầu</b> để cấp quyền truy cập Google Drive.</span>
+    <!-- INPUT CARD -->
+    <div class="card">
+      <div class="card-h">
+        <span class="card-t"><i class="fa-regular fa-link"></i> Cấu hình nguồn &amp; đích</span>
       </div>
-
-      <div class="card">
-        <div class="card-h"><span class="card-t">🔗 Cấu hình nguồn &amp; đích</span></div>
-        <div class="card-b">
-          <div class="fg">
-            <label class="fl">Drive nguồn (Shared Drive)</label>
-            <input id="srcInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive nguồn"/>
+      <div class="card-b">
+        <div class="fg">
+          <label class="fl">Drive nguồn (Shared Drive)</label>
+          <input id="srcInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive nguồn"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Drive bạn tải về</label>
+          <input id="destInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive đích"/>
+        </div>
+        <div class="frow">
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">Từ trang</label>
+            <input id="fromPage" class="fi" type="number" value="1" min="1"/>
           </div>
-          <div class="fg">
-            <label class="fl">Drive bạn tải về</label>
-            <input id="destInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive đích"/>
-          </div>
-          <div class="frow">
-            <div class="fg" style="margin-bottom:0">
-              <label class="fl">Từ trang</label>
-              <input id="fromPage" class="fi" type="number" value="1" min="1"/>
-            </div>
-            <div class="fg" style="margin-bottom:0">
-              <label class="fl">Đến trang</label>
-              <input id="toPage" class="fi" type="number" value="0" min="0"/>
-              <div class="fhint">0 = tất cả · mỗi trang 100 mục</div>
-            </div>
-          </div>
-          <div class="brow">
-            <button id="btnStart" class="btn btn-p" onclick="startCopy()">▷ Bắt đầu sao chép</button>
-            <button id="btnStop" class="btn btn-d" onclick="stopCopy()" style="display:none">■ Dừng lại</button>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">Đến trang</label>
+            <input id="toPage" class="fi" type="number" value="0" min="0"/>
+            <div class="fhint">0 = tất cả · mỗi trang 100 mục</div>
           </div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-h"><span class="card-t">⚡ Tiến trình</span></div>
-        <div class="card-b">
-          <div class="prog-wrap">
-            <div class="prog-track"><div id="progFill" class="prog-fill"></div></div>
-          </div>
-          <div id="statusLbl" class="status-lbl">Chưa bắt đầu</div>
-
-          <div id="statsRow" class="stats" style="display:none">
-            <div class="sc gr" onclick="openModal('copied')">
-              <div id="sCopied" class="sc-n">0</div>
-              <div class="sc-l">Đã copy</div>
-              <div class="sc-h">▾ Xem</div>
-            </div>
-            <div class="sc re" onclick="openModal('failed')">
-              <div id="sFailed" class="sc-n">0</div>
-              <div class="sc-l">Lỗi</div>
-              <div class="sc-h">▾ Xem</div>
-            </div>
-            <div class="sc pu" onclick="openModal('folders')">
-              <div id="sFolders" class="sc-n">0</div>
-              <div class="sc-l">Thư mục</div>
-              <div class="sc-h">▾ Xem</div>
-            </div>
-            <div id="skipCard" class="sc in" onclick="openModal('skip')" style="display:none">
-              <div id="sSkipped" class="sc-n">0</div>
-              <div class="sc-l">Đã có</div>
-              <div class="sc-h">▾ Xem</div>
-            </div>
-          </div>
-
-          <div style="margin-top:14px">
-            <div style="font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Activity Log</div>
-            <div id="logBox" class="log-box"></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="repCard" class="card" style="display:none">
-        <div class="card-h"><span class="card-t">📊 Báo cáo kết quả</span></div>
-        <div class="card-b">
-          <div class="rep-grid">
-            <div class="rep-cell"><div class="n" id="rCopied" style="color:var(--green)">0</div><div class="l">Đã copy</div></div>
-            <div class="rep-cell"><div class="n" id="rFailed" style="color:var(--red)">0</div><div class="l">Lỗi</div></div>
-            <div class="rep-cell"><div class="n" id="rFolders" style="color:var(--purple)">0</div><div class="l">Thư mục</div></div>
-            <div class="rep-cell"><div class="n" id="rSkipped" style="color:var(--indigo)">0</div><div class="l">Đã có</div></div>
-            <div class="rep-cell"><div class="n" id="rElapsed" style="color:var(--g700)">—</div><div class="l">Thời gian</div></div>
-          </div>
-          <div id="repBanner" class="rep-banner ok">✓ Sao chép hoàn tất!</div>
+        <div class="brow">
+          <button id="btnScan"  class="btn btn-yellow"   onclick="startScan()"><i class="fa-regular fa-magnifying-glass"></i> Kiểm tra trước</button>
+          <button id="btnStart" class="btn btn-black"    onclick="startCopy()"><i class="fa-regular fa-play"></i> Bắt đầu sao chép</button>
+          <button id="btnStop"  class="btn btn-red"      onclick="doStop()"   style="display:none"><i class="fa-regular fa-stop"></i> Dừng</button>
+          <button id="btnReset" class="btn btn-outline"  onclick="doReset()"><i class="fa-regular fa-rotate-left"></i> Reset</button>
         </div>
       </div>
     </div>
 
-    <!-- HIST TAB -->
-    <div id="t-hist" style="display:none">
-      <div class="card">
-        <div class="card-h">
-          <span class="card-t">🕐 Lịch sử sao chép</span>
-          <button class="btn-xs" onclick="loadHist()">↺ Làm mới</button>
+    <!-- SCAN RESULT -->
+    <div id="scanResult" style="display:none"></div>
+
+    <!-- PROGRESS CARD -->
+    <div class="card">
+      <div class="card-h"><span class="card-t"><i class="fa-regular fa-bolt"></i> Tiến trình</span></div>
+      <div class="card-b">
+        <div class="prog-wrap">
+          <div class="prog-track"><div id="progFill" class="prog-fill"></div></div>
         </div>
-        <div id="histList"><div class="hist-load">Đang tải...</div></div>
+        <div id="statusLbl" class="status-lbl">Chưa bắt đầu</div>
+
+        <div id="statsRow" class="stats" style="display:none">
+          <div class="sc gr" onclick="openModal('copied')">
+            <div id="sCopied" class="sc-n">0</div>
+            <div class="sc-l">Đã copy</div>
+            <div class="sc-h">▾ Xem</div>
+          </div>
+          <div class="sc re" onclick="openModal('failed')">
+            <div id="sFailed" class="sc-n">0</div>
+            <div class="sc-l">Lỗi</div>
+            <div class="sc-h">▾ Xem</div>
+          </div>
+          <div class="sc pu" onclick="openModal('folders')">
+            <div id="sFolders" class="sc-n">0</div>
+            <div class="sc-l">Thư mục</div>
+            <div class="sc-h">▾ Xem</div>
+          </div>
+        </div>
+
+        <div class="log-wrap">
+          <div class="log-lbl">Activity Log</div>
+          <div id="logBox" class="log-box"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORT -->
+    <div id="repCard" class="card" style="display:none">
+      <div class="card-h"><span class="card-t"><i class="fa-regular fa-chart-bar"></i> Báo cáo kết quả</span></div>
+      <div class="card-b">
+        <div class="rep-grid">
+          <div class="rep-cell"><div class="n" id="rCopied" style="color:var(--green)">0</div><div class="l">Đã copy</div></div>
+          <div class="rep-cell"><div class="n" id="rFailed" style="color:var(--red)">0</div><div class="l">Lỗi</div></div>
+          <div class="rep-cell"><div class="n" id="rFolders" style="color:var(--purple)">0</div><div class="l">Thư mục</div></div>
+          <div class="rep-cell"><div class="n" id="rElapsed" style="color:var(--text)">—</div><div class="l">Thời gian</div></div>
+        </div>
+        <div id="repBanner" class="rep-banner ok"><i class="fa-regular fa-circle-check"></i> Sao chép hoàn tất!</div>
       </div>
     </div>
 
@@ -370,7 +388,10 @@ body{font-family:'Sora',sans-serif;background:var(--off);color:var(--g800);min-h
   <div class="modal">
     <div class="modal-h">
       <h3 id="modalTitle">Chi tiết</h3>
-      <button class="modal-cls" onclick="closeModal()">×</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="modal-sort"><i class="fa-regular fa-arrow-down-wide-short"></i> Thư mục lớn → nhỏ</span>
+        <button class="modal-cls" onclick="closeModal()">Đóng</button>
+      </div>
     </div>
     <div id="modalBody" class="modal-b"></div>
   </div>
@@ -388,8 +409,9 @@ import { getFirestore, doc, getDoc, setDoc, addDoc, collection,
          query, where, orderBy, getDocs, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ── THAY FIREBASE CONFIG CỦA BẠN VÀO ĐÂY ──────────────────
-const fbCfg = {
+// ── THAY FIREBASE CONFIG ────────────────────────────────────
+// ── THAY FIREBASE CONFIG ────────────────────────────────────
+const firebaseConfig = {
   apiKey: "AIzaSyDu5D6bB-FxJl2E71Ls17GwHVtqZV0FwF8",
   authDomain: "swiftcopy-drive.firebaseapp.com",
   projectId: "swiftcopy-drive",
@@ -397,59 +419,62 @@ const fbCfg = {
   messagingSenderId: "477488339991",
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
+
+// ── ADMIN EMAIL (bypass approval) ──────────────────────────
+const ADMIN_EMAIL = "hgntran.contact@gmail.com";
+
+// ── EMAILJS (thông báo đăng ký mới) ────────────────────────
+const EMAILJS_SERVICE  = "service_eonwhro";  
+const EMAILJS_TEMPLATE = "template_7j0v95r"; 
+const EMAILJS_KEY      = "Fv-C3_S70n0t84S9_"; 
 // ────────────────────────────────────────────────────────────
 
-const app  = initializeApp(fbCfg);
+// Đã sửa đồng bộ biến sang firebaseConfig để tránh lỗi màn hình trắng
+const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-// Provider với scope Drive
 const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/drive');
 
 // ── STATE ────────────────────────────────────────────────────
-let gUser   = null;
-let gToken  = null;   // Google OAuth access token (Drive API)
+let gUser    = null;
+let gToken   = null;
 let stopFlag = false;
-let stats   = newStats();
+let scanning = false;
+let copying  = false;
+let stats    = ns();
 
-function newStats(){ return { copied:0,failed:0,folders:0,skipped:0,
-  copiedFiles:[],failedFiles:[],folderList:[],skippedFiles:[] }; }
+function ns(){ return { copied:0,failed:0,folders:0,
+  copiedFiles:[],failedFiles:[],folderList:[] }; }
 
 // ── AUTH ──────────────────────────────────────────────────────
 window.doLogin = async () => {
   try {
     const res = await signInWithPopup(auth, provider);
     gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
-  } catch(e){ toast('Đăng nhập thất bại: '+e.message,'err'); }
+  } catch(e){ toast('Đăng nhập thất bại','err'); }
 };
-
 window.doLogout = () => signOut(auth);
-
 window.reAuth = async () => {
   try {
     const res = await signInWithPopup(auth, provider);
     gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
-    toast('✓ Đã cấp quyền Drive!','ok');
-  } catch(e){ toast('Lỗi: '+e.message,'err'); }
+    toast('Đã cấp quyền Drive!','ok');
+  } catch(e){ toast('Lỗi cấp quyền: '+e.message,'err'); }
 };
 
 onAuthStateChanged(auth, async u => {
   if (!u){ gUser=null; gToken=null; sec('land'); return; }
-  gUser = u;
-  sec('check');
+  gUser = u; sec('check');
   try {
-    await ensureUser(u);
-    const snap = await getDoc(doc(db,'users',u.uid));
-    const approved = snap.exists() && snap.data().approved === true;
+    const isAdmin = u.email === ADMIN_EMAIL;
+    if (!isAdmin) await ensureUser(u);
+    const approved = isAdmin || await checkApproval(u);
     setNavUser(u);
-    if (approved){ sec('app'); loadHist(); }
+    if (approved){ sec('app'); checkResume(); }
     else sec('pend');
-  } catch(e){
-    // Nếu Firestore lỗi vẫn hiển thị pending
-    setNavUser(u);
-    sec('pend');
-  }
+  } catch(e){ setNavUser(u); sec('pend'); }
 });
 
 async function ensureUser(u){
@@ -457,33 +482,57 @@ async function ensureUser(u){
   const snap = await getDoc(ref);
   if (!snap.exists()){
     await setDoc(ref,{
-      email: u.email, displayName: u.displayName,
-      photoURL: u.photoURL, approved:false,
-      createdAt: serverTimestamp()
+      email:u.email, displayName:u.displayName,
+      photoURL:u.photoURL, approved:false, status:'pending',
+      createdAt:serverTimestamp()
     });
+    sendRegEmail(u);
   }
 }
 
+async function checkApproval(u){
+  const snap = await getDoc(doc(db,'users',u.uid));
+  return snap.exists() && snap.data().approved === true;
+}
+
+function sendRegEmail(u){
+  if (!EMAILJS_KEY || EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY') return;
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+  script.onload = () => {
+    emailjs.init(EMAILJS_KEY);
+    emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+      user_email: u.email, user_name: u.displayName,
+      user_uid: u.uid, reg_time: new Date().toLocaleString('vi-VN')
+    });
+  };
+  document.head.appendChild(script);
+}
+
 // ── DRIVE API ─────────────────────────────────────────────────
-const BASE = 'https://www.googleapis.com/drive/v3';
+const BASE  = 'https://www.googleapis.com/drive/v3';
 const FMIME = 'application/vnd.google-apps.folder';
 const SMIME = 'application/vnd.google-apps.shortcut';
+const CONCURRENCY = 4; // Số file copy song song
 
-function hdr(){ return { Authorization:'Bearer '+gToken, 'Content-Type':'application/json' }; }
-
-async function dget(path, p={}){
-  if (!gToken) throw new Error('Chưa cấp quyền Drive — nhấn 🔑 Cấp quyền Drive trên navbar');
-  const url = new URL(BASE+path);
+function hdr(){ return { Authorization:'Bearer '+gToken,'Content-Type':'application/json' }; }
+async function dget(path,p={}){
+  if (!gToken) throw new Error('Chưa cấp quyền Drive — nhấn Cấp quyền Drive');
+  const url=new URL(BASE+path);
   Object.entries(p).forEach(([k,v])=>url.searchParams.set(k,v));
-  const r = await fetch(url, { headers: hdr() });
-  if (!r.ok){ const t=await r.text(); throw new Error(`Drive ${r.status}: ${t.slice(0,120)}`); }
+  const r=await fetch(url,{headers:hdr()});
+  if (!r.ok){ const t=await r.text(); throw new Error(`Drive ${r.status}: ${t.slice(0,100)}`); }
   return r.json();
 }
-async function dpost(path, body){
-  if (!gToken) throw new Error('Chưa cấp quyền Drive — nhấn 🔑 Cấp quyền Drive trên navbar');
-  const r = await fetch(BASE+path, { method:'POST', headers:hdr(), body:JSON.stringify(body) });
-  if (!r.ok){ const t=await r.text(); throw new Error(`Drive ${r.status}: ${t.slice(0,120)}`); }
+async function dpost(path,body){
+  if (!gToken) throw new Error('Chưa cấp quyền Drive — nhấn Cấp quyền Drive');
+  const r=await fetch(BASE+path,{method:'POST',headers:hdr(),body:JSON.stringify(body)});
+  if (!r.ok){ const t=await r.text(); throw new Error(`Drive ${r.status}: ${t.slice(0,100)}`); }
   return r.json();
+}
+async function ddel(fileId){
+  if (!gToken) return;
+  await fetch(`${BASE}/files/${fileId}?supportsAllDrives=true`,{method:'DELETE',headers:hdr()});
 }
 
 function fid(s){
@@ -494,32 +543,31 @@ function fid(s){
   throw new Error('Không nhận diện được Folder ID: '+s);
 }
 async function fname(id){ try{ return (await dget('/files/'+id,{fields:'name',supportsAllDrives:true})).name; }catch{ return 'Unknown'; } }
-async function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
-async function listItems(fid){
+async function listItems(folderId){
   let res=[],pt=null;
   do {
-    const p={q:`'${fid}' in parents and trashed=false`,pageSize:100,
+    const p={q:`'${folderId}' in parents and trashed=false`,pageSize:1000,
              fields:'nextPageToken,files(id,name,mimeType)',
              supportsAllDrives:true,includeItemsFromAllDrives:true};
     if(pt) p.pageToken=pt;
-    const r = await dget('/files',p);
-    res.push(...(r.files||[]));
-    pt=r.nextPageToken;
+    const r=await dget('/files',p);
+    res.push(...(r.files||[])); pt=r.nextPageToken;
   } while(pt);
   return res;
 }
-async function existNames(fid){ return new Set((await listItems(fid)).map(i=>i.name)); }
+async function existNames(folderId){ return new Set((await listItems(folderId)).map(i=>i.name)); }
 
-async function copyFile(fileId, destId){
-  for(let i=0;i<3;i++){
+async function copyFileSingle(fileId,destId){
+  for(let i=0;i<4;i++){
     if(stopFlag) return {ok:false,reason:'Đã dừng'};
     try{
       await dpost('/files/'+fileId+'/copy',{parents:[destId]});
       return {ok:true};
     }catch(e){
       const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
-      if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*1000);continue;}
+      if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*800);continue;}
       if(c===403) return {ok:false,reason:'Không có quyền copy'};
       if(c===404) return {ok:false,reason:'File không tìm thấy'};
       return {ok:false,reason:e.message.slice(0,80)};
@@ -528,7 +576,24 @@ async function copyFile(fileId, destId){
   return {ok:false,reason:'Hết số lần thử'};
 }
 
-async function mkFolder(name, parentId){
+// Copy song song CONCURRENCY file cùng lúc
+async function copyBatch(files, destId){
+  const chunks = [];
+  for(let i=0;i<files.length;i+=CONCURRENCY) chunks.push(files.slice(i,i+CONCURRENCY));
+  for(const chunk of chunks){
+    if(stopFlag) break;
+    await Promise.all(chunk.map(async item => {
+      if(stopFlag) return;
+      const {name,id} = item;
+      const res = await copyFileSingle(id, destId);
+      if(res.ok){ stats.copied++; stats.copiedFiles.push({name,path:item._path||name}); addLog(`✓ ${name}`,'ok'); }
+      else { stats.failed++; stats.failedFiles.push({name,path:item._path||name,reason:res.reason,link:`https://drive.google.com/file/d/${id}/view`}); addLog(`✗ ${name} — ${res.reason}`,'err'); }
+      updStats(); saveSession();
+    }));
+  }
+}
+
+async function mkFolder(name,parentId){
   const r=await dget('/files',{
     q:`'${parentId}' in parents and name='${name.replace(/'/g,"\\'")}' and mimeType='${FMIME}' and trashed=false`,
     fields:'files(id)',supportsAllDrives:true,includeItemsFromAllDrives:true
@@ -537,139 +602,238 @@ async function mkFolder(name, parentId){
   return (await dpost('/files',{name,mimeType:FMIME,parents:[parentId]})).id;
 }
 
-async function copyRec(srcId, destId, path=''){
+async function copyRec(srcId,destId,path=''){
   if(stopFlag) return;
-  const items = await listItems(srcId);
-  const dnames = await existNames(destId);
-  for(const item of items){
+  const items   = await listItems(srcId);
+  const dnames  = await existNames(destId);
+  const folders = items.filter(i=>i.mimeType===FMIME);
+  const files   = items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME).filter(i=>!dnames.has(i.name)).map(i=>({...i,_path:path?`${path} › ${i.name}`:i.name}));
+  const skipped = items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&dnames.has(i.name));
+  skipped.forEach(i=>addLog(`⏭ Đã có: ${i.name}`,'skip'));
+  await copyBatch(files, destId);
+  for(const f of folders){
     if(stopFlag) return;
-    const {name,id,mimeType}=item;
-    const fp = path?`${path} › ${name}`:name;
-    if(mimeType===FMIME){
-      const nid = await mkFolder(name,destId);
-      stats.folders++; stats.folderList.push({name,path:fp});
-      addLog(`▣ ${name}`,'folder'); updStats();
-      await copyRec(id,nid,fp);
-    } else if(mimeType===SMIME){
-      stats.failed++; stats.failedFiles.push({name,path:fp,reason:'Shortcut — bỏ qua'});
-      addLog(`⏭ Shortcut: ${name}`,'skip'); updStats();
-    } else {
-      if(dnames.has(name)){
-        stats.skipped++; stats.skippedFiles.push({name,path:fp});
-        addLog(`⏭ Đã có: ${name}`,'skip'); updStats(); continue;
-      }
-      const res = await copyFile(id,destId);
-      if(res.ok){ stats.copied++; stats.copiedFiles.push({name,path:fp}); addLog(`✓ ${name}`,'ok'); }
-      else { stats.failed++; stats.failedFiles.push({name,path:fp,reason:res.reason,link:`https://drive.google.com/file/d/${id}/view`}); addLog(`✗ ${name} — ${res.reason}`,'err'); }
-      updStats();
-    }
+    const fp=path?`${path} › ${f.name}`:f.name;
+    const nid=await mkFolder(f.name,destId);
+    stats.folders++; stats.folderList.push({name:f.name,path:fp,count:0});
+    addLog(`▣ ${f.name}`,'folder'); updStats();
+    await copyRec(f.id,nid,fp);
   }
 }
 
-// ── START COPY ────────────────────────────────────────────────
-window.startCopy = async () => {
-  if(!gToken){ toast('Nhấn 🔑 Cấp quyền Drive trước!','warn'); return; }
+// ── SCAN LOGIC ────────────────────────────────────────────────
+async function startScan(){
+  if (!gToken){ toast('Nhấn Cấp quyền Drive trước!','warn'); return; }
   const sv=document.getElementById('srcInput').value.trim();
   const dv=document.getElementById('destInput').value.trim();
   if(!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
-  stopFlag=false; stats=newStats();
+  stopFlag=false; scanning=true;
+  document.getElementById('scanResult').style.display='none';
+  document.getElementById('logBox').innerHTML='';
+  setRunning('scan');
+
+  const errors=[];
+  const t0=Date.now();
+  try {
+    const srcId = fid(sv), destId = fid(dv);
+    const sn    = await fname(srcId);
+    setStatus(`Đang kiểm tra "${sn}"...`);
+    setProgress(0,1,'scanning');
+    addLog(`Bắt đầu kiểm tra quyền...`,'info');
+
+    async function scanRec(items, path=''){
+      for(const item of items){
+        if(stopFlag) return;
+        const fp = path?`${path} › ${item.name}`:item.name;
+        if(item.mimeType===SMIME){ errors.push({name:item.name,path:fp,reason:'Là shortcut — bỏ qua',type:'file'}); continue; }
+        if(item.mimeType===FMIME){
+          const children = await listItems(item.id);
+          const testFile = children.find(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME);
+          if(testFile){
+            try{
+              const r=await dpost('/files/'+testFile.id+'/copy',{name:'__swtest_'+testFile.name,parents:[destId]});
+              await ddel(r.id);
+            }catch(e){
+              const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
+              errors.push({name:item.name,path:fp,reason:c===403?'Không có quyền copy':'Lỗi API '+c,type:'folder'});
+              continue;
+            }
+          }
+          addLog(`✓ ${item.name}`,'ok');
+          const subFolders=children.filter(c=>c.mimeType===FMIME);
+          await scanRec(subFolders,fp);
+        } else {
+          try{
+            const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});
+            await ddel(r.id);
+            addLog(`✓ ${item.name}`,'ok');
+          }catch(e){
+            const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
+            errors.push({name:item.name,path:fp,reason:c===403?'Không có quyền copy':'Lỗi API '+c,type:'file'});
+          }
+        }
+      }
+    }
+
+    const top = await listItems(srcId);
+    await scanRec(top, sn);
+    const el = Math.round((Date.now()-t0)/1000);
+    setProgress(1,1,'done');
+    renderScanResult(errors, top.length, el);
+  } catch(e){ addLog('✗ '+e.message,'err'); setStatus('✗ Lỗi — xem Activity Log'); toast(e.message,'err'); }
+  finally { scanning=false; setRunning('idle'); }
+}
+
+function renderScanResult(errors, total, elapsed){
+  const el = document.getElementById('scanResult');
+  el.style.display='block';
+  if(!errors.length){
+    setStatus(`✓ Kiểm tra xong ${total} mục — Không có lỗi (${elapsed}s)`);
+    el.innerHTML=`<div class="scan-ok"><i class="fa-regular fa-circle-check" style="font-size:16px"></i> Kiểm tra xong — Tất cả ${total} mục đều có thể sao chép!</div>`;
+    return;
+  }
+  setStatus(`⚠ Phát hiện ${errors.length} vấn đề — Kiểm tra xong (${elapsed}s)`);
+
+  // Sort: folders first (depth 0 first), then files
+  const sorted = [...errors].sort((a,b)=>{
+    if(a.type==='folder'&&b.type!=='folder') return -1;
+    if(a.type!=='folder'&&b.type==='folder') return 1;
+    return (a.path||'').split(' › ').length - (b.path||'').split(' › ').length;
+  });
+
+  const rows = sorted.map(e=>{
+    const depth = Math.max(0,(e.path||'').split(' › ').length-2);
+    const indent = depth*20;
+    const isFolder = e.type==='folder';
+    const icon = isFolder
+      ? `<i class="fa-regular fa-folder" style="color:var(--purple);font-size:13px;flex-shrink:0"></i>`
+      : `<i class="fa-regular fa-file" style="color:var(--text3);font-size:13px;flex-shrink:0"></i>`;
+    return `<div class="tree-item ${isFolder?'is-folder':'is-file'}" style="padding-left:${16+indent}px">
+      ${icon}
+      <span class="tree-name">${e.name}</span>
+      <span class="tree-reason">${e.reason}</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML=`<div class="scan-box">
+    <div class="scan-err-head">
+      <span class="scan-err-title"><i class="fa-regular fa-triangle-exclamation" style="font-size:14px"></i> ${errors.length} mục bị lỗi quyền</span>
+      <span class="scan-err-count">${errors.length}</span>
+    </div>
+    <div class="scan-tree">${rows}</div>
+    <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:12px;color:var(--text2)">
+      <i class="fa-regular fa-circle-info" style="color:var(--text3);margin-right:5px"></i>
+      Vào Drive nguồn → chuột phải → <b>Chia sẻ</b> → thêm email bạn quyền <b>Người chỉnh sửa</b>
+    </div>
+  </div>`;
+}
+
+// ── COPY LOGIC ────────────────────────────────────────────────
+window.startCopy = async () => {
+  if (!gToken){ toast('Nhấn Cấp quyền Drive trước!','warn'); return; }
+  const sv=document.getElementById('srcInput').value.trim();
+  const dv=document.getElementById('destInput').value.trim();
+  if(!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
+
+  stopFlag=false; copying=true; stats=ns();
   document.getElementById('logBox').innerHTML='';
   document.getElementById('repCard').style.display='none';
+  document.getElementById('scanResult').style.display='none';
   document.getElementById('statsRow').style.display='flex';
-  document.getElementById('skipCard').style.display='none';
-  updStats(); setRunning(true);
+  updStats(); setRunning('copy');
 
   const t0=Date.now();
   try {
-    const srcId  = fid(sv), destId=fid(dv);
+    const srcId=fid(sv), destId=fid(dv);
     const sn=await fname(srcId), dn=await fname(destId);
     setStatus(`Đang sao chép "${sn}" → "${dn}"`);
     addLog(`Nguồn: ${sn}`,'info'); addLog(`Đích: ${dn}`,'info');
 
+    // Save session
+    saveSessionData({srcId,sn,destId,dn,sv,dv,fromPage:document.getElementById('fromPage').value,toPage:document.getElementById('toPage').value});
+
     const top = await listItems(srcId);
     const fp  = Math.max(0,(parseInt(document.getElementById('fromPage').value)||1)-1);
     const tp  = parseInt(document.getElementById('toPage').value)||0;
-    const sel = tp>0 ? top.slice(fp,tp) : top.slice(fp);
-    if(!sel.length){ toast('Không tìm thấy mục nào!','warn'); setRunning(false); return; }
+    const sel = tp>0?top.slice(fp,tp):top.slice(fp);
+    if(!sel.length){ toast('Không tìm thấy mục nào!','warn'); setRunning('idle'); copying=false; return; }
 
-    setProgress(0,sel.length);
-    addLog(`Bắt đầu ${sel.length} mục...`,'info');
+    setProgress(0,sel.length); addLog(`Bắt đầu ${sel.length} mục (${CONCURRENCY} luồng song song)...`,'info');
     const dex = await existNames(destId);
+    let idx=0;
 
-    for(let i=0;i<sel.length;i++){
+    for(const item of sel){
       if(stopFlag) break;
-      const {name,id,mimeType}=sel[i];
-      setProgress(i,sel.length); setStatus(`[${i+1}/${sel.length}] ${name}`);
-      if(mimeType===FMIME){
-        const nid=await mkFolder(name,destId);
-        stats.folders++; stats.folderList.push({name,path:name});
-        addLog(`▣ ${name}`,'folder'); await copyRec(id,nid,name);
+      idx++; setProgress(idx-1,sel.length); setStatus(`[${idx}/${sel.length}] ${item.name}`);
+      if(item.mimeType===FMIME){
+        const nid=await mkFolder(item.name,destId);
+        stats.folders++; stats.folderList.push({name:item.name,path:item.name,count:0});
+        addLog(`▣ ${item.name}`,'folder'); updStats();
+        await copyRec(item.id,nid,item.name);
       } else {
-        if(dex.has(name)){
-          stats.skipped++; stats.skippedFiles.push({name,path:name});
-          addLog(`⏭ Đã có: ${name}`,'skip'); updStats(); setProgress(i+1,sel.length); continue;
-        }
-        const res=await copyFile(id,destId);
-        if(res.ok){ stats.copied++; stats.copiedFiles.push({name,path:name}); addLog(`✓ ${name}`,'ok'); }
-        else { stats.failed++; stats.failedFiles.push({name,path:name,reason:res.reason,link:`https://drive.google.com/file/d/${id}/view`}); addLog(`✗ ${name} — ${res.reason}`,'err'); }
+        if(dex.has(item.name)){ addLog(`⏭ Đã có: ${item.name}`,'skip'); setProgress(idx,sel.length); continue; }
+        const res=await copyFileSingle(item.id,destId);
+        if(res.ok){ stats.copied++; stats.copiedFiles.push({name:item.name,path:item.name}); addLog(`✓ ${item.name}`,'ok'); }
+        else { stats.failed++; stats.failedFiles.push({name:item.name,path:item.name,reason:res.reason,link:`https://drive.google.com/file/d/${item.id}/view`}); addLog(`✗ ${item.name} — ${res.reason}`,'err'); }
+        updStats();
       }
-      updStats(); setProgress(i+1,sel.length);
+      setProgress(idx,sel.length); saveSession();
     }
 
     const el=Math.round((Date.now()-t0)/1000);
     setProgress(sel.length,sel.length,stopFlag?'paused':'done');
     if(stopFlag){ setStatus('⏸ Đã dừng — nhấn Bắt đầu để tiếp tục'); }
-    else { setStatus(`✓ Hoàn thành trong ${el}s`); await saveHist(srcId,sn,destId,dn,el); showReport(el); }
-  } catch(e){ addLog(`✗ ${e.message}`,'err'); setStatus('✗ Lỗi — xem Activity Log'); toast(e.message,'err'); }
-  finally { setRunning(false); }
+    else { setStatus(`✓ Hoàn thành trong ${el}s`); clearSession(); await saveHist(srcId,sn,destId,dn,el); showReport(el); }
+  } catch(e){ addLog('✗ '+e.message,'err'); setStatus('✗ Lỗi — xem Activity Log'); toast(e.message,'err'); }
+  finally { copying=false; setRunning('idle'); }
 };
 
-window.stopCopy = ()=>{ stopFlag=true; };
+window.startScan   = startScan;
+window.doStop      = () => { stopFlag=true; toast('Đang dừng...','warn'); };
+window.doReset     = () => { stopFlag=true; clearSession(); stats=ns(); updStats(); setStatus('Chưa bắt đầu'); setProgress(0,1); document.getElementById('logBox').innerHTML=''; document.getElementById('repCard').style.display='none'; document.getElementById('scanResult').style.display='none'; document.getElementById('statsRow').style.display='none'; setRunning('idle'); toast('Đã reset','ok'); };
 
-// ── FIRESTORE HISTORY ─────────────────────────────────────────
+// ── SESSION (resume khi tắt máy) ──────────────────────────────
+const SESSION_KEY = 'swiftcopy_session';
+
+function saveSessionData(data){ localStorage.setItem(SESSION_KEY, JSON.stringify({...data, stats, ts: Date.now()})); }
+function saveSession(){ const s=getSession(); if(s){ s.stats=stats; s.ts=Date.now(); localStorage.setItem(SESSION_KEY,JSON.stringify(s)); } }
+function getSession(){ try{ return JSON.parse(localStorage.getItem(SESSION_KEY)||'null'); }catch{ return null; } }
+function clearSession(){ localStorage.removeItem(SESSION_KEY); document.getElementById('resumeBanner').style.display='none'; }
+
+function checkResume(){
+  const s=getSession();
+  if(!s) return;
+  const age=(Date.now()-s.ts)/1000/60;
+  if(age>120){ clearSession(); return; } // ignore sessions > 2h
+  const b=document.getElementById('resumeBanner');
+  b.style.display='flex';
+  document.getElementById('srcInput').value=s.sv||'';
+  document.getElementById('destInput').value=s.dv||'';
+}
+
+window.resumeSession = async () => {
+  const s=getSession();
+  if(!s){ clearSession(); return; }
+  if(s.stats){ stats=s.stats; updStats(); document.getElementById('statsRow').style.display='flex'; }
+  document.getElementById('resumeBanner').style.display='none';
+  addLog('Tiếp tục phiên cũ — bỏ qua file đã sao chép...','info');
+  await startCopy();
+};
+window.clearSession = clearSession;
+
+// ── FIREBASE HISTORY ──────────────────────────────────────────
 async function saveHist(si,sn,di,dn,el){
   try { await addDoc(collection(db,'history'),{
-    uid:gUser.uid, email:gUser.email,
-    srcId:si, srcName:sn, destId:di, destName:dn,
-    copied:stats.copied, failed:stats.failed,
-    folders:stats.folders, skipped:stats.skipped,
-    elapsed:el, createdAt:serverTimestamp()
+    uid:gUser.uid,email:gUser.email,srcId:si,srcName:sn,
+    destId:di,destName:dn,copied:stats.copied,failed:stats.failed,
+    folders:stats.folders,elapsed:el,createdAt:serverTimestamp()
   }); } catch(e){ console.warn('saveHist',e); }
 }
 
-window.loadHist = async () => {
-  const el = document.getElementById('histList');
-  el.innerHTML='<div class="hist-load">Đang tải...</div>';
-  try {
-    const q=query(collection(db,'history'),where('uid','==',gUser.uid),orderBy('createdAt','desc'));
-    const snap=await getDocs(q);
-    if(snap.empty){ el.innerHTML='<div class="hist-empty">Chưa có lịch sử sao chép nào.</div>'; return; }
-    el.innerHTML=snap.docs.map(d=>{
-      const h=d.data();
-      const dt=h.createdAt?.toDate?h.createdAt.toDate().toLocaleString('vi-VN'):'—';
-      return `<div class="hi">
-        <div class="hi-top">
-          <span class="hi-dt">${dt}</span>
-          <span class="hi-badges">
-            <span class="hbadge g">${h.copied} copy</span>
-            ${h.failed>0?`<span class="hbadge r">${h.failed} lỗi</span>`:''}
-            ${h.skipped>0?`<span class="hbadge p">${h.skipped} đã có</span>`:''}
-          </span>
-        </div>
-        <div class="hi-names"><span>📁 ${h.srcName||'—'}</span><span class="hi-arrow">→</span><span>📁 ${h.destName||'—'}</span></div>
-        <div class="hi-foot">⏱ ${h.elapsed||0}s · ${h.folders||0} thư mục</div>
-      </div>`;
-    }).join('');
-  } catch(e){ el.innerHTML=`<div class="hist-err">Lỗi: ${e.message}</div>`; }
-};
-
-// ── UI HELPERS ────────────────────────────────────────────────
+// ── UI ────────────────────────────────────────────────────────
 function sec(name){
-  ['land','check','pend','app'].forEach(s=>{
-    const el=document.getElementById('s-'+s);
-    if(el) el.style.display=s===name?'block':'none';
-  });
+  ['land','check','pend','app'].forEach(s=>{ const el=document.getElementById('s-'+s); if(el) el.style.display=s===name?'block':'none'; });
   const nr=document.getElementById('navRight');
   if(nr) nr.style.display=name==='app'?'flex':'none';
 }
@@ -680,9 +844,22 @@ function setNavUser(u){
   document.getElementById('navEmail').textContent=u.email;
 }
 
-function setRunning(r){
-  document.getElementById('btnStart').style.display=r?'none':'inline-flex';
-  document.getElementById('btnStop').style.display=r?'inline-flex':'none';
+function setRunning(mode){
+  // mode: 'idle' | 'scan' | 'copy'
+  const btnScan  = document.getElementById('btnScan');
+  const btnStart = document.getElementById('btnStart');
+  const btnStop  = document.getElementById('btnStop');
+  const btnReset = document.getElementById('btnReset');
+  if(mode==='idle'){
+    btnScan.disabled=false; btnStart.disabled=false;
+    btnStop.style.display='none'; btnReset.disabled=false;
+  } else if(mode==='scan'){
+    btnScan.disabled=true; btnStart.disabled=true;
+    btnStop.style.display='inline-flex'; btnReset.disabled=true;
+  } else if(mode==='copy'){
+    btnScan.disabled=true; btnStart.disabled=true;
+    btnStop.style.display='inline-flex'; btnReset.disabled=true;
+  }
 }
 
 function setStatus(msg){ document.getElementById('statusLbl').textContent=msg; }
@@ -690,68 +867,74 @@ function setStatus(msg){ document.getElementById('statusLbl').textContent=msg; }
 function setProgress(v,max,state='running'){
   const f=document.getElementById('progFill');
   f.style.width=(max?Math.round(v/max*100):0)+'%';
-  f.className='prog-fill '+state;
+  f.className='prog-fill '+(state||'running');
 }
 
 function addLog(msg,lv='ok'){
-  const C={ok:'#4ade80',err:'#f87171',info:'#60a5fa',skip:'#475569',folder:'#c084fc'};
+  const C={ok:'#4ade80',err:'#f87171',info:'#93c5fd',skip:'#555',folder:'#c084fc'};
   const I={ok:'✓',err:'✗',info:'→',skip:'⏭',folder:'▣'};
   const b=document.getElementById('logBox');
   const d=document.createElement('div'); d.className='ll';
   const ts=new Date().toLocaleTimeString('vi-VN');
-  d.innerHTML=`<span class="ll-ts">${ts}</span><span class="ll-ic" style="color:${C[lv]||'#94a3b8'}">${I[lv]||'·'}</span><span class="ll-msg">${msg}</span>`;
+  d.innerHTML=`<span class="ll-ts">${ts}</span><span class="ll-ic" style="color:${C[lv]||'#888'}">${I[lv]||'·'}</span><span class="ll-msg">${msg}</span>`;
   b.appendChild(d); b.scrollTop=b.scrollHeight;
 }
 
 function updStats(){
-  document.getElementById('sCopied').textContent=stats.copied;
-  document.getElementById('sFailed').textContent=stats.failed;
-  document.getElementById('sFolders').textContent=stats.folders;
-  document.getElementById('sSkipped').textContent=stats.skipped;
-  document.getElementById('skipCard').style.display=stats.skipped>0?'flex':'none';
+  document.getElementById('sCopied').textContent  = stats.copied;
+  document.getElementById('sFailed').textContent  = stats.failed;
+  document.getElementById('sFolders').textContent = stats.folders;
 }
 
 function showReport(el){
-  document.getElementById('rCopied').textContent=stats.copied;
-  document.getElementById('rFailed').textContent=stats.failed;
-  document.getElementById('rFolders').textContent=stats.folders;
-  document.getElementById('rSkipped').textContent=stats.skipped;
-  document.getElementById('rElapsed').textContent=el+'s';
+  document.getElementById('rCopied').textContent  = stats.copied;
+  document.getElementById('rFailed').textContent  = stats.failed;
+  document.getElementById('rFolders').textContent = stats.folders;
+  document.getElementById('rElapsed').textContent = el+'s';
   const b=document.getElementById('repBanner');
-  if(stats.failed===0){ b.className='rep-banner ok'; b.textContent=`✓ Hoàn tất — ${stats.copied} file đã về Drive của bạn.`; }
-  else { b.className='rep-banner warn'; b.textContent=`⚠ ${stats.copied} thành công, ${stats.failed} lỗi — nhấn ô Lỗi để xem chi tiết.`; }
+  if(stats.failed===0){ b.className='rep-banner ok'; b.innerHTML=`<i class="fa-regular fa-circle-check"></i> Hoàn tất — ${stats.copied} file đã về Drive của bạn.`; }
+  else { b.className='rep-banner warn'; b.innerHTML=`<i class="fa-regular fa-triangle-exclamation"></i> ${stats.copied} thành công, ${stats.failed} lỗi — nhấn thẻ Lỗi để xem chi tiết.`; }
   document.getElementById('repCard').style.display='block';
 }
 
-window.gotoTab = (t)=>{
-  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  document.getElementById('t-copy').style.display=t==='copy'?'block':'none';
-  document.getElementById('t-hist').style.display=t==='hist'?'block':'none';
-  if(t==='hist') loadHist();
-};
-
-window.openModal = (type)=>{
+// ── MODAL (tree view sorted) ──────────────────────────────────
+window.openModal = (type) => {
   const map={
-    copied:{label:'Đã copy',data:stats.copiedFiles},
-    failed:{label:'Lỗi',data:stats.failedFiles},
-    folders:{label:'Thư mục',data:stats.folderList},
-    skip:{label:'Đã có',data:stats.skippedFiles}
+    copied: {label:'Đã copy',   data:stats.copiedFiles,  color:'var(--green)'},
+    failed: {label:'Lỗi',      data:stats.failedFiles,  color:'var(--red)'},
+    folders:{label:'Thư mục',  data:stats.folderList,   color:'var(--purple)'},
   };
-  const cfg=map[type];
-  document.getElementById('modalTitle').textContent=`${cfg.label} (${cfg.data.length})`;
-  document.getElementById('modalBody').innerHTML = cfg.data.length===0
-    ? '<p style="color:var(--g400);text-align:center;padding:28px">Không có mục nào.</p>'
-    : cfg.data.slice(0,300).map((f,i)=>`
-      <div class="mi">
-        <span class="mi-idx">${i+1}</span>
-        <div class="mi-info">
-          <div class="mi-name">${f.name}</div>
-          ${f.path?`<div class="mi-path">${f.path}</div>`:''}
-          ${f.reason?`<span class="mi-reason">${f.reason}</span>`:''}
-        </div>
-        ${f.link?`<a href="${f.link}" target="_blank" class="mi-link">↗</a>`:''}
-      </div>`).join('')
-      +(cfg.data.length>300?`<p style="color:var(--g400);font-size:11px;text-align:center;padding:10px">...+${cfg.data.length-300} mục</p>`:'');
+  const cfg=map[type]; if(!cfg) return;
+
+  // Sort by path depth asc (shallow first = big folders first)
+  const sorted=[...cfg.data].sort((a,b)=>{
+    const da=(a.path||'').split(' › ').length;
+    const db=(b.path||'').split(' › ').length;
+    if(da!==db) return da-db;
+    return (a.path||'').localeCompare(b.path||'');
+  });
+
+  document.getElementById('modalTitle').innerHTML=`<span style="color:${cfg.color}">${cfg.label}</span><span style="font-size:12px;background:var(--surface2);color:var(--text3);padding:2px 8px;border-radius:999px;font-family:monospace;font-weight:600;margin-left:6px">${cfg.data.length}</span>`;
+
+  document.getElementById('modalBody').innerHTML = sorted.length===0
+    ? '<p style="color:var(--text3);text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>'
+    : sorted.slice(0,400).map((f,i)=>{
+        const depth=Math.max(0,(f.path||'').split(' › ').length-1);
+        const isFolder=type==='folders';
+        const icon=isFolder
+          ? `<i class="fa-regular fa-folder" style="color:var(--purple);font-size:13px;flex-shrink:0"></i>`
+          : `<i class="fa-regular fa-file" style="color:var(--text3);font-size:13px;flex-shrink:0"></i>`;
+        return `<div class="mi ${isFolder?'is-folder':''}" style="padding-left:${16+depth*16}px">
+          <span class="mi-idx">${i+1}</span>
+          ${icon}
+          <div class="mi-info">
+            <div class="mi-name">${f.name}</div>
+            ${f.path&&depth>0?`<div class="mi-path">${f.path}</div>`:''}
+            ${f.reason?`<span class="mi-reason">${f.reason}</span>`:''}
+          </div>
+          ${f.link?`<a href="${f.link}" target="_blank" class="mi-link"><i class="fa-regular fa-arrow-up-right-from-square" style="font-size:11px"></i></a>`:''}
+        </div>`;
+      }).join('')+(sorted.length>400?`<p style="color:var(--text3);font-size:11px;text-align:center;padding:10px">...+${sorted.length-400} mục</p>`:'');
   document.getElementById('modalOv').style.display='flex';
 };
 window.closeModal = ()=>{ document.getElementById('modalOv').style.display='none'; };
