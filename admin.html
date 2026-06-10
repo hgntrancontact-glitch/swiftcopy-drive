@@ -2,345 +2,206 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Admin Panel — SwiftCopy.Drive</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, getDocs, updateDoc, serverTimestamp, where }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-// ── CẤU HÌNH FIREBASE — giống index.html ─────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyDu5D6bB-FxJl2E71Ls17GwHVtqZV0FwF8",
-  authDomain: "swiftcopy-drive.firebaseapp.com",
-  projectId: "swiftcopy-drive",
-  storageBucket: "swiftcopy-drive.firebasestorage.app",
-  messagingSenderId: "477488339991",
-  appId: "1:477488339991:web:7d47100631b846b1189052"
-};
-// ── EMAIL ADMIN — thay bằng email của bạn ─────────────────
-const ADMIN_EMAIL = "hgntran.contact@gmail.com";
-// ──────────────────────────────────────────────────────────
-
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db   = getFirestore(app);
-const provider = new GoogleAuthProvider();
-
-let currentUser = null;
-
-onAuthStateChanged(auth, user => {
-  if (!user) { showSection('login'); return; }
-  if (user.email !== ADMIN_EMAIL) {
-    showSection('denied');
-    signOut(auth);
-    return;
-  }
-  currentUser = user;
-  document.getElementById('adminEmail').textContent = user.email;
-  showSection('panel');
-  loadStats();
-  loadUsers();
-});
-
-async function loadStats() {
-  try {
-    const [usersSnap, histSnap] = await Promise.all([
-      getDocs(collection(db,'users')),
-      getDocs(collection(db,'history'))
-    ]);
-    const users    = usersSnap.docs.map(d => d.data());
-    const approved = users.filter(u => u.approved).length;
-    const pending  = users.filter(u => !u.approved).length;
-
-    document.getElementById('statTotal').textContent    = users.length;
-    document.getElementById('statApproved').textContent = approved;
-    document.getElementById('statPending').textContent  = pending;
-    document.getElementById('statJobs').textContent     = histSnap.size;
-  } catch(e) { console.error(e); }
-}
-
-async function loadUsers() {
-  const tbody = document.getElementById('usersBody');
-  tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">Đang tải...</td></tr>';
-  try {
-    const snap = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
-    if (snap.empty) {
-      tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">Chưa có người dùng nào.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = snap.docs.map(d => {
-      const u  = d.data();
-      const uid= d.id;
-      const dt = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString('vi-VN') : '—';
-      const statusBadge = u.approved
-        ? `<span class="badge green">✓ Đã duyệt</span>`
-        : `<span class="badge yellow">⏳ Chờ duyệt</span>`;
-      const action = u.approved
-        ? `<button class="btn-action revoke" onclick="toggleUser('${uid}', false)">Hủy kích hoạt</button>`
-        : `<button class="btn-action approve" onclick="toggleUser('${uid}', true)">✓ Kích hoạt</button>`;
-      return `<tr data-uid="${uid}">
-        <td>
-          <div class="user-cell">
-            <img class="user-av" src="${u.photoURL||''}" onerror="this.style.display='none'"/>
-            <div>
-              <div class="user-name">${u.displayName||'—'}</div>
-              <div class="user-email">${u.email}</div>
-            </div>
-          </div>
-        </td>
-        <td><span class="uid-text">${uid.slice(0,12)}…</span></td>
-        <td class="status-cell">${statusBadge}</td>
-        <td class="date-cell">${dt}</td>
-        <td class="action-cell">${action}</td>
-      </tr>`;
-    }).join('');
-  } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`;
-  }
-}
-
-async function loadHistory() {
-  const tbody = document.getElementById('histBody');
-  tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">Đang tải...</td></tr>';
-  try {
-    const snap = await getDocs(query(collection(db,'history'), orderBy('createdAt','desc')));
-    if (snap.empty) {
-      tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">Chưa có lịch sử nào.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = snap.docs.map(d => {
-      const h  = d.data();
-      const dt = h.createdAt?.toDate ? h.createdAt.toDate().toLocaleString('vi-VN') : '—';
-      return `<tr>
-        <td class="date-cell">${dt}</td>
-        <td><div class="user-email">${h.email||'—'}</div></td>
-        <td class="folder-cell" title="${h.srcName}">📁 ${h.srcName||'—'}</td>
-        <td class="folder-cell" title="${h.destName}">📁 ${h.destName||'—'}</td>
-        <td>
-          <span class="badge green">${h.copied||0} copy</span>
-          ${h.failed>0?`<span class="badge red">${h.failed} lỗi</span>`:''}
-        </td>
-        <td class="date-cell">${h.elapsed||0}s</td>
-      </tr>`;
-    }).join('');
-  } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="6" class="loading-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`;
-  }
-}
-
-window.toggleUser = async (uid, approve) => {
-  const btn = document.querySelector(`tr[data-uid="${uid}"] .btn-action`);
-  if (btn) { btn.disabled=true; btn.textContent='...'; }
-  try {
-    await updateDoc(doc(db,'users',uid), {
-      approved: approve,
-      approvedAt: approve ? serverTimestamp() : null,
-      approvedBy: currentUser.email
-    });
-    showToast(approve ? '✓ Đã kích hoạt!' : '✓ Đã hủy kích hoạt', approve?'ok':'warn');
-    await loadUsers();
-    await loadStats();
-  } catch(e) {
-    showToast('Lỗi: '+e.message, 'err');
-    if (btn) { btn.disabled=false; }
-  }
-};
-
-window.switchTab = (tab) => {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
-  document.querySelectorAll('.tab-pane').forEach(p => p.style.display = p.id==='pane-'+tab ? 'block' : 'none');
-  if (tab==='history') loadHistory();
-};
-
-function showSection(name) {
-  ['login','denied','panel'].forEach(s => {
-    const el = document.getElementById('section-'+s);
-    if (el) el.style.display = s===name ? 'block' : 'none';
-  });
-}
-
-function showToast(msg, type='ok') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show ' + type;
-  setTimeout(()=>t.classList.remove('show'), 3000);
-}
-
-window.handleAdminLogin  = () => signInWithPopup(auth, provider).catch(e => showToast('Lỗi: '+e.message,'err'));
-window.handleAdminLogout = () => signOut(auth);
-window.refreshUsers      = loadUsers;
-window.refreshStats      = loadStats;
-</script>
-
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SwiftCopy.Drive — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --white:#fff;--off:#f8f9fb;
-  --gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;
-  --gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;
-  --gray-700:#374151;--gray-800:#1f2937;--gray-900:#111827;
-  --brand:#0052cc;--brand-light:#e8f0fe;--brand-dark:#003d99;
-  --green:#16a34a;--green-light:#dcfce7;
-  --red:#dc2626;--red-light:#fee2e2;
-  --yellow:#d97706;--yellow-light:#fef3c7;
-  --purple:#7c3aed;
-  --shadow-sm:0 1px 3px rgba(0,0,0,.08);
-  --shadow:0 4px 16px rgba(0,0,0,.08);
-  --shadow-lg:0 20px 48px rgba(0,0,0,.12);
+  --bg:#f9f9f7;--surface:#fff;--surface2:#f4f4f1;
+  --border:#e8e8e3;--border2:#d8d8d0;
+  --text:#111110;--text2:#555550;--text3:#999990;
+  --yellow:#f5c518;--yellow-dark:#d4a800;--yellow-light:#fffbea;
+  --red:#c0392b;--red-mid:#e8291c;--red-light:#fff0ee;--red-border:#ffd0cc;
+  --green:#1a9950;--green-light:#edfaf3;--green-border:#b8e8cd;
+  --blue:#1d6ece;--blue-light:#edf4ff;--blue-border:#b8d4f8;
+  --orange:#d97706;--orange-light:#fffbea;--orange-border:#f0d060;
+  --r:10px;--r2:14px;
+  --shadow:0 1px 4px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
+  --shadow2:0 4px 20px rgba(0,0,0,.08);
 }
-body{font-family:'Sora',sans-serif;background:var(--off);color:var(--gray-800);min-height:100vh}
+body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
 
-.navbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow-sm);position:sticky;top:0;z-index:100}
-.nav-brand{font-size:16px;font-weight:800;color:var(--brand);letter-spacing:-.5px}
-.nav-brand span{color:#dc2626}
-.nav-badge{background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px}
-.nav-right{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--gray-500)}
-.btn-sm{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--gray-200);background:var(--white);color:var(--gray-600);transition:.15s}
-.btn-sm:hover{background:var(--gray-100)}
+svg.ic{width:14px;height:14px;display:inline-block;vertical-align:middle;flex-shrink:0}
+svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-shrink:0}
 
-/* SECTIONS */
-#section-login,#section-denied,#section-panel{display:none}
+.nav{background:var(--surface);border-bottom:2px solid var(--yellow);height:54px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
+.nav-brand{display:flex;align-items:center;gap:10px}
+.nav-logo{font-family:'Nunito',sans-serif;font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.nav-logo .dot{color:var(--red-mid)}
+.nav-badge{font-size:11px;font-weight:800;letter-spacing:.4px;padding:3px 10px;border:1.5px solid var(--border2);border-radius:6px;color:var(--text2)}
+.nav-right{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text3)}
+.btn-sm{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);transition:.15s;display:inline-flex;align-items:center;gap:5px}
+.btn-sm:hover{background:var(--surface2);color:var(--text)}
 
-/* LOGIN */
-.center-wrap{min-height:calc(100vh - 60px);display:flex;align-items:center;justify-content:center}
-.auth-card{background:var(--white);border:1px solid var(--gray-200);border-radius:20px;padding:48px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shadow)}
-.auth-card h2{font-size:22px;font-weight:700;margin-bottom:8px}
-.auth-card p{font-size:14px;color:var(--gray-500);margin-bottom:28px}
-.btn-google{display:inline-flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--gray-300);border-radius:12px;padding:12px 24px;font-size:14px;font-weight:600;color:var(--gray-800);cursor:pointer;box-shadow:var(--shadow-sm);transition:.2s;font-family:inherit}
-.btn-google:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
-.btn-google svg{width:18px;height:18px}
-.denied-icon{font-size:48px;margin-bottom:16px}
+#s-login,#s-denied,#s-panel{display:none}
 
-/* PANEL */
-.container{max-width:1000px;margin:0 auto;padding:24px 16px}
+.center{min-height:calc(100vh - 54px);display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.auth-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:48px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shadow2)}
+.auth-card h2{font-family:'Nunito',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px}
+.auth-card p{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:24px}
+.btn-google{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r2);padding:12px 24px;font-size:14px;font-weight:700;color:var(--text);cursor:pointer;box-shadow:var(--shadow);transition:.2s;font-family:inherit}
+.btn-google:hover{box-shadow:var(--shadow2);transform:translateY(-1px)}
+.btn-google svg{width:18px;height:18px;flex-shrink:0}
+
+.container{max-width:1060px;margin:0 auto;padding:20px 16px}
 
 /* STATS */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
-.stat-box{background:var(--white);border:1px solid var(--gray-200);border-radius:12px;padding:20px;text-align:center;box-shadow:var(--shadow-sm)}
-.stat-box .num{font-size:32px;font-weight:800;line-height:1;margin-bottom:4px}
-.stat-box .lbl{font-size:12px;color:var(--gray-400);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
-.stat-box.blue .num{color:var(--brand)}
-.stat-box.green .num{color:var(--green)}
-.stat-box.yellow .num{color:var(--yellow)}
-.stat-box.purple .num{color:var(--purple)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.stat-box{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:18px 12px;text-align:center;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+.stat-box:hover{box-shadow:var(--shadow2);transform:translateY(-1px)}
+.stat-box .n{font-family:'Nunito',sans-serif;font-size:28px;font-weight:800;line-height:1;margin-bottom:4px}
+.stat-box .l{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.stat-box.blue{border-color:var(--blue-border);background:var(--blue-light)}.stat-box.blue .n{color:var(--blue)}
+.stat-box.green{border-color:var(--green-border);background:var(--green-light)}.stat-box.green .n{color:var(--green)}
+.stat-box.yellow{border-color:var(--orange-border);background:var(--yellow-light)}.stat-box.yellow .n{color:var(--orange)}
+.stat-box.red{border-color:var(--red-border);background:var(--red-light)}.stat-box.red .n{color:var(--red)}
 
-/* TABS */
-.tabs{display:flex;gap:2px;background:var(--gray-100);border-radius:12px;padding:4px;margin-bottom:20px}
-.tab-btn{flex:1;padding:9px;font-size:13px;font-weight:600;font-family:inherit;border:none;background:none;border-radius:9px;cursor:pointer;color:var(--gray-500);transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
-.tab-btn.active{background:var(--white);color:var(--gray-900);box-shadow:var(--shadow-sm)}
+/* CARD */
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);overflow:hidden;box-shadow:var(--shadow);margin-bottom:14px}
+.card-h{padding:13px 18px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
+.card-t{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
 
-/* CARD/TABLE */
-.card{background:var(--white);border:1px solid var(--gray-200);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm)}
-.card-head{padding:14px 20px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between}
-.card-head h3{font-size:14px;font-weight:700}
+/* FILTER */
+.filter-bar{display:flex;gap:6px;padding:10px 18px;border-bottom:1.5px solid var(--border);background:var(--bg);flex-wrap:wrap}
+.filter-btn{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);transition:.15s;display:inline-flex;align-items:center;gap:5px}
+.filter-btn:hover{background:var(--surface2)}
+.filter-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
+
+/* TABLE */
 table{width:100%;border-collapse:collapse}
-thead th{background:var(--gray-50);padding:10px 16px;font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.4px;text-align:left;border-bottom:1px solid var(--gray-200)}
+thead th{background:var(--surface2);padding:10px 16px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:1.5px solid var(--border)}
 tbody tr{transition:.1s}
-tbody tr:hover{background:var(--gray-50)}
-tbody td{padding:12px 16px;border-bottom:1px solid var(--gray-100);font-size:13px;vertical-align:middle}
+tbody tr:hover{background:var(--surface2)}
+tbody td{padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
-.loading-cell{text-align:center;color:var(--gray-400);padding:40px!important}
+.empty-cell{text-align:center;color:var(--text3);padding:40px!important;font-size:14px}
 
 .user-cell{display:flex;align-items:center;gap:10px}
-.user-av{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--gray-200);flex-shrink:0}
-.user-name{font-size:13px;font-weight:600;color:var(--gray-800)}
-.user-email{font-size:11px;color:var(--gray-400)}
-.uid-text{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gray-400)}
-.status-cell{white-space:nowrap}
-.date-cell{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gray-400);white-space:nowrap}
-.action-cell{white-space:nowrap}
-.folder-cell{max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.uav{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border);flex-shrink:0;background:var(--surface2)}
+.u-name{font-size:13px;font-weight:700;color:var(--text)}
+.u-email{font-size:11px;color:var(--text3)}
+.uid-txt{font-family:monospace;font-size:11px;color:var(--text3)}
+.dt-txt{font-family:monospace;font-size:11px;color:var(--text3);white-space:nowrap}
 
-.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;margin-right:4px}
-.badge.green{background:var(--green-light);color:var(--green)}
-.badge.red{background:var(--red-light);color:var(--red)}
-.badge.yellow{background:var(--yellow-light);color:var(--yellow)}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;margin-right:3px}
+.badge.green{background:var(--green-light);color:var(--green);border:1px solid var(--green-border)}
+.badge.red{background:var(--red-light);color:var(--red);border:1px solid var(--red-border)}
+.badge.yellow{background:var(--yellow-light);color:var(--orange);border:1px solid var(--orange-border)}
+.badge.gray{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
 
-.btn-action{padding:5px 14px;border-radius:7px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:.15s}
-.btn-action.approve{background:var(--green-light);color:var(--green)}
-.btn-action.approve:hover:not(:disabled){background:var(--green);color:#fff}
-.btn-action.revoke{background:var(--red-light);color:var(--red)}
-.btn-action.revoke:hover:not(:disabled){background:var(--red);color:#fff}
-.btn-action:disabled{opacity:.5;cursor:not-allowed}
+.act-row{display:flex;gap:5px;flex-wrap:wrap}
+.act-btn{padding:4px 12px;border-radius:7px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid;transition:.15s;display:inline-flex;align-items:center;gap:4px}
+.act-btn:disabled{opacity:.4;cursor:not-allowed}
+.act-approve{background:var(--green-light);color:var(--green);border-color:var(--green-border)}
+.act-approve:hover:not(:disabled){background:var(--green);color:#fff}
+.act-kick{background:var(--red-light);color:var(--red);border-color:var(--red-border)}
+.act-kick:hover:not(:disabled){background:var(--red);color:#fff}
+.act-readd{background:var(--yellow-light);color:var(--orange);border-color:var(--orange-border)}
+.act-readd:hover:not(:disabled){background:var(--orange);color:#fff}
 
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--gray-900);color:#fff;font-size:13px;padding:10px 20px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:2000;white-space:nowrap;box-shadow:var(--shadow-lg)}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.warn{background:var(--yellow)}
-.toast.err{background:var(--red)}
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center;padding:16px}
+.modal-ov.on{display:flex}
+.modal{background:var(--surface);border-radius:var(--r2);width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.2);border:1.5px solid var(--border)}
+.modal-h{padding:14px 18px;border-bottom:1.5px solid var(--border);background:var(--surface2)}
+.modal-h h3{font-family:'Nunito',sans-serif;font-size:16px;font-weight:800}
+.modal-b{padding:18px}
+.modal-b p{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px}
+.modal-label{display:block;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.modal-textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;font-family:inherit;color:var(--text);background:var(--surface2);resize:vertical;min-height:80px;outline:none;transition:.15s}
+.modal-textarea:focus{border-color:var(--text);background:var(--surface)}
+.modal-f{padding:12px 18px;border-top:1.5px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.btn-cancel{padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2)}
+.btn-cancel:hover{background:var(--surface2)}
+.btn-confirm-red{padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;background:var(--red);color:#fff}
+.btn-confirm-red:hover{background:var(--red-mid)}
+.btn-confirm-green{padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;background:var(--green);color:#fff}
+.btn-confirm-green:hover{background:#15803d}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--text);color:#fff;font-size:12px;font-weight:700;padding:9px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:999;box-shadow:var(--shadow2)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.warn{background:var(--yellow-dark);color:var(--text)}
+.toast.err{background:var(--red-mid)}
 .toast.ok{background:var(--green)}
 
-@media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
 
-<nav class="navbar">
-  <div>
-    <span class="nav-brand">SwiftCopy<span>.</span>Drive</span>
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="ic-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="ic-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="ic-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="ic-ban" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></symbol>
+  <symbol id="ic-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+</svg>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <span class="nav-logo">SwiftCopy<span class="dot">.</span>Drive</span>
     <span class="nav-badge">ADMIN</span>
   </div>
   <div class="nav-right">
-    <span id="adminEmail"></span>
-    <button class="btn-sm" onclick="handleAdminLogout()">Đăng xuất</button>
+    <span id="adminEmailLabel"></span>
+    <button class="btn-sm" onclick="doLogout()">
+      <svg class="ic"><use href="#ic-logout"/></svg> Đăng xuất
+    </button>
   </div>
 </nav>
 
-<!-- LOGIN -->
-<div id="section-login">
-  <div class="center-wrap">
+<div id="s-login">
+  <div class="center">
     <div class="auth-card">
-      <div style="font-size:40px;margin-bottom:16px">🔐</div>
+      <div style="font-size:44px;margin-bottom:18px">🔐</div>
       <h2>Admin Panel</h2>
       <p>Đăng nhập bằng tài khoản admin để quản lý người dùng SwiftCopy.Drive</p>
-      <button class="btn-google" onclick="handleAdminLogin()">
-        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      <button class="btn-google" onclick="doLogin()">
+        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66 2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
         Đăng nhập với Google
       </button>
     </div>
   </div>
 </div>
 
-<!-- DENIED -->
-<div id="section-denied">
-  <div class="center-wrap">
+<div id="s-denied">
+  <div class="center">
     <div class="auth-card">
-      <div class="denied-icon">🚫</div>
-      <h2>Không có quyền truy cập</h2>
-      <p>Tài khoản của bạn không phải admin. Vui lòng liên hệ quản trị viên.</p>
+      <div style="font-size:44px;margin-bottom:18px">🚫</div>
+      <h2>Không có quyền</h2>
+      <p>Tài khoản này không phải admin.</p>
     </div>
   </div>
 </div>
 
-<!-- PANEL -->
-<div id="section-panel">
+<div id="s-panel">
   <div class="container">
 
     <!-- STATS -->
     <div class="stats-grid">
-      <div class="stat-box blue"><div class="num" id="statTotal">—</div><div class="lbl">Tổng người dùng</div></div>
-      <div class="stat-box green"><div class="num" id="statApproved">—</div><div class="lbl">Đã kích hoạt</div></div>
-      <div class="stat-box yellow"><div class="num" id="statPending">—</div><div class="lbl">Chờ duyệt</div></div>
-      <div class="stat-box purple"><div class="num" id="statJobs">—</div><div class="lbl">Tổng lần copy</div></div>
+      <div class="stat-box blue"   onclick="filterUsers('all')">    <div class="n" id="sTotal">—</div><div class="l">Tổng người dùng</div></div>
+      <div class="stat-box green"  onclick="filterUsers('approved')"><div class="n" id="sApproved">—</div><div class="l">Đã kích hoạt</div></div>
+      <div class="stat-box yellow" onclick="filterUsers('pending')"> <div class="n" id="sPending">—</div><div class="l">Chờ kích hoạt</div></div>
+      <div class="stat-box red"    onclick="filterUsers('kicked')">  <div class="n" id="sKicked">—</div><div class="l">Bị kick ra</div></div>
     </div>
 
-    <!-- TABS -->
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="users" onclick="switchTab('users')">👥 Người dùng</button>
-      <button class="tab-btn" data-tab="history" onclick="switchTab('history')">🕐 Lịch sử copy</button>
-    </div>
-
-    <!-- USERS -->
-    <div id="pane-users">
-      <div class="card">
-        <div class="card-head">
-          <h3>👥 Danh sách người dùng</h3>
-          <button class="btn-sm" onclick="refreshUsers()">↺ Làm mới</button>
-        </div>
+    <!-- USERS TABLE -->
+    <div class="card">
+      <div class="card-h">
+        <span class="card-t"><svg class="ic16"><use href="#ic-users"/></svg> Người dùng</span>
+        <button class="btn-sm" onclick="loadUsers()"><svg class="ic"><use href="#ic-refresh"/></svg> Làm mới</button>
+      </div>
+      <div class="filter-bar" id="filterBar">
+        <button class="filter-btn active" data-f="all"      onclick="filterUsers('all')">Tất cả</button>
+        <button class="filter-btn"        data-f="approved" onclick="filterUsers('approved')"><svg class="ic"><use href="#ic-check"/></svg> Đã kích hoạt</button>
+        <button class="filter-btn"        data-f="pending"  onclick="filterUsers('pending')">Chờ kích hoạt</button>
+        <button class="filter-btn"        data-f="kicked"   onclick="filterUsers('kicked')"><svg class="ic"><use href="#ic-ban"/></svg> Bị kick</button>
+        <button class="filter-btn"        data-f="readd"    onclick="filterUsers('readd')" style="margin-left:auto;background:var(--yellow-light);border-color:var(--orange-border);color:var(--orange)"><svg class="ic"><use href="#ic-plus"/></svg> Thêm lại</button>
+      </div>
+      <div style="overflow-x:auto">
         <table>
           <thead><tr>
             <th>Người dùng</th>
@@ -349,32 +210,7 @@ tbody tr:last-child td{border-bottom:none}
             <th>Ngày đăng ký</th>
             <th>Thao tác</th>
           </tr></thead>
-          <tbody id="usersBody">
-            <tr><td colspan="5" class="loading-cell">Đang tải...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- HISTORY -->
-    <div id="pane-history" style="display:none">
-      <div class="card">
-        <div class="card-head">
-          <h3>🕐 Lịch sử copy toàn hệ thống</h3>
-          <button class="btn-sm" onclick="loadHistory()">↺ Làm mới</button>
-        </div>
-        <table>
-          <thead><tr>
-            <th>Thời gian</th>
-            <th>Người dùng</th>
-            <th>Drive nguồn</th>
-            <th>Drive đích</th>
-            <th>Kết quả</th>
-            <th>Thời lượng</th>
-          </tr></thead>
-          <tbody id="histBody">
-            <tr><td colspan="6" class="loading-cell">Chưa có dữ liệu.</td></tr>
-          </tbody>
+          <tbody id="usersBody"><tr><td colspan="5" class="empty-cell">Đang tải...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -382,6 +218,278 @@ tbody tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- KICK MODAL -->
+<div id="kickModal" class="modal-ov">
+  <div class="modal">
+    <div class="modal-h"><h3>Kick người dùng</h3></div>
+    <div class="modal-b">
+      <p id="kickMsg">Bạn chắc chắn muốn kick người dùng này?</p>
+      <label class="modal-label">Lý do kick (bắt buộc)</label>
+      <textarea id="kickReason" class="modal-textarea" placeholder="Nhập lý do kick..."></textarea>
+    </div>
+    <div class="modal-f">
+      <button class="btn-cancel" onclick="closeKickModal()">Huỷ</button>
+      <button class="btn-confirm-red" onclick="doKick()"><svg class="ic" style="color:#fff"><use href="#ic-ban"/></svg> Xác nhận kick</button>
+    </div>
+  </div>
+</div>
+
+<!-- READD MODAL -->
+<div id="readdModal" class="modal-ov">
+  <div class="modal">
+    <div class="modal-h"><h3>Thêm lại người dùng</h3></div>
+    <div class="modal-b">
+      <p id="readdMsg">Thêm lại tài khoản này và gửi email thông báo cho họ?</p>
+      <label class="modal-label">Ghi chú / Lời nhắn gửi kèm email</label>
+      <textarea id="readdNote" class="modal-textarea" placeholder="Nhập lời nhắn hoặc ghi chú..."></textarea>
+    </div>
+    <div class="modal-f">
+      <button class="btn-cancel" onclick="closeReaddModal()">Huỷ</button>
+      <button class="btn-confirm-green" onclick="doReadd()"><svg class="ic" style="color:#fff"><use href="#ic-plus"/></svg> Thêm lại</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query,
+         orderBy, getDocs, updateDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ── THAY FIREBASE CONFIG ────────────────────────────────────
+const fbCfg = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+const ADMIN_EMAIL      = "YOUR_ADMIN_EMAIL";
+const EMAILJS_SERVICE  = "YOUR_EMAILJS_SERVICE_ID";
+const EMAILJS_TEMPLATE = "YOUR_EMAILJS_TEMPLATE_ID";
+const EMAILJS_KEY      = "YOUR_EMAILJS_PUBLIC_KEY";
+const SITE_NAME        = "SwiftCopy.Drive";
+const SITE_URL         = "https://hgntrancontact-glitch.github.io/swiftcopy-drive/";
+// ────────────────────────────────────────────────────────────
+
+const app      = initializeApp(fbCfg);
+const auth     = getAuth(app);
+const db       = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+let allUsers = [];
+let currentFilter = 'all';
+let _kickUid = null, _kickEmail = '', _kickName = '';
+let _readdUid = null, _readdEmail = '', _readdName = '';
+
+// ── EMAIL ──────────────────────────────────────────────────────
+let _ejsLoaded = false;
+function loadEmailJS(){
+  if (_ejsLoaded) return Promise.resolve();
+  return new Promise(r => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+    s.onload = () => { emailjs.init(EMAILJS_KEY); _ejsLoaded=true; r(); };
+    document.head.appendChild(s);
+  });
+}
+
+async function sendEmail(toEmail, subject, message){
+  if (!EMAILJS_KEY || EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY') return;
+  try {
+    await loadEmailJS();
+    await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+      to_email: toEmail, subject, message,
+      site_name: SITE_NAME, site_url: SITE_URL
+    });
+  } catch(e){ console.warn('Email error', e); }
+}
+
+// ── AUTH ──────────────────────────────────────────────────────
+onAuthStateChanged(auth, u => {
+  if (!u){ sec('login'); return; }
+  if (u.email !== ADMIN_EMAIL){ sec('denied'); signOut(auth); return; }
+  document.getElementById('adminEmailLabel').textContent = u.email;
+  sec('panel'); loadStats(); loadUsers();
+});
+
+// ── DATA ──────────────────────────────────────────────────────
+async function loadStats(){
+  try {
+    const snap = await getDocs(collection(db,'users'));
+    const users = snap.docs.map(d=>({id:d.id,...d.data()}));
+    document.getElementById('sTotal').textContent    = users.length;
+    document.getElementById('sApproved').textContent = users.filter(u=>u.approved&&u.status!=='kicked').length;
+    document.getElementById('sPending').textContent  = users.filter(u=>!u.approved&&u.status!=='kicked').length;
+    document.getElementById('sKicked').textContent   = users.filter(u=>u.status==='kicked').length;
+  } catch(e){ console.error(e); }
+}
+
+window.loadUsers = async () => {
+  document.getElementById('usersBody').innerHTML = '<tr><td colspan="5" class="empty-cell">Đang tải...</td></tr>';
+  try {
+    const snap = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
+    // Giữ nguyên tất cả user cũ - chỉ đọc, không ghi đè
+    allUsers = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderUsers(currentFilter);
+  } catch(e){
+    document.getElementById('usersBody').innerHTML = `<tr><td colspan="5" class="empty-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`;
+  }
+};
+
+function renderUsers(filter){
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.f===filter));
+
+  let list = allUsers;
+  if (filter==='approved') list = allUsers.filter(u=>u.approved&&u.status!=='kicked');
+  else if (filter==='pending') list = allUsers.filter(u=>!u.approved&&u.status!=='kicked');
+  else if (filter==='kicked') list = allUsers.filter(u=>u.status==='kicked');
+  else if (filter==='readd') list = allUsers.filter(u=>u.status==='kicked'); // same as kicked for re-add
+
+  const tbody = document.getElementById('usersBody');
+  if (!list.length){ tbody.innerHTML='<tr><td colspan="5" class="empty-cell">Không có người dùng nào.</td></tr>'; return; }
+
+  tbody.innerHTML = list.map(u => {
+    const dt = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString('vi-VN') : '—';
+    let statusBadge = '';
+    if (u.status==='kicked')
+      statusBadge = `<span class="badge red">Bị kick</span>${u.kickReason?`<span style="font-size:10px;color:var(--text3);margin-left:4px">— ${u.kickReason.slice(0,40)}</span>`:''}`;
+    else if (u.approved)
+      statusBadge = `<span class="badge green">Đã kích hoạt</span>`;
+    else
+      statusBadge = `<span class="badge yellow">Chờ kích hoạt</span>`;
+
+    let actions = '';
+    if (u.status==='kicked'){
+      actions = `<div class="act-row">
+        <button class="act-btn act-readd" onclick="openReaddModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
+          <svg class="ic"><use href="#ic-plus"/></svg> Thêm lại
+        </button>
+      </div>`;
+    } else if (u.approved){
+      actions = `<div class="act-row">
+        <button class="act-btn act-kick" onclick="openKickModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
+          <svg class="ic"><use href="#ic-ban"/></svg> Kick
+        </button>
+      </div>`;
+    } else {
+      actions = `<div class="act-row">
+        <button class="act-btn act-approve" onclick="approveUser('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
+          <svg class="ic"><use href="#ic-check"/></svg> Kích hoạt
+        </button>
+        <button class="act-btn act-kick" onclick="openKickModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
+          <svg class="ic"><use href="#ic-ban"/></svg> Kick
+        </button>
+      </div>`;
+    }
+
+    return `<tr data-uid="${u.id}">
+      <td>
+        <div class="user-cell">
+          <img class="uav" src="${u.photoURL||''}" onerror="this.style.display='none'" alt=""/>
+          <div><div class="u-name">${u.displayName||'—'}</div><div class="u-email">${u.email}</div></div>
+        </div>
+      </td>
+      <td><span class="uid-txt">${u.id.slice(0,10)}…</span></td>
+      <td>${statusBadge}</td>
+      <td><span class="dt-txt">${dt}</span></td>
+      <td>${actions}</td>
+    </tr>`;
+  }).join('');
+}
+
+function esc(s){ return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+window.filterUsers = f => renderUsers(f);
+
+// ── APPROVE ────────────────────────────────────────────────────
+window.approveUser = async (uid, email, name) => {
+  const btns = document.querySelectorAll(`tr[data-uid="${uid}"] .act-btn`);
+  btns.forEach(b=>b.disabled=true);
+  try {
+    await updateDoc(doc(db,'users',uid),{
+      approved:true, status:'approved', approvedAt:serverTimestamp()
+    });
+    toast('✓ Đã kích hoạt!','ok');
+    await sendEmail(email,
+      `[${SITE_NAME}] Tài khoản đã được kích hoạt`,
+      `Xin chào ${name},\n\nTài khoản của bạn trên ${SITE_NAME} đã được kích hoạt.\nTruy cập: ${SITE_URL}\n\nTrân trọng,\nĐội ngũ ${SITE_NAME}`
+    );
+    await loadUsers(); await loadStats();
+  } catch(e){ toast('Lỗi: '+e.message,'err'); btns.forEach(b=>b.disabled=false); }
+};
+
+// ── KICK ───────────────────────────────────────────────────────
+window.openKickModal = (uid, email, name) => {
+  _kickUid=uid; _kickEmail=email; _kickName=name;
+  document.getElementById('kickMsg').textContent = `Kick người dùng "${name}" (${email})?`;
+  document.getElementById('kickReason').value = '';
+  document.getElementById('kickModal').classList.add('on');
+};
+window.closeKickModal = () => { document.getElementById('kickModal').classList.remove('on'); };
+
+window.doKick = async () => {
+  const reason = document.getElementById('kickReason').value.trim();
+  if (!reason){ toast('Vui lòng nhập lý do kick!','warn'); return; }
+  closeKickModal();
+  try {
+    await updateDoc(doc(db,'users',_kickUid),{
+      approved:false, status:'kicked',
+      kickReason:reason, kickedAt:serverTimestamp()
+    });
+    toast('✓ Đã kick người dùng','ok');
+    await sendEmail(_kickEmail,
+      `[${SITE_NAME}] Tài khoản của bạn đã bị khoá`,
+      `Xin chào ${_kickName},\n\nTài khoản của bạn trên ${SITE_NAME} đã bị khoá.\n\nLý do: ${reason}\n\nNếu bạn có thắc mắc, vui lòng liên hệ chúng tôi.\n\nTrân trọng,\nĐội ngũ ${SITE_NAME}\n${SITE_URL}`
+    );
+    await loadUsers(); await loadStats();
+  } catch(e){ toast('Lỗi: '+e.message,'err'); }
+};
+
+// ── RE-ADD ─────────────────────────────────────────────────────
+window.openReaddModal = (uid, email, name) => {
+  _readdUid=uid; _readdEmail=email; _readdName=name;
+  document.getElementById('readdMsg').textContent = `Thêm lại và kích hoạt tài khoản "${name}" (${email})?`;
+  document.getElementById('readdNote').value = '';
+  document.getElementById('readdModal').classList.add('on');
+};
+window.closeReaddModal = () => { document.getElementById('readdModal').classList.remove('on'); };
+
+window.doReadd = async () => {
+  const note = document.getElementById('readdNote').value.trim();
+  closeReaddModal();
+  try {
+    await updateDoc(doc(db,'users',_readdUid),{
+      approved:true, status:'approved',
+      readdedAt:serverTimestamp(), readdNote:note||''
+    });
+    toast('✓ Đã thêm lại người dùng','ok');
+    const noteText = note ? `\n\nGhi chú từ admin: ${note}` : '';
+    await sendEmail(_readdEmail,
+      `[${SITE_NAME}] Tài khoản của bạn đã được kích hoạt trở lại`,
+      `Xin chào ${_readdName},\n\nTài khoản của bạn trên ${SITE_NAME} đã được kích hoạt trở lại.${noteText}\n\nTruy cập ngay: ${SITE_URL}\n\nTrân trọng,\nĐội ngũ ${SITE_NAME}`
+    );
+    await loadUsers(); await loadStats();
+  } catch(e){ toast('Lỗi: '+e.message,'err'); }
+};
+
+// ── UI ────────────────────────────────────────────────────────
+function sec(name){ ['login','denied','panel'].forEach(s=>{ const el=document.getElementById('s-'+s); if(el) el.style.display=s===name?'block':'none'; }); }
+
+function toast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast on '+(type||'');
+  setTimeout(()=>t.classList.remove('on'),3000);
+}
+
+window.doLogin  = () => signInWithPopup(auth, provider).catch(e=>toast('Lỗi: '+e.message,'err'));
+window.doLogout = () => signOut(auth);
+</script>
 </body>
 </html>
