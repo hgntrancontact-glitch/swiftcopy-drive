@@ -739,7 +739,7 @@ async function copyRec(srcId, destId, path=''){
 }
 
 
-async function startScan(){
+window.startScan = async function startScan(){
   if (!gToken){ toast('Nhấn Cấp quyền Drive trước!','warn'); return; }
   const sv = document.getElementById('srcInput').value.trim();
   const dv = document.getElementById('destInput').value.trim();
