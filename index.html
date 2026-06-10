@@ -461,6 +461,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
 import { getFirestore, doc, getDoc, setDoc, addDoc, collection, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+
 const firebaseConfig = {
   apiKey: "AIzaSyDu5D6bB-FxJl2E71Ls17GwHVtqZV0FwF8",
   authDomain: "swiftcopy-drive.firebaseapp.com",
@@ -473,15 +474,15 @@ const ADMIN_EMAIL = "hgntran.contact@gmail.com";
 const EMAILJS_SERVICE  = "service_9x4l8p6";
 const EMAILJS_TEMPLATE = "template_z8q2r4w";
 const EMAILJS_KEY      = "user_KjH7Gf5D4s3a2P1oN";
-// ────────────────────────────────────────────────────────────
 
-const app  = initializeApp(fbCfg);
+
+const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/drive');
 
-// ── STATE ────────────────────────────────────────────────────
+
 let gUser   = null;
 let gToken  = null;
 let pauseFlag  = false;
@@ -492,7 +493,7 @@ let stats = ns();
 function ns(){ return { copied:0, failed:0, folders:0,
   copiedFiles:[], failedFiles:[], folderList:[] }; }
 
-// ── PAUSE / RESUME ────────────────────────────────────────────
+
 let _resumeResolve = null;
 function pausePoint(){
   if (!pauseFlag) return Promise.resolve();
@@ -537,7 +538,7 @@ window.doReset = () => {
   toast('Đã reset toàn bộ', 'ok');
 };
 
-// ── AUTH ──────────────────────────────────────────────────────
+
 window.doLogin = async () => {
   try {
     const res = await signInWithPopup(auth, provider);
@@ -627,7 +628,7 @@ function loadEmailJS(){
   });
 }
 
-// ── DRIVE API ─────────────────────────────────────────────────
+
 const BASE  = 'https://www.googleapis.com/drive/v3';
 const FMIME = 'application/vnd.google-apps.folder';
 const SMIME = 'application/vnd.google-apps.shortcut';
@@ -737,7 +738,7 @@ async function copyRec(srcId, destId, path=''){
   }
 }
 
-// ── SCAN LOGIC (accurate - actually tests each file) ──────────
+
 async function startScan(){
   if (!gToken){ toast('Nhấn Cấp quyền Drive trước!','warn'); return; }
   const sv = document.getElementById('srcInput').value.trim();
@@ -945,7 +946,7 @@ function renderScanTree(errors, total, elapsed){
   rerenderScan();
 }
 
-// ── COPY LOGIC ────────────────────────────────────────────────
+
 window.startCopy = async () => {
   if (!gToken){ toast('Nhấn Cấp quyền Drive trước!','warn'); return; }
   const sv = document.getElementById('srcInput').value.trim();
@@ -1003,7 +1004,7 @@ window.startCopy = async () => {
   finally { setRunning('idle'); }
 };
 
-// ── SESSION ───────────────────────────────────────────────────
+
 const SK = 'swiftcopy_session';
 function saveSessionData(d){ localStorage.setItem(SK, JSON.stringify({...d, stats, ts:Date.now()})); }
 function saveSession(){ const s=getSession(); if(s){s.stats=stats;s.ts=Date.now();localStorage.setItem(SK,JSON.stringify(s));} }
@@ -1027,7 +1028,7 @@ window.resumeSession = async () => {
 };
 window.clearSession = clearSession;
 
-// ── FIREBASE HISTORY ──────────────────────────────────────────
+
 async function saveHist(si,sn,di,dn,el){
   try {
     await addDoc(collection(db,'history'),{
@@ -1038,7 +1039,7 @@ async function saveHist(si,sn,di,dn,el){
   } catch(e){ console.warn('saveHist',e); }
 }
 
-// ── UI ────────────────────────────────────────────────────────
+
 function sec(name){
   ['land','check','pend','app'].forEach(s => {
     const el = document.getElementById('s-'+s);
@@ -1114,7 +1115,7 @@ function showReport(el){
   document.getElementById('repCard').style.display='block';
 }
 
-// ── MODAL (tree view) ─────────────────────────────────────────
+
 const _modalOpen = new Set();
 
 window.openModal = (type) => {
