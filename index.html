@@ -612,7 +612,7 @@ function notifyAdminKickedRelogin(u, reason){
     emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
       subject: '[SwiftCopy.Drive] Cảnh báo: user bị kick đang đăng nhập',
       user_email: ADMIN_EMAIL,
-      message: `User ${u.email} đã bị kick (lý do: ${reason||'—'}) nhưng đang cố đăng nhập lại.`
+      message: `User ${u.email} đã bị kick (lý do: ${reason||'-'}) nhưng đang cố đăng nhập lại.`
     });
   });
 }
@@ -637,7 +637,7 @@ const CONCURRENCY = 4;
 function hdr(){ return { Authorization: 'Bearer ' + gToken, 'Content-Type': 'application/json' }; }
 
 async function dget(path, p = {}){
-  if (!gToken) throw new Error('Chưa cấp quyền Drive — nhấn Cấp quyền Drive');
+  if (!gToken) throw new Error('Chưa cấp quyền Drive - nhấn Cấp quyền Drive');
   const url = new URL(BASE + path);
   Object.entries(p).forEach(([k,v]) => url.searchParams.set(k, v));
   const r = await fetch(url, { headers: hdr() });
@@ -703,7 +703,7 @@ async function copyBatch(files, destId){
       await pausePoint();
       const res = await copyFileSingle(item.id, destId);
       if (res.ok){ stats.copied++; stats.copiedFiles.push({name:item.name,path:item._path||item.name}); addLog('✓ '+item.name,'ok'); }
-      else { stats.failed++; stats.failedFiles.push({name:item.name,path:item._path||item.name,reason:res.reason,link:`https://drive.google.com/file/d/${item.id}/view`}); addLog('✗ '+item.name+' — '+res.reason,'err'); }
+      else { stats.failed++; stats.failedFiles.push({name:item.name,path:item._path||item.name,reason:res.reason,link:`https://drive.google.com/file/d/${item.id}/view`}); addLog('✗ '+item.name+' - '+res.reason,'err'); }
       updStats(); saveSession();
     }));
   }
@@ -767,7 +767,7 @@ window.startScan = async function startScan(){
         await pausePoint(); if (stopFlag) return;
         const fp = path ? `${path} › ${item.name}` : item.name;
         if (item.mimeType === SMIME){
-          nodeErrors.push({ name:item.name, path:fp, reason:'Là shortcut — bỏ qua', type:'file', children:[] });
+          nodeErrors.push({ name:item.name, path:fp, reason:'Là shortcut - bỏ qua', type:'file', children:[] });
           continue;
         }
         if (item.mimeType === FMIME){
@@ -835,10 +835,10 @@ function renderScanTree(errors, total, elapsed){
   const totalErr = errors.reduce((s,e)=>s+countErrors(e),0) + errors.filter(e=>e.selfError).length;
 
   if (totalErr === 0){
-    setStatus(`✓ Kiểm tra xong ${total} mục — Không lỗi (${elapsed}s)`);
+    setStatus(`✓ Kiểm tra xong ${total} mục - Không lỗi (${elapsed}s)`);
     el.innerHTML = `<div class="scan-ok">
       <svg class="ic16" style="color:var(--green)"><use href="#ic-check-circle"/></svg>
-      Kiểm tra xong — Tất cả ${total} mục đều có thể sao chép!
+      Kiểm tra xong - Tất cả ${total} mục đều có thể sao chép!
     </div>`;
     return;
   }
@@ -990,7 +990,7 @@ window.startCopy = async () => {
         if (dex.has(item.name)){ addLog('⏭ Đã có: '+item.name,'skip'); setProgress(idx,sel.length); continue; }
         const res = await copyFileSingle(item.id, destId);
         if (res.ok){ stats.copied++; stats.copiedFiles.push({name:item.name,path:item.name}); addLog('✓ '+item.name,'ok'); }
-        else { stats.failed++; stats.failedFiles.push({name:item.name,path:item.name,reason:res.reason,link:`https://drive.google.com/file/d/${item.id}/view`}); addLog('✗ '+item.name+' — '+res.reason,'err'); }
+        else { stats.failed++; stats.failedFiles.push({name:item.name,path:item.name,reason:res.reason,link:`https://drive.google.com/file/d/${item.id}/view`}); addLog('✗ '+item.name+' - '+res.reason,'err'); }
         updStats();
       }
       setProgress(idx, sel.length); saveSession();
@@ -1023,7 +1023,7 @@ window.resumeSession = async () => {
   const s = getSession(); if (!s){ clearSession(); return; }
   if (s.stats){ stats=s.stats; updStats(); document.getElementById('statsRow').style.display='flex'; }
   document.getElementById('resumeBanner').style.display = 'none';
-  addLog('Tiếp tục phiên cũ — bỏ qua file đã sao chép...','info');
+  addLog('Tiếp tục phiên cũ - bỏ qua file đã sao chép...','info');
   await window.startCopy();
 };
 window.clearSession = clearSession;
@@ -1107,10 +1107,10 @@ function showReport(el){
   const b = document.getElementById('repBanner');
   if (stats.failed===0){
     b.className='rep-banner ok';
-    b.innerHTML=`<svg class="ic16" style="color:var(--green)"><use href="#ic-check-circle"/></svg> Hoàn tất — ${stats.copied} file đã về Drive của bạn.`;
+    b.innerHTML=`<svg class="ic16" style="color:var(--green)"><use href="#ic-check-circle"/></svg> Hoàn tất - ${stats.copied} file đã về Drive của bạn.`;
   } else {
     b.className='rep-banner warn';
-    b.innerHTML=`<svg class="ic16" style="color:var(--orange)"><use href="#ic-alert"/></svg> ${stats.copied} thành công, ${stats.failed} lỗi — nhấn ô Lỗi để xem chi tiết.`;
+    b.innerHTML=`<svg class="ic16" style="color:var(--orange)"><use href="#ic-alert"/></svg> ${stats.copied} thành công, ${stats.failed} lỗi - nhấn ô Lỗi để xem chi tiết.`;
   }
   document.getElementById('repCard').style.display='block';
 }
