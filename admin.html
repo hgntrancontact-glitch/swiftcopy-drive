@@ -260,7 +260,7 @@ import { getFirestore, doc, getDoc, setDoc, collection, query,
          orderBy, getDocs, updateDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ── THAY FIREBASE CONFIG ────────────────────────────────────
+
 const firebaseConfig = {
   apiKey: "AIzaSyDu5D6bB-FxJl2E71Ls17GwHVtqZV0FwF8",
   authDomain: "swiftcopy-drive.firebaseapp.com",
@@ -275,7 +275,7 @@ const EMAILJS_TEMPLATE = "template_z8q2r4w";
 const EMAILJS_KEY      = "user_KjH7Gf5D4s3a2P1oN";
 const SITE_NAME        = "SwiftCopy.Drive";
 const SITE_URL         = "https://hgntrancontact-glitch.github.io/swiftcopy-drive/";
-// ────────────────────────────────────────────────────────────
+
 
 const app      = initializeApp(firebaseConfig);
 const auth     = getAuth(app);
@@ -287,7 +287,7 @@ let currentFilter = 'all';
 let _kickUid = null, _kickEmail = '', _kickName = '';
 let _readdUid = null, _readdEmail = '', _readdName = '';
 
-// ── EMAIL ──────────────────────────────────────────────────────
+
 let _ejsLoaded = false;
 function loadEmailJS(){
   if (_ejsLoaded) return Promise.resolve();
@@ -310,7 +310,7 @@ async function sendEmail(toEmail, subject, message){
   } catch(e){ console.warn('Email error', e); }
 }
 
-// ── AUTH ──────────────────────────────────────────────────────
+
 onAuthStateChanged(auth, u => {
   if (!u){ sec('login'); return; }
   if (u.email !== ADMIN_EMAIL){ sec('denied'); signOut(auth); return; }
@@ -318,7 +318,7 @@ onAuthStateChanged(auth, u => {
   sec('panel'); loadStats(); loadUsers();
 });
 
-// ── DATA ──────────────────────────────────────────────────────
+
 async function loadStats(){
   try {
     const snap = await getDocs(collection(db,'users'));
@@ -356,10 +356,10 @@ function renderUsers(filter){
   if (!list.length){ tbody.innerHTML='<tr><td colspan="5" class="empty-cell">Không có người dùng nào.</td></tr>'; return; }
 
   tbody.innerHTML = list.map(u => {
-    const dt = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString('vi-VN') : '—';
+    const dt = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString('vi-VN') : '-';
     let statusBadge = '';
     if (u.status==='kicked')
-      statusBadge = `<span class="badge red">Bị kick</span>${u.kickReason?`<span style="font-size:10px;color:var(--text3);margin-left:4px">— ${u.kickReason.slice(0,40)}</span>`:''}`;
+      statusBadge = `<span class="badge red">Bị kick</span>${u.kickReason?`<span style="font-size:10px;color:var(--text3);margin-left:4px">- ${u.kickReason.slice(0,40)}</span>`:''}`;
     else if (u.approved)
       statusBadge = `<span class="badge green">Đã kích hoạt</span>`;
     else
@@ -393,7 +393,7 @@ function renderUsers(filter){
       <td>
         <div class="user-cell">
           <img class="uav" src="${u.photoURL||''}" onerror="this.style.display='none'" alt=""/>
-          <div><div class="u-name">${u.displayName||'—'}</div><div class="u-email">${u.email}</div></div>
+          <div><div class="u-name">${u.displayName||'-'}</div><div class="u-email">${u.email}</div></div>
         </div>
       </td>
       <td><span class="uid-txt">${u.id.slice(0,10)}…</span></td>
@@ -408,7 +408,7 @@ function esc(s){ return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 
 window.filterUsers = f => renderUsers(f);
 
-// ── APPROVE ────────────────────────────────────────────────────
+
 window.approveUser = async (uid, email, name) => {
   const btns = document.querySelectorAll(`tr[data-uid="${uid}"] .act-btn`);
   btns.forEach(b=>b.disabled=true);
@@ -425,7 +425,7 @@ window.approveUser = async (uid, email, name) => {
   } catch(e){ toast('Lỗi: '+e.message,'err'); btns.forEach(b=>b.disabled=false); }
 };
 
-// ── KICK ───────────────────────────────────────────────────────
+
 window.openKickModal = (uid, email, name) => {
   _kickUid=uid; _kickEmail=email; _kickName=name;
   document.getElementById('kickMsg').textContent = `Kick người dùng "${name}" (${email})?`;
@@ -452,7 +452,7 @@ window.doKick = async () => {
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };
 
-// ── RE-ADD ─────────────────────────────────────────────────────
+
 window.openReaddModal = (uid, email, name) => {
   _readdUid=uid; _readdEmail=email; _readdName=name;
   document.getElementById('readdMsg').textContent = `Thêm lại và kích hoạt tài khoản "${name}" (${email})?`;
@@ -479,7 +479,7 @@ window.doReadd = async () => {
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };
 
-// ── UI ────────────────────────────────────────────────────────
+
 function sec(name){ ['login','denied','panel'].forEach(s=>{ const el=document.getElementById('s-'+s); if(el) el.style.display=s===name?'block':'none'; }); }
 
 function toast(msg,type='ok'){
