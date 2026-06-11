@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SwiftCopy.Drive v6 -->
+<!-- SwiftCopy.Drive v7 -->
 <html lang="vi">
 <head>
 <meta charset="UTF-8"/>
@@ -23,7 +23,6 @@
 body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased}
 svg.ic{width:14px;height:14px;display:inline-block;vertical-align:middle;flex-shrink:0}
 svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-shrink:0}
-svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-shrink:0}
 
 /* NAV */
 .nav{background:var(--surface);border-bottom:2px solid var(--yellow);height:54px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:var(--sh)}
@@ -73,16 +72,20 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
 
 /* FORM */
 .input-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-.fg{margin-bottom:12px}
+.fg{margin-bottom:0}
 .fl{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
 .fi{width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:var(--r);font-size:13px;font-family:inherit;color:var(--text);background:var(--surface2);outline:none;transition:.15s}
 .fi:focus{border-color:var(--text);background:var(--surface)}
 .fi::placeholder{color:var(--text3)}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-.fhint{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* FOLDER NAME PREVIEW */
+.folder-preview{margin-top:5px;min-height:20px;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--green);transition:.2s}
+.folder-preview.loading{color:var(--text3)}
+.folder-preview.error{color:var(--red)}
+.folder-preview svg{flex-shrink:0}
 
 /* ACTION BAR */
-.action-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface2);border-radius:var(--r);flex-wrap:wrap;gap:8px}
+.action-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface2);border-radius:var(--r);flex-wrap:wrap;gap:8px;margin-top:14px}
 .action-left{display:flex;gap:8px;flex-wrap:wrap}
 
 /* BUTTONS */
@@ -102,19 +105,18 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
 .btn-resume:hover:not(:disabled){background:var(--green);color:#fff}
 .btn-outline{background:var(--surface);color:var(--text2);border-color:var(--border2)}
 .btn-outline:hover:not(:disabled){background:var(--surface2)}
-.btn-white{background:#fff;color:var(--text);border:2px solid rgba(255,255,255,.5)}
-.btn-white:hover{background:rgba(255,255,255,.15);color:#fff}
+.btn-ghost{background:none;border:none;color:var(--text3);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s}
+.btn-ghost:hover{background:var(--surface2);color:var(--text2)}
 
-/* ── OVERLAY: CHƯA CẤP QUYỀN (đen + card đỏ) ── */
+/* NO AUTH OVERLAY */
 .overlay-backdrop{display:none;position:fixed;inset:0;z-index:498;background:rgba(0,0,0,.75);backdrop-filter:blur(3px);animation:fadeIn .2s ease}
 .overlay-backdrop.show{display:block}
-.overlay-panel{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-54%);z-index:499;width:90%;max-width:460px;animation:slideUp .25s ease;transition:opacity .2s}
+.overlay-panel{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-54%);z-index:499;width:90%;max-width:460px;animation:slideUp .25s ease}
 .overlay-panel.show{display:block}
 @keyframes slideUp{from{transform:translate(-50%,-46%);opacity:0}to{transform:translate(-50%,-54%);opacity:1}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-
-.no-auth-card{background:linear-gradient(145deg,#1a0a08,#2d0f0a);border:1px solid rgba(255,80,60,.3);border-radius:20px;padding:36px 32px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,80,60,.15),inset 0 1px 0 rgba(255,255,255,.05)}
-.no-auth-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(232,41,28,.2);border:1px solid rgba(232,41,28,.4);color:#ff8070;font-size:11px;font-weight:700;padding:5px 14px;border-radius:999px;margin-bottom:20px;letter-spacing:.5px}
+.no-auth-card{background:linear-gradient(145deg,#1a0a08,#2d0f0a);border:1px solid rgba(255,80,60,.3);border-radius:20px;padding:36px 32px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05)}
+.no-auth-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(232,41,28,.2);border:1px solid rgba(232,41,28,.4);color:#ff8070;font-size:11px;font-weight:700;padding:5px 14px;border-radius:999px;margin-bottom:20px}
 .no-auth-icon{font-size:52px;margin-bottom:16px;display:block}
 .no-auth-title{font-family:'Nunito',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:10px}
 .no-auth-msg{font-size:14px;color:rgba(255,255,255,.65);line-height:1.7;margin-bottom:24px}
@@ -124,15 +126,51 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
 .btn-auth-close{display:inline-flex;align-items:center;gap:6px;padding:11px 20px;border-radius:var(--r);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.15);transition:.15s}
 .btn-auth-close:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.8)}
 
-/* ── OVERLAY: ĐÃ CẤP QUYỀN (popup nhỏ xanh, không nền tối) ── */
-.success-toast{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:499;animation:slideDown .3s ease;white-space:nowrap}
+/* AUTH SUCCESS TOAST */
+.success-toast{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:499;animation:slideDown .3s ease}
 .success-toast.show{display:block}
 @keyframes slideDown{from{transform:translateX(-50%) translateY(-12px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
-.success-toast-inner{background:linear-gradient(135deg,#0d5c2e,#1a9950);border:1px solid rgba(52,211,153,.3);border-radius:14px;padding:14px 22px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(26,153,80,.35),0 2px 8px rgba(0,0,0,.15)}
-.success-toast-icon{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.success-toast-text{}
-.success-toast-title{font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#fff}
-.success-toast-sub{font-size:12px;color:rgba(255,255,255,.7);margin-top:1px}
+.success-toast-inner{background:linear-gradient(135deg,#0d5c2e,#1a9950);border:1px solid rgba(52,211,153,.3);border-radius:14px;padding:14px 22px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(26,153,80,.35)}
+.sti-icon{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sti-title{font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#fff}
+.sti-sub{font-size:12px;color:rgba(255,255,255,.7);margin-top:1px}
+
+/* CHECKLIST */
+.checklist-wrap{margin-top:14px;border:1.5px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.checklist-toolbar{padding:10px 14px;background:var(--surface2);border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.checklist-info{font-size:12px;color:var(--text3);font-weight:600}
+.checklist-info b{color:var(--text);font-weight:700}
+.checklist-toolbar-btns{display:flex;gap:6px}
+.checklist-body{max-height:340px;overflow-y:auto;background:var(--surface);scrollbar-width:thin;scrollbar-color:#ccc #f0f0f0;user-select:none}
+.checklist-body::-webkit-scrollbar{width:6px}
+.checklist-body::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+/* checklist row */
+.cl-row{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:.1s;position:relative}
+.cl-row:last-child{border-bottom:none}
+.cl-row:hover{background:var(--surface2)}
+.cl-row.dragging-over{background:var(--yl)}
+.cl-indent{flex-shrink:0}
+/* custom checkbox */
+.cl-cb{width:16px;height:16px;border:2px solid var(--border2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.15s;background:var(--surface)}
+.cl-row.checked .cl-cb{background:var(--text);border-color:var(--text)}
+.cl-row.indeterminate .cl-cb{background:var(--text3);border-color:var(--text3)}
+.cl-cb-tick{display:none;color:#fff;font-size:10px;font-weight:900;line-height:1}
+.cl-cb-dash{display:none;color:#fff;font-size:12px;font-weight:900;line-height:1}
+.cl-row.checked .cl-cb-tick{display:block}
+.cl-row.indeterminate .cl-cb-tick{display:none}
+.cl-row.indeterminate .cl-cb-dash{display:block}
+/* expand btn */
+.cl-expand{width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:4px;color:var(--text3);transition:.15s}
+.cl-expand:hover{background:var(--border)}
+.cl-expand.no-children{opacity:0;pointer-events:none}
+/* icon + name */
+.cl-icon{font-size:14px;flex-shrink:0;line-height:1}
+.cl-name{flex:1;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.cl-row.is-folder .cl-name{font-weight:700}
+.cl-meta{font-size:10px;color:var(--text3);flex-shrink:0}
+/* loading/empty states */
+.cl-loading{padding:28px;text-align:center;color:var(--text3);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.cl-empty{padding:28px;text-align:center;color:var(--text3);font-size:13px}
 
 /* PROGRESS */
 .prog-wrap{margin:14px 0 6px}
@@ -140,8 +178,8 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
 .prog-fill{height:100%;border-radius:999px;background:var(--text);transition:width .3s;width:0}
 .prog-fill.done{background:var(--green)}
 .prog-fill.paused{background:var(--orange)}
-.prog-fill.scanning{background:#7c3aed;animation:scanpulse 1.2s ease-in-out infinite}
-@keyframes scanpulse{0%,100%{opacity:1}50%{opacity:.5}}
+.prog-fill.scanning{background:#7c3aed;background-size:200% 100%;animation:scanslide 1.5s linear infinite}
+@keyframes scanslide{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .status-lbl{font-size:11px;color:var(--text3);margin-top:5px;min-height:16px;font-family:monospace}
 
 /* STATS */
@@ -165,7 +203,7 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
 .ll-ic{flex-shrink:0;width:14px}
 .ll-msg{color:#ccc;word-break:break-all}
 
-/* TREE */
+/* TREE (scan result) */
 .tree-wrap{border:1.5px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-top:12px}
 .tree-head{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid var(--border)}
 .tree-head.ok-head{background:var(--greenl);border-color:var(--greenb)}
@@ -191,7 +229,6 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
 .modal{background:var(--surface);border-radius:var(--r2);width:100%;max-width:640px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);border:1.5px solid var(--border)}
 .modal-h{padding:14px 18px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);flex-shrink:0}
 .modal-h h3{font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
-.modal-sub{font-size:11px;color:var(--text3);padding:3px 10px;background:var(--surface);border-radius:999px;border:1px solid var(--border)}
 .modal-cls{background:none;border:1.5px solid var(--border2);color:var(--text2);cursor:pointer;padding:3px 10px;border-radius:7px;font-size:13px;font-family:inherit}
 .modal-b{overflow-y:auto;flex:1}
 
@@ -206,7 +243,7 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
 .toast.err{background:var(--redm)}
 .toast.ok{background:var(--green)}
 
-@media(max-width:580px){.input-grid,.frow{grid-template-columns:1fr}.stats{flex-wrap:wrap}.sc{min-width:calc(50% - 4px)}}
+@media(max-width:580px){.input-grid{grid-template-columns:1fr}.stats{flex-wrap:wrap}.sc{min-width:calc(50% - 4px)}}
 </style>
 </head>
 <body>
@@ -233,40 +270,29 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
   <symbol id="ic-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
   <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
   <symbol id="ic-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
-  <symbol id="ic-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="ic-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
 </svg>
 
-<!-- OVERLAY: Chưa cấp quyền Drive -->
+<!-- NO AUTH OVERLAY -->
 <div id="noAuthBackdrop" class="overlay-backdrop" onclick="closeNoAuth()"></div>
 <div id="noAuthPanel" class="overlay-panel">
   <div class="no-auth-card">
-    <div class="no-auth-badge">
-      <svg class="ic" style="color:#ff8070"><use href="#ic-warn"/></svg>
-      Cần xác thực
-    </div>
+    <div class="no-auth-badge"><svg class="ic" style="color:#ff8070"><use href="#ic-warn"/></svg> Cần xác thực</div>
     <span class="no-auth-icon">🔐</span>
     <div class="no-auth-title" id="noAuthTitle">Chưa cấp quyền Drive</div>
     <div class="no-auth-msg" id="noAuthMsg">Bạn cần cấp quyền truy cập Google Drive trước khi thực hiện thao tác này.</div>
     <div class="no-auth-btns">
-      <button class="btn-auth-primary" onclick="reAuthFromOverlay()">
-        <svg class="ic"><use href="#ic-key"/></svg>
-        Cấp quyền Drive ngay
-      </button>
+      <button class="btn-auth-primary" onclick="reAuthFromOverlay()"><svg class="ic"><use href="#ic-key"/></svg> Cấp quyền Drive ngay</button>
       <button class="btn-auth-close" onclick="closeNoAuth()">Đóng lại</button>
     </div>
   </div>
 </div>
 
-<!-- OVERLAY: Đã cấp quyền Drive -->
+<!-- AUTH SUCCESS -->
 <div id="authSuccessToast" class="success-toast">
   <div class="success-toast-inner">
-    <div class="success-toast-icon">
-      <svg class="ic16" style="color:#fff"><use href="#ic-check"/></svg>
-    </div>
-    <div class="success-toast-text">
-      <div class="success-toast-title">Đã cấp quyền Drive!</div>
-      <div class="success-toast-sub">Bạn có thể bắt đầu sao chép ngay bây giờ</div>
-    </div>
+    <div class="sti-icon"><svg class="ic16" style="color:#fff"><use href="#ic-check"/></svg></div>
+    <div><div class="sti-title">Đã cấp quyền Drive!</div><div class="sti-sub">Bạn có thể bắt đầu sao chép ngay bây giờ</div></div>
   </div>
 </div>
 
@@ -293,7 +319,7 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
     <div class="feats">
       <div class="feat"><svg class="ic"><use href="#ic-bolt"/></svg> Sao chép tốc độ cực nhanh</div>
       <div class="feat"><svg class="ic"><use href="#ic-search"/></svg> Kiểm tra Drive lỗi trước</div>
-      <div class="feat"><svg class="ic"><use href="#ic-check"/></svg> Báo cáo kết quả chi tiết</div>
+      <div class="feat"><svg class="ic"><use href="#ic-list"/></svg> Chọn lọc mục muốn copy</div>
       <div class="feat"><svg class="ic"><use href="#ic-clock"/></svg> Theo dõi hành trình sao chép</div>
     </div>
     <button class="btn-google" onclick="doLogin()">
@@ -305,9 +331,7 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
 </div>
 
 <!-- CHECKING -->
-<div id="s-check">
-  <div class="center-wrap"><div class="spin"></div><p style="color:var(--text3);font-size:14px;font-weight:600">Đang kiểm tra tài khoản...</p></div>
-</div>
+<div id="s-check"><div class="center-wrap"><div class="spin"></div><p style="color:var(--text3);font-size:14px;font-weight:600">Đang kiểm tra tài khoản...</p></div></div>
 
 <!-- PENDING -->
 <div id="s-pend">
@@ -341,26 +365,35 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
       <div class="card-h"><span class="card-t"><svg class="ic16"><use href="#ic-link"/></svg> Cấu hình nguồn &amp; đích</span></div>
       <div class="card-b">
         <div class="input-grid">
-          <div class="fg" style="margin-bottom:0">
+          <div class="fg">
             <label class="fl"><svg class="ic" style="color:var(--text3)"><use href="#ic-folder"/></svg> Drive nguồn (Shared Drive)</label>
-            <input id="srcInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive nguồn"/>
+            <input id="srcInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive nguồn" oninput="onInputChange('src')" onpaste="setTimeout(()=>onInputChange('src'),100)"/>
+            <div id="srcPreview" class="folder-preview" style="display:none"></div>
           </div>
-          <div class="fg" style="margin-bottom:0">
+          <div class="fg">
             <label class="fl"><svg class="ic" style="color:var(--text3)"><use href="#ic-folder"/></svg> Drive bạn tải về</label>
-            <input id="destInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive đích"/>
+            <input id="destInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive đích" oninput="onInputChange('dest')" onpaste="setTimeout(()=>onInputChange('dest'),100)"/>
+            <div id="destPreview" class="folder-preview" style="display:none"></div>
           </div>
         </div>
-        <div class="frow">
-          <div class="fg" style="margin-bottom:0">
-            <label class="fl">Từ trang</label>
-            <input id="fromPage" class="fi" type="number" value="1" min="1"/>
+
+        <!-- CHECKLIST SECTION -->
+        <div id="checklistWrap" style="display:none" class="checklist-wrap">
+          <div class="checklist-toolbar">
+            <span class="checklist-info"><b id="clSelected">0</b> mục được chọn / <b id="clTotal">0</b> tổng</span>
+            <div class="checklist-toolbar-btns">
+              <button class="btn-ghost" onclick="clSelectAll()">Chọn tất cả</button>
+              <button class="btn-ghost" onclick="clDeselectAll()">Bỏ chọn</button>
+            </div>
           </div>
-          <div class="fg" style="margin-bottom:0">
-            <label class="fl">Đến trang</label>
-            <input id="toPage" class="fi" type="number" value="0" min="0"/>
-            <div class="fhint">0 = tất cả · mỗi trang 100 mục</div>
+          <div class="checklist-body" id="checklistBody"
+            onmousedown="dragStart(event)"
+            onmouseover="dragOver(event)"
+            onmouseup="dragEnd()">
           </div>
         </div>
+
+        <!-- ACTION BAR -->
         <div class="action-bar">
           <div class="action-left">
             <button id="btnScan" class="btn btn-red" onclick="handleScanBtn()">
@@ -375,7 +408,7 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
             <button id="btnResume" class="btn btn-resume" onclick="doResume()" style="display:none"><svg class="ic"><use href="#ic-play"/></svg> Tiếp tục</button>
             <button id="btnReset" class="btn btn-outline" onclick="doReset()"><svg class="ic"><use href="#ic-reset"/></svg> Reset</button>
           </div>
-          <span id="actionStatus" style="font-size:11px;color:var(--text3);font-family:monospace;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <span id="actionStatus" style="font-size:11px;color:var(--text3);font-family:monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
         </div>
       </div>
     </div>
@@ -391,7 +424,6 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
           <div class="prog-track"><div id="progFill" class="prog-fill" style="width:0%"></div></div>
         </div>
         <div id="statusLbl" class="status-lbl">Chưa bắt đầu</div>
-
         <div id="statsRow" class="stats" style="display:none">
           <div class="sc gr" onclick="openModal('result')">
             <div id="sCopied" class="sc-n">0</div>
@@ -409,7 +441,6 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
             <div class="sc-h">▾ Xem</div>
           </div>
         </div>
-
         <div style="margin-top:14px">
           <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Activity Log</div>
           <div id="logBox" class="log-box"></div>
@@ -420,15 +451,12 @@ svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-
   </div>
 </div>
 
-<!-- MODAL - hiển thị toàn bộ không ẩn -->
+<!-- MODAL -->
 <div id="modalOv" class="modal-ov" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-h">
       <h3 id="modalTitle">Chi tiết</h3>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="modal-sub">Thư mục lớn → nhỏ · Mở rộng tất cả</span>
-        <button class="modal-cls" onclick="closeModal()">Đóng</button>
-      </div>
+      <button class="modal-cls" onclick="closeModal()">Đóng</button>
     </div>
     <div id="modalBody" class="modal-b"></div>
   </div>
@@ -462,679 +490,786 @@ const db       = getFirestore(fbApp);
 const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/drive');
 
-let gUser  = null, gToken = null;
-let pauseFlag = false, stopFlag = false;
-let runMode = 'idle';
+let gUser = null, gToken = null;
+let pauseFlag = false, stopFlag = false, runMode = 'idle';
 let stats = ns();
 let _resumeResolve = null;
+// Checklist state
+let clItems = [];     // flat list of { id, name, mimeType, parentId, depth, expanded, checked, indeterminate }
+let clLoaded = false;
+// Drag-select state
+let _dragActive = false, _dragCheckValue = null;
 
 function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[] }; }
 
-// OVERLAY handlers
+// ── OVERLAY ─────────────────────────────────────────────────
 window.closeNoAuth = () => {
   document.getElementById('noAuthBackdrop').classList.remove('show');
   document.getElementById('noAuthPanel').classList.remove('show');
 };
-window.reAuthFromOverlay = async () => {
-  closeNoAuth();
-  await reAuth();
-};
+window.reAuthFromOverlay = async () => { closeNoAuth(); await reAuth(); };
 function showNoAuth(title, msg) {
   document.getElementById('noAuthTitle').textContent = title || 'Chưa cấp quyền Drive';
-  document.getElementById('noAuthMsg').textContent   = msg || 'Nhấn nút bên dưới để cấp quyền truy cập Google Drive.';
+  document.getElementById('noAuthMsg').textContent   = msg   || 'Nhấn nút bên dưới để cấp quyền.';
   document.getElementById('noAuthBackdrop').classList.add('show');
   document.getElementById('noAuthPanel').classList.add('show');
 }
-function showAuthSuccess() {
+function showAuthOK() {
   const el = document.getElementById('authSuccessToast');
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 3500);
 }
 
-// PAUSE/RESUME
-function pausePoint() { return pauseFlag ? new Promise(r => { _resumeResolve = r; }) : Promise.resolve(); }
-
+// ── PAUSE/RESUME ─────────────────────────────────────────────
+function pausePoint(){ return pauseFlag ? new Promise(r => { _resumeResolve = r; }) : Promise.resolve(); }
 window.doPause = () => {
   pauseFlag = true;
   document.getElementById('btnPause').style.display  = 'none';
   document.getElementById('btnResume').style.display = 'inline-flex';
-  setProgress(null, null, 'paused');
-  addLog('Tạm dừng', 'warn');
+  setProgress(null,null,'paused');
+  addLog('Tạm dừng','warn');
 };
 window.doResume = () => {
   pauseFlag = false;
   document.getElementById('btnPause').style.display  = 'inline-flex';
   document.getElementById('btnResume').style.display = 'none';
-  setProgress(null, null, runMode === 'scan' ? 'scanning' : 'running');
-  addLog('Tiếp tục', 'info');
-  if (_resumeResolve) { _resumeResolve(); _resumeResolve = null; }
+  setProgress(null,null, runMode==='scan'?'scanning':'running');
+  addLog('Tiếp tục','info');
+  if (_resumeResolve){ _resumeResolve(); _resumeResolve=null; }
 };
-
-// BTN HANDLERS
-window.handleScanBtn = () => { if (runMode === 'scan') doStopScan(); else startScan(); };
-window.handleStartBtn = () => { if (runMode === 'copy') doStopCopy(); else window.startCopy(); };
-
-function doStopScan() {
-  stopFlag = true; pauseFlag = false;
-  if (_resumeResolve) { _resumeResolve(); _resumeResolve = null; }
-  // setBtnMode('idle') will be called in finally block of startScan
-}
-function doStopCopy() {
-  stopFlag = true; pauseFlag = false;
-  if (_resumeResolve) { _resumeResolve(); _resumeResolve = null; }
-}
+window.handleScanBtn  = () => { if(runMode==='scan')  doStopScan();  else startScan(); };
+window.handleStartBtn = () => { if(runMode==='copy')  doStopCopy();  else window.startCopy(); };
+function doStopScan()  { stopFlag=true; pauseFlag=false; if(_resumeResolve){_resumeResolve();_resumeResolve=null;} }
+function doStopCopy()  { stopFlag=true; pauseFlag=false; if(_resumeResolve){_resumeResolve();_resumeResolve=null;} }
 
 window.doReset = () => {
-  stopFlag = true; pauseFlag = false;
-  if (_resumeResolve) { _resumeResolve(); _resumeResolve = null; }
-  stats = ns();
+  stopFlag=true; pauseFlag=false;
+  if(_resumeResolve){_resumeResolve();_resumeResolve=null;}
+  stats=ns(); clItems=[]; clLoaded=false;
   document.getElementById('srcInput').value  = '';
   document.getElementById('destInput').value = '';
-  document.getElementById('fromPage').value  = '1';
-  document.getElementById('toPage').value    = '0';
+  document.getElementById('srcPreview').style.display  = 'none';
+  document.getElementById('destPreview').style.display = 'none';
+  document.getElementById('checklistWrap').style.display = 'none';
   document.getElementById('progFill').style.width  = '0%';
   document.getElementById('progFill').className    = 'prog-fill';
   document.getElementById('logBox').innerHTML      = '';
   document.getElementById('scanResult').style.display = 'none';
   document.getElementById('statsRow').style.display   = 'none';
   setStatus('Chưa bắt đầu');
-  clearSession();
-  setBtnMode('idle');
-  toast('Đã reset toàn bộ', 'ok');
+  clearSession(); setBtnMode('idle');
+  toast('Đã reset toàn bộ','ok');
 };
 
-// AUTH
+// ── AUTH ─────────────────────────────────────────────────────
 window.doLogin = async () => {
-  try {
-    const res = await signInWithPopup(auth, provider);
-    gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
-  } catch(e) { toast('Đăng nhập thất bại', 'err'); }
+  try { const res=await signInWithPopup(auth,provider); gToken=GoogleAuthProvider.credentialFromResult(res)?.accessToken; }
+  catch(e){ toast('Đăng nhập thất bại','err'); }
 };
 window.doLogout = () => signOut(auth);
-window.reAuth = async () => {
-  try {
-    const res = await signInWithPopup(auth, provider);
-    gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
-    showAuthSuccess();
-  } catch(e) { toast('Lỗi cấp quyền: ' + e.message, 'err'); }
+window.reAuth   = async () => {
+  try { const res=await signInWithPopup(auth,provider); gToken=GoogleAuthProvider.credentialFromResult(res)?.accessToken; showAuthOK(); }
+  catch(e){ toast('Lỗi cấp quyền: '+e.message,'err'); }
 };
 
 onAuthStateChanged(auth, async u => {
-  if (!u) { gUser = null; gToken = null; sec('land'); return; }
-  gUser = u; sec('check');
+  if (!u){ gUser=null; gToken=null; sec('land'); return; }
+  gUser=u; sec('check');
   try {
-    const isAdmin = u.email === ADMIN_EMAIL;
+    const isAdmin = u.email===ADMIN_EMAIL;
     if (!isAdmin) await ensureUser(u);
     const approved = isAdmin || await checkApproval(u);
     setNavUser(u);
-    if (approved) { sec('app'); checkResume(); }
+    if (approved){ sec('app'); checkResume(); }
     else sec('pend');
-  } catch(e) { setNavUser(u); sec('pend'); }
+  } catch(e){ setNavUser(u); sec('pend'); }
 });
 
-async function ensureUser(u) {
-  const ref  = doc(db, 'users', u.uid);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    await setDoc(ref, { email:u.email, displayName:u.displayName, photoURL:u.photoURL, approved:false, status:'pending', createdAt:serverTimestamp() });
+async function ensureUser(u){
+  const ref=doc(db,'users',u.uid), snap=await getDoc(ref);
+  if (!snap.exists()){
+    await setDoc(ref,{email:u.email,displayName:u.displayName,photoURL:u.photoURL,approved:false,status:'pending',createdAt:serverTimestamp()});
     sendRegEmail(u);
-  } else if (snap.data().status === 'kicked') {
-    notifyAdminKicked(u, snap.data().kickReason);
+  } else if(snap.data().status==='kicked'){
+    notifyAdminKicked(u,snap.data().kickReason);
   }
 }
-async function checkApproval(u) {
-  const snap = await getDoc(doc(db, 'users', u.uid));
+async function checkApproval(u){
+  const snap=await getDoc(doc(db,'users',u.uid));
   if (!snap.exists()) return false;
-  const d = snap.data();
-  return d.status !== 'kicked' && d.approved === true;
+  const d=snap.data(); return d.status!=='kicked'&&d.approved===true;
 }
-function sendRegEmail(u) {
-  if (!EMAILJS_KEY || EMAILJS_KEY === 'YOUR_EMAILJS_PUBLIC_KEY') return;
-  loadEJS().then(() => emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
-    to_email: ADMIN_EMAIL,
-    subject:  '[SwiftCopy.Drive] Người dùng mới đăng ký',
-    message:  'Người dùng ' + u.email + ' vừa đăng ký tài khoản SwiftCopy.Drive.'
-  }));
+function sendRegEmail(u){
+  if (!EMAILJS_KEY||EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY') return;
+  loadEJS().then(()=>emailjs.send(EMAILJS_SERVICE,EMAILJS_TEMPLATE,{to_email:ADMIN_EMAIL,subject:'[SwiftCopy.Drive] Người dùng mới đăng ký',message:'Người dùng '+u.email+' vừa đăng ký tài khoản SwiftCopy.Drive.'}));
 }
-function notifyAdminKicked(u, reason) {
-  if (!EMAILJS_KEY || EMAILJS_KEY === 'YOUR_EMAILJS_PUBLIC_KEY') return;
-  loadEJS().then(() => emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
-    to_email: ADMIN_EMAIL,
-    subject:  '[SwiftCopy.Drive] Cảnh báo: user bị kick đang đăng nhập',
-    message:  'User ' + u.email + ' đã bị kick (lý do: ' + (reason||'?') + ') nhưng đang cố đăng nhập lại.'
-  }));
+function notifyAdminKicked(u,reason){
+  if (!EMAILJS_KEY||EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY') return;
+  loadEJS().then(()=>emailjs.send(EMAILJS_SERVICE,EMAILJS_TEMPLATE,{to_email:ADMIN_EMAIL,subject:'[SwiftCopy.Drive] Cảnh báo: user bị kick đăng nhập lại',message:'User '+u.email+' đã bị kick (lý do: '+(reason||'?')+') nhưng đang cố đăng nhập lại.'}));
 }
-let _ejsLoaded = false;
-function loadEJS() {
-  if (_ejsLoaded) return Promise.resolve();
-  return new Promise(r => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
-    s.onload = () => { emailjs.init(EMAILJS_KEY); _ejsLoaded = true; r(); };
-    document.head.appendChild(s);
-  });
-}
+let _ejsLoaded=false;
+function loadEJS(){ if(_ejsLoaded)return Promise.resolve(); return new Promise(r=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';s.onload=()=>{emailjs.init(EMAILJS_KEY);_ejsLoaded=true;r();};document.head.appendChild(s);}); }
 
-// DRIVE API
-const BASE  = 'https://www.googleapis.com/drive/v3';
-const FMIME = 'application/vnd.google-apps.folder';
-const SMIME = 'application/vnd.google-apps.shortcut';
-const CONCUR = 4;
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const hdr = () => ({ Authorization: 'Bearer ' + gToken, 'Content-Type': 'application/json' });
+// ── DRIVE API ────────────────────────────────────────────────
+const BASE='https://www.googleapis.com/drive/v3';
+const FMIME='application/vnd.google-apps.folder';
+const SMIME='application/vnd.google-apps.shortcut';
+const CONCUR=4;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const hdr=()=>({Authorization:'Bearer '+gToken,'Content-Type':'application/json'});
 
-async function dget(path, p = {}) {
+async function dget(path,p={}){
   if (!gToken) throw new Error('NO_TOKEN');
-  const url = new URL(BASE + path);
-  Object.entries(p).forEach(([k,v]) => url.searchParams.set(k, v));
-  const r = await fetch(url, { headers: hdr() });
-  if (!r.ok) { const t = await r.text(); throw new Error('Drive ' + r.status + ': ' + t.slice(0,80)); }
+  const url=new URL(BASE+path);
+  Object.entries(p).forEach(([k,v])=>url.searchParams.set(k,v));
+  const r=await fetch(url,{headers:hdr()});
+  if (!r.ok){const t=await r.text();throw new Error('Drive '+r.status+': '+t.slice(0,80));}
   return r.json();
 }
-async function dpost(path, body) {
+async function dpost(path,body){
   if (!gToken) throw new Error('NO_TOKEN');
-  const r = await fetch(BASE + path, { method:'POST', headers:hdr(), body:JSON.stringify(body) });
-  if (!r.ok) { const t = await r.text(); throw new Error('Drive ' + r.status + ': ' + t.slice(0,80)); }
+  const r=await fetch(BASE+path,{method:'POST',headers:hdr(),body:JSON.stringify(body)});
+  if (!r.ok){const t=await r.text();throw new Error('Drive '+r.status+': '+t.slice(0,80));}
   return r.json();
 }
-async function ddel(id) { try { await fetch(BASE+'/files/'+id+'?supportsAllDrives=true', {method:'DELETE',headers:hdr()}); } catch{} }
+async function ddel(id){ try{await fetch(BASE+'/files/'+id+'?supportsAllDrives=true',{method:'DELETE',headers:hdr()});}catch{} }
 
-function fid(s) {
-  s = s.trim();
-  let m = s.match(/\/folders\/([a-zA-Z0-9_-]+)/); if (m) return m[1];
-  m = s.match(/id=([a-zA-Z0-9_-]+)/); if (m) return m[1];
-  if (/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
-  throw new Error('Không nhận diện được Folder ID: ' + s);
+function fid(s){
+  s=s.trim();
+  let m=s.match(/\/folders\/([a-zA-Z0-9_-]+)/); if(m) return m[1];
+  m=s.match(/id=([a-zA-Z0-9_-]+)/); if(m) return m[1];
+  if(/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
+  throw new Error('Không nhận diện được Folder ID: '+s);
 }
-async function fname(id) { try { return (await dget('/files/'+id, {fields:'name',supportsAllDrives:true})).name; } catch { return 'Unknown'; } }
-async function listItems(folderId) {
-  let res = [], pt = null;
+async function fname(id){ try{return (await dget('/files/'+id,{fields:'name',supportsAllDrives:true})).name;}catch{return null;} }
+async function listItems(folderId){
+  let res=[],pt=null;
   do {
-    const p = { q:"'"+folderId+"' in parents and trashed=false", pageSize:1000, fields:'nextPageToken,files(id,name,mimeType)', supportsAllDrives:true, includeItemsFromAllDrives:true };
-    if (pt) p.pageToken = pt;
-    const r = await dget('/files', p); res.push(...(r.files||[])); pt = r.nextPageToken;
-  } while (pt);
+    const p={q:"'"+folderId+"' in parents and trashed=false",pageSize:1000,fields:'nextPageToken,files(id,name,mimeType)',supportsAllDrives:true,includeItemsFromAllDrives:true};
+    if(pt) p.pageToken=pt;
+    const r=await dget('/files',p); res.push(...(r.files||[])); pt=r.nextPageToken;
+  } while(pt);
   return res;
 }
-async function existNames(folderId) { return new Set((await listItems(folderId)).map(i => i.name)); }
-
-async function copyFileSingle(fileId, destId) {
-  for (let i = 0; i < 4; i++) {
-    await pausePoint(); if (stopFlag) return { ok:false, reason:'Đã dừng' };
-    try { await dpost('/files/'+fileId+'/copy', { parents:[destId] }); return { ok:true }; }
-    catch(e) {
-      const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
-      if ([429,500,503].includes(c)) { await sleep(Math.pow(2,i)*800); continue; }
-      if (c === 403) return { ok:false, reason:'Không có quyền copy' };
-      if (c === 404) return { ok:false, reason:'File không tìm thấy' };
-      return { ok:false, reason: e.message.slice(0,60) };
+async function existNames(folderId){ return new Set((await listItems(folderId)).map(i=>i.name)); }
+async function copyFileSingle(fileId,destId){
+  for(let i=0;i<4;i++){
+    await pausePoint(); if(stopFlag) return {ok:false,reason:'Đã dừng'};
+    try{await dpost('/files/'+fileId+'/copy',{parents:[destId]});return {ok:true};}
+    catch(e){
+      const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
+      if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*800);continue;}
+      if(c===403) return {ok:false,reason:'Không có quyền copy'};
+      if(c===404) return {ok:false,reason:'File không tìm thấy'};
+      return {ok:false,reason:e.message.slice(0,60)};
     }
   }
-  return { ok:false, reason:'Hết số lần thử' };
+  return {ok:false,reason:'Hết số lần thử'};
 }
-async function mkFolder(name, parentId) {
-  const r = await dget('/files', { q:"'"+parentId+"' in parents and name='"+name.replace(/'/g,"\\'")+"' and mimeType='"+FMIME+"' and trashed=false", fields:'files(id)', supportsAllDrives:true, includeItemsFromAllDrives:true });
-  if (r.files?.length) return r.files[0].id;
-  return (await dpost('/files', { name, mimeType:FMIME, parents:[parentId] })).id;
+async function mkFolder(name,parentId){
+  const r=await dget('/files',{q:"'"+parentId+"' in parents and name='"+name.replace(/'/g,"\\'")+"' and mimeType='"+FMIME+"' and trashed=false",fields:'files(id)',supportsAllDrives:true,includeItemsFromAllDrives:true});
+  if(r.files?.length) return r.files[0].id;
+  return (await dpost('/files',{name,mimeType:FMIME,parents:[parentId]})).id;
 }
 
-// SCAN
-let scanTotal = 0, scanDone = 0;
-function scanInc() { scanDone++; if (scanTotal > 0) setProgress(scanDone, scanTotal, 'scanning'); }
+// ── FOLDER NAME PREVIEW ──────────────────────────────────────
+let _previewTimers = { src:null, dest:null };
+window.onInputChange = async (which) => {
+  const inputId   = which==='src' ? 'srcInput'   : 'destInput';
+  const previewId = which==='src' ? 'srcPreview' : 'destPreview';
+  const val = document.getElementById(inputId).value.trim();
+  const el  = document.getElementById(previewId);
 
-async function startScan() {
-  if (!gToken) { showNoAuth('Chưa cấp quyền Drive!', 'Bạn cần cấp quyền truy cập Google Drive trước khi kiểm tra.'); return; }
-  const sv = document.getElementById('srcInput').value.trim();
-  const dv = document.getElementById('destInput').value.trim();
-  if (!sv || !dv) { toast('Nhập đủ Drive nguồn và đích!', 'warn'); return; }
+  clearTimeout(_previewTimers[which]);
+  if (!val){ el.style.display='none'; return; }
 
-  stopFlag = false; pauseFlag = false; runMode = 'scan';
-  scanTotal = 0; scanDone = 0;
-  document.getElementById('scanResult').style.display = 'none';
-  document.getElementById('logBox').innerHTML = '';
-  setBtnMode('scan');
-  setProgress(0, 100, 'scanning');
+  // Show loading
+  el.style.display='flex'; el.className='folder-preview loading';
+  el.innerHTML='<div class="spin" style="width:12px;height:12px;border-width:2px"></div> Đang lấy tên...';
 
-  const t0 = Date.now();
+  _previewTimers[which] = setTimeout(async () => {
+    if (!gToken){ el.className='folder-preview error'; el.innerHTML='<svg class="ic" style="color:var(--red)"><use href="#ic-warn"/></svg> Cần cấp quyền Drive trước'; return; }
+    try {
+      const id   = fid(val);
+      const name = await fname(id);
+      if (!name){ el.className='folder-preview error'; el.innerHTML='<svg class="ic" style="color:var(--red)"><use href="#ic-warn"/></svg> Không tìm thấy thư mục'; return; }
+      el.className='folder-preview';
+      el.innerHTML='<svg class="ic16" style="color:var(--green)"><use href="#ic-folder"/></svg> <span style="color:var(--green)">'+escH(name)+'</span>';
+      // Load checklist only for src
+      if (which==='src' && !clLoaded) loadChecklist(id);
+    } catch(e){
+      el.className='folder-preview error';
+      el.innerHTML='<svg class="ic" style="color:var(--red)"><use href="#ic-warn"/></svg> Link không hợp lệ';
+    }
+  }, 600);
+};
+
+// ── CHECKLIST ────────────────────────────────────────────────
+async function loadChecklist(srcId) {
+  const wrap = document.getElementById('checklistWrap');
+  const body = document.getElementById('checklistBody');
+  wrap.style.display = 'block';
+  body.innerHTML = '<div class="cl-loading"><div class="spin"></div>Đang tải danh sách...</div>';
+  clItems = []; clLoaded = false;
+
   try {
-    const srcId  = fid(sv), destId = fid(dv);
-    const sn     = await fname(srcId);
-    setStatus('Đang kiểm tra "' + sn + '"...');
-    addLog('Bắt đầu kiểm tra quyền...', 'info');
+    const top = await listItems(srcId);
+    clItems = top.map(item => ({
+      id: item.id, name: item.name,
+      mimeType: item.mimeType,
+      depth: 0,
+      expanded: false,
+      checked: true,
+      indeterminate: false,
+      children: null, // null = not loaded yet
+      parentId: null
+    }));
+    clLoaded = true;
+    renderChecklist();
+    updateClInfo();
+  } catch(e) {
+    body.innerHTML = '<div class="cl-empty">Lỗi tải danh sách: '+escH(e.message)+'</div>';
+  }
+}
 
-    const topItems = await listItems(srcId);
-    // Count total for progress
-    scanTotal = topItems.length;
-    for (const item of topItems) {
-      if (item.mimeType === FMIME) {
-        const ch = await listItems(item.id);
-        scanTotal += ch.length;
+function renderChecklist() {
+  const body = document.getElementById('checklistBody');
+  if (!clItems.length){ body.innerHTML='<div class="cl-empty">Không có mục nào.</div>'; return; }
+  // Only show visible items (depth=0 + expanded children)
+  const visible = getVisibleItems();
+  body.innerHTML = visible.map(item => buildClRow(item)).join('');
+}
+
+function getVisibleItems() {
+  const visible = [];
+  function walk(items) {
+    for (const item of items) {
+      visible.push(item);
+      if (item.mimeType===FMIME && item.expanded && item.children) {
+        walk(item.children);
       }
     }
-    setProgress(0, scanTotal, 'scanning');
+  }
+  // Walk top-level
+  walk(clItems.filter(i => i.depth===0));
+  return visible;
+}
+
+function buildClRow(item) {
+  const isFolder = item.mimeType === FMIME;
+  const hasKids  = isFolder && item.children && item.children.length > 0;
+  const indent   = item.depth * 20;
+  const chkCls   = item.checked ? 'checked' : (item.indeterminate ? 'indeterminate' : '');
+  const expandIco = isFolder
+    ? (item.children === null
+        ? '<svg class="ic" style="color:var(--text3)"><use href="#ic-chev-r"/></svg>'
+        : (item.expanded
+            ? '<svg class="ic" style="color:var(--text3)"><use href="#ic-chev-d"/></svg>'
+            : '<svg class="ic" style="color:var(--text3)"><use href="#ic-chev-r"/></svg>'))
+    : '';
+  const expandCls = isFolder ? '' : 'no-children';
+  const folderIco = isFolder ? '📁' : '📄';
+  const rowCls    = 'cl-row '+(isFolder?'is-folder ':'')+chkCls;
+
+  return `<div class="${rowCls}" data-id="${escH(item.id)}" style="padding-left:${8+indent}px"
+    onclick="clRowClick(event,'${escH(item.id)}')"
+    data-drag-id="${escH(item.id)}">
+    <span class="cl-expand ${expandCls}" onclick="clToggleExpand(event,'${escH(item.id)}')">${expandIco}</span>
+    <span class="cl-cb"><span class="cl-cb-tick">✓</span><span class="cl-cb-dash">-</span></span>
+    <span class="cl-icon">${folderIco}</span>
+    <span class="cl-name">${escH(item.name)}</span>
+    ${isFolder?'<span class="cl-meta">thư mục</span>':''}
+  </div>`;
+}
+
+window.clRowClick = (e, id) => {
+  // Don't fire if clicking expand arrow
+  if (e.target.closest('.cl-expand')) return;
+  const item = findClItem(id);
+  if (!item) return;
+  const newVal = !item.checked;
+  setItemCheck(item, newVal);
+  updateClInfo();
+  renderChecklist();
+};
+
+window.clToggleExpand = async (e, id) => {
+  e.stopPropagation();
+  const item = findClItem(id);
+  if (!item || item.mimeType !== FMIME) return;
+  if (item.children === null) {
+    // Load children
+    const row = document.querySelector(`[data-id="${id}"]`);
+    if (row) { const exp = row.querySelector('.cl-expand'); if(exp) exp.innerHTML='<div class="spin" style="width:12px;height:12px;border-width:2px"></div>'; }
+    try {
+      const children = await listItems(item.id);
+      item.children = children.map(c => ({
+        id:c.id, name:c.name, mimeType:c.mimeType,
+        depth: item.depth+1, expanded:false,
+        checked: item.checked, indeterminate:false,
+        children: c.mimeType===FMIME ? null : [],
+        parentId: item.id
+      }));
+      item.expanded = true;
+    } catch(e) { toast('Lỗi tải thư mục: '+e.message,'err'); }
+  } else {
+    item.expanded = !item.expanded;
+  }
+  renderChecklist();
+};
+
+function setItemCheck(item, val) {
+  item.checked = val;
+  item.indeterminate = false;
+  // Propagate to children
+  if (item.children) {
+    item.children.forEach(c => setItemCheck(c, val));
+  }
+  // Update parent indeterminate state
+  updateParentState(item.parentId);
+}
+
+function updateParentState(parentId) {
+  if (!parentId) return;
+  const parent = findClItem(parentId);
+  if (!parent || !parent.children) return;
+  const allChecked   = parent.children.every(c => c.checked && !c.indeterminate);
+  const noneChecked  = parent.children.every(c => !c.checked && !c.indeterminate);
+  if (allChecked)        { parent.checked=true;  parent.indeterminate=false; }
+  else if (noneChecked)  { parent.checked=false; parent.indeterminate=false; }
+  else                   { parent.checked=false; parent.indeterminate=true; }
+  updateParentState(parent.parentId);
+}
+
+function findClItem(id) {
+  function search(items) {
+    for (const item of items) {
+      if (item.id === id) return item;
+      if (item.children) { const f=search(item.children); if(f) return f; }
+    }
+    return null;
+  }
+  return search(clItems);
+}
+
+function updateClInfo() {
+  const total    = clItems.length;
+  const selected = clItems.filter(i => i.checked || i.indeterminate).length;
+  document.getElementById('clTotal').textContent    = total;
+  document.getElementById('clSelected').textContent = selected;
+}
+
+window.clSelectAll   = () => { clItems.forEach(i=>setItemCheck(i,true));  updateClInfo(); renderChecklist(); };
+window.clDeselectAll = () => { clItems.forEach(i=>setItemCheck(i,false)); updateClInfo(); renderChecklist(); };
+
+// Drag-select
+window.dragStart = (e) => {
+  const row = e.target.closest('.cl-row');
+  if (!row || e.target.closest('.cl-expand')) return;
+  _dragActive = true;
+  const item = findClItem(row.dataset.id);
+  if (item) { _dragCheckValue = !item.checked; setItemCheck(item,_dragCheckValue); updateClInfo(); renderChecklist(); }
+};
+window.dragOver = (e) => {
+  if (!_dragActive) return;
+  const row = e.target.closest('.cl-row');
+  if (!row || e.target.closest('.cl-expand')) return;
+  const item = findClItem(row.dataset.id);
+  if (item && item.checked !== _dragCheckValue) { setItemCheck(item,_dragCheckValue); updateClInfo(); renderChecklist(); }
+};
+window.dragEnd = () => { _dragActive=false; };
+document.addEventListener('mouseup', () => { _dragActive=false; });
+
+function getSelectedItems() {
+  // Return only checked top-level items (and their checked sub-items)
+  return clItems.filter(i => i.checked || i.indeterminate);
+}
+
+// ── SCAN ─────────────────────────────────────────────────────
+async function startScan() {
+  if (!gToken){ showNoAuth('Chưa cấp quyền Drive!','Bạn cần cấp quyền truy cập Google Drive trước khi kiểm tra.'); return; }
+  const sv=document.getElementById('srcInput').value.trim();
+  const dv=document.getElementById('destInput').value.trim();
+  if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
+
+  stopFlag=false; pauseFlag=false; runMode='scan';
+  document.getElementById('scanResult').style.display='none';
+  document.getElementById('logBox').innerHTML='';
+  setBtnMode('scan');
+  // Use animated scanning bar (no % since depth unknown)
+  setProgress(0,100,'scanning');
+
+  const t0=Date.now();
+  try {
+    const srcId=fid(sv), destId=fid(dv);
+    const sn=await fname(srcId);
+    setStatus('Đang kiểm tra "'+sn+'"...');
+    addLog('Bắt đầu kiểm tra quyền...','info');
+
+    // Get items to scan (respect checklist selection)
+    let topItems = await listItems(srcId);
+    if (clLoaded && clItems.length > 0) {
+      const selIds = new Set(clItems.filter(i=>i.checked||i.indeterminate).map(i=>i.id));
+      topItems = topItems.filter(i=>selIds.has(i.id));
+    }
 
     const tree = await scanNodes(topItems, destId, '', 0);
+    if (stopFlag){ setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
 
-    if (stopFlag) { setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
-
-    const elapsed   = Math.round((Date.now()-t0)/1000);
-    const totalErr  = cntErr(tree);
-    setProgress(scanTotal, scanTotal, totalErr === 0 ? 'done' : 'done');
-    setStatus(totalErr === 0 ? 'Kiểm tra xong - Không có lỗi (' + elapsed + 's)' : 'Phát hiện ' + totalErr + ' vấn đề (' + elapsed + 's)');
-    renderScanResult(tree, totalErr);
-  } catch(e) {
-    addLog('Lỗi: ' + e.message, 'err'); setStatus('Lỗi kiểm tra');
-    if (e.message === 'NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!', 'Nhấn nút bên dưới để cấp quyền.');
+    const elapsed=Math.round((Date.now()-t0)/1000);
+    const totalErr=cntErr(tree);
+    // Set to 100% when truly done
+    setProgress(100,100,'done');
+    setStatus(totalErr===0?'Kiểm tra xong - Không có lỗi ('+elapsed+'s)':'Phát hiện '+totalErr+' vấn đề ('+elapsed+'s)');
+    renderScanResult(tree,totalErr);
+  } catch(e){
+    addLog('Lỗi: '+e.message,'err'); setStatus('Lỗi kiểm tra');
+    if(e.message==='NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!','Nhấn nút bên dưới để cấp quyền.');
   } finally {
-    runMode = 'idle'; setBtnMode('idle');
+    runMode='idle'; setBtnMode('idle');
   }
 }
 
 async function scanNodes(items, destId, path, depth) {
-  const nodes = [];
+  const nodes=[];
   for (const item of items) {
-    await pausePoint(); if (stopFlag) break;
-    const fp = path ? path + ' > ' + item.name : item.name;
-    if (item.mimeType === SMIME) {
-      scanInc();
-      nodes.push({ name:item.name, path:fp, type:'file', depth, error:'Là shortcut - bỏ qua', children:[] });
+    await pausePoint(); if(stopFlag) break;
+    const fp=path?path+' > '+item.name:item.name;
+    if (item.mimeType===SMIME){
+      nodes.push({name:item.name,path:fp,type:'file',depth,error:'Là shortcut - bỏ qua',children:[]});
       continue;
     }
-    if (item.mimeType === FMIME) {
-      const children = await listItems(item.id);
-      scanInc();
-      addLog('Thư mục: ' + item.name, 'info');
-      const testFile = children.find(c => c.mimeType !== FMIME && c.mimeType !== SMIME);
-      let selfErr = null;
-      if (testFile) {
-        try {
-          const r = await dpost('/files/'+testFile.id+'/copy', { name:'__swtest_'+testFile.name, parents:[destId] });
-          await ddel(r.id);
-        } catch(e) {
-          const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
-          selfErr = c === 403 ? 'Không có quyền copy' : 'Lỗi API ' + c;
-          addLog('Lỗi thư mục: ' + item.name + ' - ' + selfErr, 'err');
-        }
+    if (item.mimeType===FMIME){
+      const children=await listItems(item.id);
+      addLog('Thư mục: '+item.name,'info');
+      const testFile=children.find(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME);
+      let selfErr=null;
+      if (testFile){
+        try{const r=await dpost('/files/'+testFile.id+'/copy',{name:'__swtest_'+testFile.name,parents:[destId]});await ddel(r.id);}
+        catch(e){const c=parseInt(e.message.match(/\d+/)?.[0]||'0');selfErr=c===403?'Không có quyền copy':'Lỗi API '+c;addLog('Lỗi: '+item.name+' - '+selfErr,'err');}
       }
-      const subFolders = selfErr ? [] : await scanNodes(children.filter(c => c.mimeType === FMIME), destId, fp, depth+1);
-      const subFiles   = selfErr ? [] : await scanFileNodes(children.filter(c => c.mimeType !== FMIME && c.mimeType !== SMIME), destId, fp, depth+1);
-      nodes.push({ name:item.name, path:fp, type:'folder', depth, error:selfErr, children:[...subFiles,...subFolders] });
+      const subFolders=selfErr?[]:await scanNodes(children.filter(c=>c.mimeType===FMIME),destId,fp,depth+1);
+      const subFiles  =selfErr?[]:await scanFileNodes(children.filter(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME),destId,fp,depth+1);
+      nodes.push({name:item.name,path:fp,type:'folder',depth,error:selfErr,children:[...subFiles,...subFolders]});
     } else {
-      scanInc();
-      addLog('Kiểm tra: ' + item.name, 'skip');
-      let err = null;
-      try {
-        const r = await dpost('/files/'+item.id+'/copy', { name:'__swtest_'+item.name, parents:[destId] });
-        await ddel(r.id);
-        addLog('OK: ' + item.name, 'ok');
-      } catch(e) {
-        const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
-        err = c === 403 ? 'Không có quyền copy' : 'Lỗi API ' + c;
-        addLog('Lỗi: ' + item.name, 'err');
-      }
-      nodes.push({ name:item.name, path:fp, type:'file', depth, error:err, children:[] });
+      addLog('Kiểm tra: '+item.name,'skip');
+      let err=null;
+      try{const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});await ddel(r.id);addLog('OK: '+item.name,'ok');}
+      catch(e){const c=parseInt(e.message.match(/\d+/)?.[0]||'0');err=c===403?'Không có quyền copy':'Lỗi API '+c;addLog('Lỗi: '+item.name,'err');}
+      nodes.push({name:item.name,path:fp,type:'file',depth,error:err,children:[]});
     }
   }
   return nodes;
 }
-
-async function scanFileNodes(items, destId, path, depth) {
-  const nodes = [];
-  for (const item of items) {
-    await pausePoint(); if (stopFlag) break;
-    scanInc();
-    const fp = path ? path + ' > ' + item.name : item.name;
-    let err = null;
-    addLog('Kiểm tra: ' + item.name, 'skip');
-    try {
-      const r = await dpost('/files/'+item.id+'/copy', { name:'__swtest_'+item.name, parents:[destId] });
-      await ddel(r.id);
-      addLog('OK: ' + item.name, 'ok');
-    } catch(e) {
-      const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
-      err = c === 403 ? 'Không có quyền copy' : 'Lỗi API ' + c;
-      addLog('Lỗi: ' + item.name, 'err');
-    }
-    nodes.push({ name:item.name, path:fp, type:'file', depth, error:err, children:[] });
+async function scanFileNodes(items,destId,path,depth){
+  const nodes=[];
+  for (const item of items){
+    await pausePoint(); if(stopFlag) break;
+    const fp=path?path+' > '+item.name:item.name;
+    let err=null;
+    addLog('Kiểm tra: '+item.name,'skip');
+    try{const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});await ddel(r.id);addLog('OK: '+item.name,'ok');}
+    catch(e){const c=parseInt(e.message.match(/\d+/)?.[0]||'0');err=c===403?'Không có quyền copy':'Lỗi API '+c;addLog('Lỗi: '+item.name,'err');}
+    nodes.push({name:item.name,path:fp,type:'file',depth,error:err,children:[]});
   }
   return nodes;
 }
 
-function cntErr(nodes) {
-  let c = 0;
-  for (const n of nodes) { if (n.error) c++; if (n.children?.length) c += cntErr(n.children); }
-  return c;
-}
-function hasErr(node) {
-  if (node.error) return true;
-  return (node.children||[]).some(hasErr);
-}
+function cntErr(nodes){ let c=0; for(const n of nodes){if(n.error)c++;if(n.children?.length)c+=cntErr(n.children);} return c; }
+function hasErr(node){ if(node.error)return true; return (node.children||[]).some(hasErr); }
 
-function renderScanResult(tree, totalErr) {
-  const el = document.getElementById('scanResult');
-  el.style.display = 'block';
-  if (totalErr === 0) {
-    el.innerHTML = '<div class="tree-wrap"><div class="tree-head ok-head" style="justify-content:flex-start;gap:8px"><svg class="ic16" style="color:var(--green)"><use href="#ic-check-c"/></svg><span style="font-size:13px;font-weight:700;color:var(--green)">Tất cả đều có thể sao chép!</span></div></div>';
+function renderScanResult(tree,totalErr){
+  const el=document.getElementById('scanResult'); el.style.display='block';
+  if (totalErr===0){
+    el.innerHTML='<div class="tree-wrap"><div class="tree-head ok-head" style="justify-content:flex-start;gap:8px"><svg class="ic16" style="color:var(--green)"><use href="#ic-check-c"/></svg><span style="font-size:13px;font-weight:700;color:var(--green)">Tất cả đều có thể sao chép!</span></div></div>';
     return;
   }
-  // ALL expanded by default for scan result
-  const allPaths = new Set();
-  function collectPaths(nodes) { nodes.forEach(n => { if (n.type==='folder') { allPaths.add(n.path); collectPaths(n.children||[]); } }); }
-  collectPaths(tree);
-
-  el.innerHTML = '<div class="tree-wrap">'
-    + '<div class="tree-head err-head">'
-    + '<span style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:7px"><svg class="ic16" style="color:var(--red)"><use href="#ic-warn"/></svg>' + totalErr + ' mục bị lỗi quyền</span>'
-    + '<span style="font-size:11px;font-weight:700;background:var(--red);color:#fff;padding:2px 8px;border-radius:999px">' + totalErr + '</span>'
-    + '</div>'
-    + '<div class="tree-body" id="scanTreeBody"></div>'
-    + '<div class="tree-note"><svg class="ic" style="color:var(--text3);margin-right:4px"><use href="#ic-info"/></svg>Vào Drive nguồn → chuột phải → <b>Chia sẻ</b> → thêm email bạn quyền <b>Người chỉnh sửa</b></div>'
-    + '</div>';
-
-  window._scanToggle = function(path) { allPaths.has(path) ? allPaths.delete(path) : allPaths.add(path); rebuildScan(); };
-  function rebuildScan() { document.getElementById('scanTreeBody').innerHTML = buildTreeHTML(tree, allPaths); }
-  rebuildScan();
+  const allPaths=new Set();
+  function ep(nodes){nodes.forEach(n=>{if(n.type==='folder'){allPaths.add(n.path);ep(n.children||[]);}}); }
+  ep(tree);
+  el.innerHTML='<div class="tree-wrap"><div class="tree-head err-head"><span style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:7px"><svg class="ic16" style="color:var(--red)"><use href="#ic-warn"/></svg>'+totalErr+' mục bị lỗi quyền</span><span style="font-size:11px;font-weight:700;background:var(--red);color:#fff;padding:2px 8px;border-radius:999px">'+totalErr+'</span></div><div class="tree-body" id="scanTreeBody"></div><div class="tree-note"><svg class="ic" style="color:var(--text3);margin-right:4px"><use href="#ic-info"/></svg>Vào Drive nguồn → chuột phải → <b>Chia sẻ</b> → thêm email bạn quyền <b>Người chỉnh sửa</b></div></div>';
+  window._scanToggle=function(path){allPaths.has(path)?allPaths.delete(path):allPaths.add(path);document.getElementById('scanTreeBody').innerHTML=buildTreeHTML(tree,allPaths);};
+  document.getElementById('scanTreeBody').innerHTML=buildTreeHTML(tree,allPaths);
 }
 
-// COPY
+// ── COPY ─────────────────────────────────────────────────────
 window.startCopy = async () => {
-  if (!gToken) { showNoAuth('Chưa cấp quyền Drive!', 'Bạn cần cấp quyền truy cập Google Drive trước khi sao chép.'); return; }
-  const sv = document.getElementById('srcInput').value.trim();
-  const dv = document.getElementById('destInput').value.trim();
-  if (!sv || !dv) { toast('Nhập đủ Drive nguồn và đích!', 'warn'); return; }
+  if (!gToken){ showNoAuth('Chưa cấp quyền Drive!','Bạn cần cấp quyền truy cập Google Drive trước khi sao chép.'); return; }
+  const sv=document.getElementById('srcInput').value.trim();
+  const dv=document.getElementById('destInput').value.trim();
+  if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
-  stopFlag = false; pauseFlag = false; runMode = 'copy';
-  stats = ns();
-  document.getElementById('logBox').innerHTML      = '';
-  document.getElementById('scanResult').style.display = 'none';
-  document.getElementById('statsRow').style.display   = 'flex';
+  stopFlag=false; pauseFlag=false; runMode='copy';
+  stats=ns();
+  document.getElementById('logBox').innerHTML='';
+  document.getElementById('scanResult').style.display='none';
+  document.getElementById('statsRow').style.display='flex';
   updStats(); setBtnMode('copy');
 
-  const t0 = Date.now();
+  const t0=Date.now();
   try {
-    const srcId = fid(sv), destId = fid(dv);
-    const sn    = await fname(srcId), dn = await fname(destId);
-    setStatus('Đang sao chép "' + sn + '" -> "' + dn + '"');
-    addLog('Nguồn: ' + sn, 'info'); addLog('Đích: ' + dn, 'info');
-    saveSessionData({ sv, dv, srcId, sn, destId, dn });
+    const srcId=fid(sv), destId=fid(dv);
+    const sn=await fname(srcId), dn=await fname(destId);
+    setStatus('Đang sao chép "'+sn+'" -> "'+dn+'"');
+    addLog('Nguồn: '+sn,'info'); addLog('Đích: '+dn,'info');
+    saveSessionData({sv,dv,srcId,sn,destId,dn});
 
-    const top = await listItems(srcId);
-    const fp  = Math.max(0, (parseInt(document.getElementById('fromPage').value)||1)-1);
-    const tp  = parseInt(document.getElementById('toPage').value)||0;
-    const sel = tp > 0 ? top.slice(fp, tp) : top.slice(fp);
-    if (!sel.length) { toast('Không tìm thấy mục nào!', 'warn'); setBtnMode('idle'); runMode='idle'; return; }
+    let top=await listItems(srcId);
+    // Filter by checklist selection
+    if (clLoaded&&clItems.length>0){
+      const selIds=new Set(clItems.filter(i=>i.checked||i.indeterminate).map(i=>i.id));
+      top=top.filter(i=>selIds.has(i.id));
+    }
+    if (!top.length){toast('Không có mục nào được chọn!','warn');setBtnMode('idle');runMode='idle';return;}
 
-    setProgress(0, sel.length, 'running');
-    addLog('Bắt đầu ' + sel.length + ' mục (' + CONCUR + ' luồng song song)...', 'info');
-    const dex = await existNames(destId);
+    setProgress(0,top.length,'running');
+    addLog('Bắt đầu '+top.length+' mục ('+CONCUR+' luồng song song)...','info');
+    const dex=await existNames(destId);
 
-    for (let i = 0; i < sel.length; i++) {
-      await pausePoint(); if (stopFlag) break;
-      const item = sel[i];
-      setProgress(i, sel.length, 'running');
-      setStatus('[' + (i+1) + '/' + sel.length + '] ' + item.name);
-
-      if (item.mimeType === FMIME) {
-        const nid  = await mkFolder(item.name, destId);
+    for (let i=0;i<top.length;i++){
+      await pausePoint(); if(stopFlag) break;
+      const item=top[i];
+      setProgress(i,top.length,'running');
+      setStatus('['+(i+1)+'/'+top.length+'] '+item.name);
+      if (item.mimeType===FMIME){
+        const nid=await mkFolder(item.name,destId);
         stats.folders++;
-        const node = { name:item.name, path:item.name, type:'folder', depth:0, error:null, children:[] };
+        const node={name:item.name,path:item.name,type:'folder',depth:0,error:null,children:[]};
         stats.folderList.push(node);
-        addLog('Thư mục: ' + item.name, 'folder');
-        updStats(); saveSession();
-        await copyRecTree(item.id, nid, item.name, 1, node.children);
+        addLog('Thư mục: '+item.name,'folder'); updStats(); saveSession();
+        // Check if this folder has partial selection
+        const clItem=clItems.find(ci=>ci.id===item.id);
+        if (clItem&&clItem.indeterminate&&clItem.children){
+          await copyRecTreeFiltered(item.id,nid,item.name,1,node.children,clItem);
+        } else {
+          await copyRecTree(item.id,nid,item.name,1,node.children);
+        }
       } else {
-        if (dex.has(item.name)) { addLog('Đã có: ' + item.name, 'skip'); setProgress(i+1, sel.length, 'running'); continue; }
-        const res  = await copyFileSingle(item.id, destId);
-        const node = { name:item.name, path:item.name, type:'file', depth:0, error:res.ok?null:(res.reason||'Lỗi'), children:[], link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view' };
-        if (res.ok) { stats.copied++; stats.copiedFiles.push(node); addLog('OK: ' + item.name, 'ok'); }
-        else        { stats.failed++; stats.failedFiles.push(node); addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
+        if (dex.has(item.name)){addLog('Đã có: '+item.name,'skip');setProgress(i+1,top.length,'running');continue;}
+        const res=await copyFileSingle(item.id,destId);
+        const node={name:item.name,path:item.name,type:'file',depth:0,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
+        if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
+        else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
         updStats(); saveSession();
       }
-      setProgress(i+1, sel.length, 'running');
+      setProgress(i+1,top.length,'running');
     }
 
-    const elapsed = Math.round((Date.now()-t0)/1000);
-    setProgress(sel.length, sel.length, stopFlag ? 'paused' : 'done');
-    if (!stopFlag) { setStatus('Hoàn thành ' + elapsed + 's'); clearSession(); await saveHist(srcId,sn,destId,dn,elapsed); }
+    const elapsed=Math.round((Date.now()-t0)/1000);
+    setProgress(top.length,top.length,stopFlag?'paused':'done');
+    if (!stopFlag){setStatus('Hoàn thành '+elapsed+'s');clearSession();await saveHist(srcId,sn,destId,dn,elapsed);}
     else setStatus('Đã dừng sao chép');
-  } catch(e) {
-    addLog('Lỗi: ' + e.message, 'err'); setStatus('Lỗi sao chép');
-    if (e.message === 'NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!', 'Nhấn nút bên dưới để cấp quyền.');
+  } catch(e){
+    addLog('Lỗi: '+e.message,'err'); setStatus('Lỗi sao chép');
+    if(e.message==='NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!','Nhấn nút bên dưới để cấp quyền.');
   } finally {
-    runMode = 'idle'; setBtnMode('idle');
+    runMode='idle'; setBtnMode('idle');
   }
 };
 
-async function copyRecTree(srcId, destId, path, depth, parentChildren) {
-  await pausePoint(); if (stopFlag) return;
-  const items  = await listItems(srcId);
-  const dnames = await existNames(destId);
-  const folders = items.filter(i => i.mimeType === FMIME);
-  const files   = items.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && !dnames.has(i.name));
-  items.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && dnames.has(i.name)).forEach(i => addLog('Đã có: '+i.name, 'skip'));
-  for (let i = 0; i < files.length; i += CONCUR) {
-    await pausePoint(); if (stopFlag) break;
-    await Promise.all(files.slice(i, i+CONCUR).map(async item => {
-      if (stopFlag) return;
-      await pausePoint();
-      const fp  = path ? path + ' > ' + item.name : item.name;
-      const res = await copyFileSingle(item.id, destId);
-      const node = { name:item.name, path:fp, type:'file', depth, error:res.ok?null:(res.reason||'Lỗi'), children:[], link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view' };
-      if (res.ok) { stats.copied++; stats.copiedFiles.push(node); addLog('OK: '+item.name,'ok'); }
-      else        { stats.failed++; stats.failedFiles.push(node); addLog('Lỗi: '+item.name+' - '+res.reason,'err'); }
+async function copyRecTree(srcId,destId,path,depth,parentChildren){
+  await pausePoint(); if(stopFlag) return;
+  const items=await listItems(srcId);
+  const dnames=await existNames(destId);
+  const folders=items.filter(i=>i.mimeType===FMIME);
+  const files=items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&!dnames.has(i.name));
+  items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&dnames.has(i.name)).forEach(i=>addLog('Đã có: '+i.name,'skip'));
+  for(let i=0;i<files.length;i+=CONCUR){
+    await pausePoint(); if(stopFlag) break;
+    await Promise.all(files.slice(i,i+CONCUR).map(async item=>{
+      if(stopFlag)return; await pausePoint();
+      const fp=path?path+' > '+item.name:item.name;
+      const res=await copyFileSingle(item.id,destId);
+      const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
+      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
+      else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
       parentChildren.push(node); updStats(); saveSession();
     }));
   }
-  for (const f of folders) {
-    await pausePoint(); if (stopFlag) return;
-    const fp  = path ? path + ' > ' + f.name : f.name;
-    const nid = await mkFolder(f.name, destId);
+  for(const f of folders){
+    await pausePoint(); if(stopFlag)return;
+    const fp=path?path+' > '+f.name:f.name;
+    const nid=await mkFolder(f.name,destId);
     stats.folders++;
-    const node = { name:f.name, path:fp, type:'folder', depth, error:null, children:[] };
+    const node={name:f.name,path:fp,type:'folder',depth,error:null,children:[]};
     stats.folderList.push(node); parentChildren.push(node);
-    addLog('Thư mục: ' + f.name, 'folder'); updStats();
-    await copyRecTree(f.id, nid, fp, depth+1, node.children);
+    addLog('Thư mục: '+f.name,'folder'); updStats();
+    await copyRecTree(f.id,nid,fp,depth+1,node.children);
   }
 }
 
-// TREE HTML - all expanded by default, no toggle for copy result modal
-function buildTreeHTML(nodes, openSet) {
-  let html = '';
-  for (const node of nodes) {
-    const indent      = 16 + node.depth * 20;
-    const isFolder    = node.type === 'folder';
-    const hasChildren = isFolder && node.children?.length > 0;
-    const isOpen      = !openSet || openSet.has(node.path);
-    const nodeHasErr  = !!node.error;
-    const childHasErr = hasChildren && node.children.some(hasErr);
+// Copy with checklist filter (for partially selected folders)
+async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem){
+  await pausePoint(); if(stopFlag)return;
+  const items=await listItems(srcId);
+  const dnames=await existNames(destId);
+  const checkedChildIds = clItem.children ? new Set(clItem.children.filter(c=>c.checked||c.indeterminate).map(c=>c.id)) : null;
+  const filteredItems = checkedChildIds ? items.filter(i=>checkedChildIds.has(i.id)) : items;
+  const folders=filteredItems.filter(i=>i.mimeType===FMIME);
+  const files=filteredItems.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&!dnames.has(i.name));
+  for(let i=0;i<files.length;i+=CONCUR){
+    await pausePoint(); if(stopFlag)break;
+    await Promise.all(files.slice(i,i+CONCUR).map(async item=>{
+      if(stopFlag)return; await pausePoint();
+      const fp=path?path+' > '+item.name:item.name;
+      const res=await copyFileSingle(item.id,destId);
+      const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
+      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
+      else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
+      parentChildren.push(node); updStats(); saveSession();
+    }));
+  }
+  for(const f of folders){
+    await pausePoint(); if(stopFlag)return;
+    const fp=path?path+' > '+f.name:f.name;
+    const nid=await mkFolder(f.name,destId);
+    stats.folders++;
+    const node={name:f.name,path:fp,type:'folder',depth,error:null,children:[]};
+    stats.folderList.push(node); parentChildren.push(node);
+    addLog('Thư mục: '+f.name,'folder'); updStats();
+    const subCl=clItem.children?clItem.children.find(c=>c.id===f.id):null;
+    if(subCl&&subCl.indeterminate) await copyRecTreeFiltered(f.id,nid,fp,depth+1,node.children,subCl);
+    else await copyRecTree(f.id,nid,fp,depth+1,node.children);
+  }
+}
 
-    let statusIco = '', rowCls = '', nameClr = '';
-    if (isFolder) {
-      if (nodeHasErr || childHasErr) {
-        rowCls   = 'tf has-err';
-        nameClr  = 'color:var(--text);font-weight:700';
-        statusIco = isOpen
-          ? '<svg class="ic si-warn" style="opacity:.35"><use href="#ic-warn"/></svg>'
-          : '<svg class="ic si-warn"><use href="#ic-warn"/></svg>';
-      } else {
-        rowCls    = 'tf all-ok';
-        nameClr   = 'color:var(--green);font-weight:700';
-        statusIco = '<svg class="ic si-ok"><use href="#ic-check-c"/></svg>';
-      }
+// ── TREE HTML ────────────────────────────────────────────────
+function buildTreeHTML(nodes,openSet){
+  let html='';
+  for(const node of nodes){
+    const indent=16+node.depth*20;
+    const isFolder=node.type==='folder';
+    const hasChildren=isFolder&&node.children?.length>0;
+    const isOpen=!openSet||openSet.has(node.path);
+    const nodeHasErr=!!node.error;
+    const childHasErr=hasChildren&&node.children.some(hasErr);
+    let statusIco='',rowCls='',nameClr='';
+    if(isFolder){
+      if(nodeHasErr||childHasErr){rowCls='tf has-err';nameClr='color:var(--text);font-weight:700';statusIco=isOpen?'<svg class="ic si-warn" style="opacity:.35"><use href="#ic-warn"/></svg>':'<svg class="ic si-warn"><use href="#ic-warn"/></svg>';}
+      else{rowCls='tf all-ok';nameClr='color:var(--green);font-weight:700';statusIco='<svg class="ic si-ok"><use href="#ic-check-c"/></svg>';}
     } else {
-      if (nodeHasErr) {
-        rowCls    = 'tfile ferr';
-        nameClr   = 'color:var(--red)';
-        statusIco = '<svg class="ic si-err"><use href="#ic-x-c"/></svg>';
-      } else {
-        rowCls    = 'tfile';
-        nameClr   = 'color:var(--text2)';
-        statusIco = '<svg class="ic si-ok"><use href="#ic-check-c"/></svg>';
-      }
+      if(nodeHasErr){rowCls='tfile ferr';nameClr='color:var(--red)';statusIco='<svg class="ic si-err"><use href="#ic-x-c"/></svg>';}
+      else{rowCls='tfile';nameClr='color:var(--text2)';statusIco='<svg class="ic si-ok"><use href="#ic-check-c"/></svg>';}
     }
-
-    const chevron   = isFolder ? '<svg class="ic" style="color:var(--text3);flex-shrink:0"><use href="#ic-'+(isOpen?'chev-d':'chev-r')+'"/></svg>' : '<span style="width:14px;flex-shrink:0;display:inline-block"></span>';
-    const folderIco = isFolder ? '<svg class="ic16" style="color:'+(nodeHasErr||childHasErr?'var(--text)':'var(--green)')+'"><use href="#ic-'+(isOpen?'folder-o':'folder')+'"/></svg>' : '<svg class="ic" style="color:'+(nodeHasErr?'var(--red)':'var(--text3)')+'"><use href="#ic-file"/></svg>';
-    const errPill   = nodeHasErr ? '<span class="tr-reason">'+escH(node.error)+'</span>' : '';
-    const warnBadge = (isFolder && childHasErr && !nodeHasErr) ? '<span class="tr-badge" style="background:var(--orangel);color:var(--orange);border-color:var(--orangeb)">'+cntErr(node.children)+' lỗi bên trong</span>' : '';
-    const linkBtn   = node.link ? '<a href="'+node.link+'" target="_blank" style="color:var(--text3);flex-shrink:0;display:inline-flex"><svg class="ic"><use href="#ic-ext"/></svg></a>' : '';
-
-    const clickAttr = isFolder && openSet ? 'onclick="window._treeToggle(\''+node.path.replace(/'/g,"\\'")+'\')"' : '';
-    html += '<div class="tr '+rowCls+'" style="padding:7px 16px 7px '+indent+'px" '+clickAttr+'>'
-      + chevron + folderIco
-      + '<span class="tr-name" style="'+nameClr+'">'+escH(node.name)+'</span>'
-      + errPill + warnBadge + linkBtn + statusIco
-      + '</div>';
-    if (isFolder && (isOpen || !openSet) && hasChildren) {
-      html += buildTreeHTML(node.children, openSet);
-    }
+    const chevron=isFolder?'<svg class="ic" style="color:var(--text3);flex-shrink:0"><use href="#ic-'+(isOpen?'chev-d':'chev-r')+'"/></svg>':'<span style="width:14px;flex-shrink:0;display:inline-block"></span>';
+    const folderIco=isFolder?'<svg class="ic16" style="color:'+(nodeHasErr||childHasErr?'var(--text)':'var(--green)')+'"><use href="#ic-'+(isOpen?'folder-o':'folder')+'"/></svg>':'<svg class="ic" style="color:'+(nodeHasErr?'var(--red)':'var(--text3)')+'"><use href="#ic-file"/></svg>';
+    const errPill=nodeHasErr?'<span class="tr-reason">'+escH(node.error)+'</span>':'';
+    const warnBadge=(isFolder&&childHasErr&&!nodeHasErr)?'<span class="tr-badge" style="background:var(--orangel);color:var(--orange);border-color:var(--orangeb)">'+cntErr(node.children)+' lỗi bên trong</span>':'';
+    const linkBtn=node.link?'<a href="'+node.link+'" target="_blank" style="color:var(--text3);flex-shrink:0;display:inline-flex"><svg class="ic"><use href="#ic-ext"/></svg></a>':'';
+    const clickAttr=isFolder&&openSet?'onclick="window._scanToggle(\''+node.path.replace(/'/g,"\\'")+'\')"':'';
+    html+='<div class="tr '+rowCls+'" style="padding:7px 16px 7px '+indent+'px" '+clickAttr+'>'+chevron+folderIco+'<span class="tr-name" style="'+nameClr+'">'+escH(node.name)+'</span>'+errPill+warnBadge+linkBtn+statusIco+'</div>';
+    if(isFolder&&(isOpen||!openSet)&&hasChildren) html+=buildTreeHTML(node.children,openSet);
   }
   return html;
 }
 
-function escH(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escH(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-// SESSION
-const SK = 'swiftcopy_session';
-function saveSessionData(d) { localStorage.setItem(SK, JSON.stringify({...d,stats,ts:Date.now()})); }
-function saveSession()      { const s=getSession(); if(s){s.stats=stats;s.ts=Date.now();localStorage.setItem(SK,JSON.stringify(s));} }
-function getSession()       { try{return JSON.parse(localStorage.getItem(SK)||'null');}catch{return null;} }
-function clearSession()     { localStorage.removeItem(SK); document.getElementById('resumeBanner').style.display='none'; }
-function checkResume() {
-  const s = getSession(); if (!s) return;
-  if ((Date.now()-s.ts)/1000/60 > 120) { clearSession(); return; }
-  const b = document.getElementById('resumeBanner'); b.style.display = 'flex';
-  document.getElementById('srcInput').value  = s.sv || '';
-  document.getElementById('destInput').value = s.dv || '';
+// ── SESSION ──────────────────────────────────────────────────
+const SK='swiftcopy_session';
+function saveSessionData(d){localStorage.setItem(SK,JSON.stringify({...d,stats,ts:Date.now()}));}
+function saveSession(){const s=getSession();if(s){s.stats=stats;s.ts=Date.now();localStorage.setItem(SK,JSON.stringify(s));}}
+function getSession(){try{return JSON.parse(localStorage.getItem(SK)||'null');}catch{return null;}}
+function clearSession(){localStorage.removeItem(SK);document.getElementById('resumeBanner').style.display='none';}
+function checkResume(){
+  const s=getSession();if(!s)return;
+  if((Date.now()-s.ts)/1000/60>120){clearSession();return;}
+  const b=document.getElementById('resumeBanner');b.style.display='flex';
+  document.getElementById('srcInput').value=s.sv||'';
+  document.getElementById('destInput').value=s.dv||'';
 }
-window.resumeSession = async () => {
-  const s = getSession(); if (!s) { clearSession(); return; }
-  if (s.stats) { stats=s.stats; updStats(); document.getElementById('statsRow').style.display='flex'; }
-  document.getElementById('resumeBanner').style.display = 'none';
-  addLog('Tiếp tục phiên cũ...', 'info');
+window.resumeSession=async()=>{
+  const s=getSession();if(!s){clearSession();return;}
+  if(s.stats){stats=s.stats;updStats();document.getElementById('statsRow').style.display='flex';}
+  document.getElementById('resumeBanner').style.display='none';
+  addLog('Tiếp tục phiên cũ...','info');
   await window.startCopy();
 };
-window.clearSession = clearSession;
+window.clearSession=clearSession;
 
-async function saveHist(si,sn,di,dn,el) {
-  try { await addDoc(collection(db,'history'),{uid:gUser.uid,email:gUser.email,srcId:si,srcName:sn,destId:di,destName:dn,copied:stats.copied,failed:stats.failed,folders:stats.folders,elapsed:el,createdAt:serverTimestamp()}); }
-  catch(e) { console.warn('saveHist',e); }
+async function saveHist(si,sn,di,dn,el){
+  try{await addDoc(collection(db,'history'),{uid:gUser.uid,email:gUser.email,srcId:si,srcName:sn,destId:di,destName:dn,copied:stats.copied,failed:stats.failed,folders:stats.folders,elapsed:el,createdAt:serverTimestamp()});}
+  catch(e){console.warn('saveHist',e);}
 }
 
-// MODAL - fully expanded (null openSet = show all)
-const _mOpen = new Set();
-window.openModal = (type) => {
-  const cfgMap = {
-    result:  { label:'Kết quả sao chép', nodes: stats.folderList.length ? stats.folderList : [...stats.copiedFiles,...stats.failedFiles] },
-    failed:  { label:'Lỗi',             nodes: stats.failedFiles },
-    folders: { label:'Thư mục',         nodes: stats.folderList }
+// ── MODAL ────────────────────────────────────────────────────
+const _mOpen=new Set();
+window.openModal=(type)=>{
+  const cfgMap={
+    result:{label:'Kết quả sao chép',nodes:stats.folderList.length?stats.folderList:[...stats.copiedFiles,...stats.failedFiles]},
+    failed:{label:'Lỗi',nodes:stats.failedFiles},
+    folders:{label:'Thư mục',nodes:stats.folderList}
   };
-  const cfg = cfgMap[type]; if (!cfg) return;
-
-  // Expand all folders by default
+  const cfg=cfgMap[type];if(!cfg)return;
   _mOpen.clear();
-  function expandAll(nodes) { nodes.forEach(n => { if(n.type==='folder'){ _mOpen.add(n.path); expandAll(n.children||[]); } }); }
-  expandAll(cfg.nodes);
-
-  document.getElementById('modalTitle').innerHTML = '<span>' + cfg.label + '</span><span style="font-size:12px;background:var(--surface2);color:var(--text3);padding:2px 8px;border-radius:999px;font-family:monospace;margin-left:6px">' + cfg.nodes.length + '</span>';
-
-  function rerender() {
-    const body = document.getElementById('modalBody');
-    body.innerHTML = cfg.nodes.length === 0
-      ? '<p style="color:var(--text3);text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>'
-      : buildTreeHTML(cfg.nodes, _mOpen);
-  }
-  window._treeToggle = path => { _mOpen.has(path) ? _mOpen.delete(path) : _mOpen.add(path); rerender(); };
+  function ea(nodes){nodes.forEach(n=>{if(n.type==='folder'){_mOpen.add(n.path);ea(n.children||[]);}}); }
+  ea(cfg.nodes);
+  document.getElementById('modalTitle').innerHTML='<span>'+cfg.label+'</span><span style="font-size:12px;background:var(--surface2);color:var(--text3);padding:2px 8px;border-radius:999px;font-family:monospace;margin-left:6px">'+cfg.nodes.length+'</span>';
+  function rerender(){document.getElementById('modalBody').innerHTML=cfg.nodes.length===0?'<p style="color:var(--text3);text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>':buildTreeHTML(cfg.nodes,_mOpen);}
+  window._treeToggle=path=>{_mOpen.has(path)?_mOpen.delete(path):_mOpen.add(path);rerender();};
   rerender();
   document.getElementById('modalOv').classList.add('on');
 };
-window.closeModal = () => document.getElementById('modalOv').classList.remove('on');
+window.closeModal=()=>document.getElementById('modalOv').classList.remove('on');
 
-// UI HELPERS
-function sec(name) {
-  ['land','check','pend','app'].forEach(s => { const el=document.getElementById('s-'+s); if(el) el.style.display=s===name?'block':'none'; });
-  const nr = document.getElementById('navRight');
-  if (nr) nr.style.display = name==='app' ? 'flex' : 'none';
+// ── UI HELPERS ───────────────────────────────────────────────
+function sec(name){
+  ['land','check','pend','app'].forEach(s=>{const el=document.getElementById('s-'+s);if(el)el.style.display=s===name?'block':'none';});
+  const nr=document.getElementById('navRight');if(nr)nr.style.display=name==='app'?'flex':'none';
 }
-function setNavUser(u) {
-  document.getElementById('navAv').src          = u.photoURL || '';
-  document.getElementById('navName').textContent  = u.displayName || u.email;
-  document.getElementById('navEmail').textContent = u.email;
+function setNavUser(u){
+  document.getElementById('navAv').src=u.photoURL||'';
+  document.getElementById('navName').textContent=u.displayName||u.email;
+  document.getElementById('navEmail').textContent=u.email;
 }
-function setBtnMode(mode) {
-  runMode = mode;
-  const btnScan    = document.getElementById('btnScan');
-  const btnStart   = document.getElementById('btnStart');
-  const btnScanTxt = document.getElementById('btnScanTxt');
-  const btnStartTxt= document.getElementById('btnStartTxt');
-  const btnStartIco= document.getElementById('btnStartIco');
-  const btnPause   = document.getElementById('btnPause');
-  const btnResume  = document.getElementById('btnResume');
-  const btnReset   = document.getElementById('btnReset');
-
-  // Always re-enable both buttons first
-  btnScan.disabled  = false;
-  btnStart.disabled = false;
-
-  if (mode === 'idle') {
-    btnScan.className     = 'btn btn-red';
-    btnScanTxt.textContent = 'Kiểm tra trước';
-    btnStart.className     = 'btn btn-yellow';
-    btnStartTxt.textContent= 'Bắt đầu sao chép';
-    btnStartIco.innerHTML  = '<use href="#ic-play"/>';
-    btnPause.style.display = 'none';
-    btnResume.style.display= 'none';
-    btnReset.disabled      = false;
-  } else if (mode === 'scan') {
-    btnScan.className      = 'btn btn-red-solid';
-    btnScanTxt.textContent  = 'Dừng kiểm tra';
-    btnStart.className      = 'btn btn-yellow';
-    btnStartTxt.textContent = 'Bắt đầu sao chép';
-    btnPause.style.display  = 'inline-flex';
-    btnResume.style.display = 'none';
-    btnReset.disabled       = true;
-  } else if (mode === 'copy') {
-    btnScan.className       = 'btn btn-red';
-    btnScanTxt.textContent   = 'Kiểm tra trước';
-    btnStart.className       = 'btn btn-black';
-    btnStartTxt.textContent  = 'Dừng sao chép';
-    btnStartIco.innerHTML    = '<use href="#ic-stop"/>';
-    btnPause.style.display   = 'inline-flex';
-    btnResume.style.display  = 'none';
-    btnReset.disabled        = true;
+function setBtnMode(mode){
+  runMode=mode;
+  const bs=document.getElementById('btnScan'),bst=document.getElementById('btnStart');
+  const bsT=document.getElementById('btnScanTxt'),bstT=document.getElementById('btnStartTxt');
+  const bstI=document.getElementById('btnStartIco');
+  const bp=document.getElementById('btnPause'),br=document.getElementById('btnResume');
+  const bR=document.getElementById('btnReset');
+  bs.disabled=false;bst.disabled=false;
+  if(mode==='idle'){
+    bs.className='btn btn-red';bsT.textContent='Kiểm tra trước';
+    bst.className='btn btn-yellow';bstT.textContent='Bắt đầu sao chép';bstI.innerHTML='<use href="#ic-play"/>';
+    bp.style.display='none';br.style.display='none';bR.disabled=false;
+  } else if(mode==='scan'){
+    bs.className='btn btn-red-solid';bsT.textContent='Dừng kiểm tra';
+    bst.className='btn btn-yellow';bstT.textContent='Bắt đầu sao chép';
+    bp.style.display='inline-flex';br.style.display='none';bR.disabled=true;
+  } else if(mode==='copy'){
+    bs.className='btn btn-red';bsT.textContent='Kiểm tra trước';
+    bst.className='btn btn-black';bstT.textContent='Dừng sao chép';bstI.innerHTML='<use href="#ic-stop"/>';
+    bp.style.display='inline-flex';br.style.display='none';bR.disabled=true;
   }
 }
-
-let _pv = 0, _pm = 1;
-function setProgress(v, max, state) {
-  if (v !== null)   _pv = v;
-  if (max !== null) _pm = max;
-  const f = document.getElementById('progFill');
-  f.style.width = (_pm ? Math.round(_pv/_pm*100) : 0) + '%';
-  if (state) f.className = 'prog-fill ' + state;
+let _pv=0,_pm=1;
+function setProgress(v,max,state){
+  if(v!==null)_pv=v;if(max!==null)_pm=max;
+  const f=document.getElementById('progFill');
+  f.style.width=(_pm?Math.round(_pv/_pm*100):0)+'%';
+  if(state)f.className='prog-fill '+state;
 }
-function setStatus(msg) {
-  document.getElementById('statusLbl').textContent    = msg;
-  document.getElementById('actionStatus').textContent = msg;
+function setStatus(msg){document.getElementById('statusLbl').textContent=msg;document.getElementById('actionStatus').textContent=msg;}
+function addLog(msg,lv='ok'){
+  const C={ok:'#4ade80',err:'#f87171',info:'#93c5fd',skip:'#555',folder:'#c084fc',warn:'#fbbf24'};
+  const I={ok:'✓',err:'✗',info:'→',skip:'⏭',folder:'▣',warn:'⏸'};
+  const b=document.getElementById('logBox');
+  const d=document.createElement('div');d.className='ll';
+  const ts=new Date().toLocaleTimeString('vi-VN');
+  d.innerHTML='<span class="ll-ts">'+ts+'</span><span class="ll-ic" style="color:'+(C[lv]||'#888')+'">'+(I[lv]||'·')+'</span><span class="ll-msg">'+escH(msg)+'</span>';
+  b.appendChild(d);b.scrollTop=b.scrollHeight;
 }
-function addLog(msg, lv='ok') {
-  const C = {ok:'#4ade80',err:'#f87171',info:'#93c5fd',skip:'#555',folder:'#c084fc',warn:'#fbbf24'};
-  const I = {ok:'✓',err:'✗',info:'→',skip:'⏭',folder:'▣',warn:'⏸'};
-  const b = document.getElementById('logBox');
-  const d = document.createElement('div'); d.className = 'll';
-  const ts = new Date().toLocaleTimeString('vi-VN');
-  d.innerHTML = '<span class="ll-ts">'+ts+'</span><span class="ll-ic" style="color:'+(C[lv]||'#888')+'">'+(I[lv]||'·')+'</span><span class="ll-msg">'+escH(msg)+'</span>';
-  b.appendChild(d); b.scrollTop = b.scrollHeight;
+function updStats(){
+  document.getElementById('sCopied').textContent=stats.copied;
+  document.getElementById('sFailed').textContent=stats.failed;
+  document.getElementById('sFolders').textContent=stats.folders;
 }
-function updStats() {
-  document.getElementById('sCopied').textContent  = stats.copied;
-  document.getElementById('sFailed').textContent  = stats.failed;
-  document.getElementById('sFolders').textContent = stats.folders;
-}
-function toast(msg, type='info') {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast on ' + (type||'');
-  setTimeout(() => t.classList.remove('on'), 3000);
+function toast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast on '+(type||'');
+  setTimeout(()=>t.classList.remove('on'),3000);
 }
 </script>
 </body>
