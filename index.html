@@ -102,15 +102,21 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 .btn-outline:hover:not(:disabled){background:var(--surface2)}
 
 /* FULLSCREEN OVERLAY */
-.fs-overlay{display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px;text-align:center;padding:20px;animation:fadeIn .2s ease}
-.fs-overlay.show{display:flex}
-.fs-overlay.red{background:rgba(192,57,43,.93)}
-.fs-overlay.green{background:rgba(26,153,80,.93)}
-.fs-overlay-icon{font-size:64px;line-height:1}
-.fs-overlay-title{font-family:'Nunito',sans-serif;font-size:28px;font-weight:800;color:#fff}
-.fs-overlay-msg{font-size:15px;color:rgba(255,255,255,.85);max-width:400px;line-height:1.6}
-.fs-overlay-btn{margin-top:8px;padding:10px 28px;border-radius:var(--r);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;border:2px solid #fff;background:rgba(255,255,255,.2);color:#fff;transition:.15s}
+/* RED overlay: dark backdrop + red card */
+.fs-dark-bg{display:none;position:fixed;inset:0;z-index:498;background:rgba(0,0,0,.7);animation:fadeIn .2s ease}
+.fs-dark-bg.show{display:block}
+.fs-overlay{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;text-align:center;padding:0;animation:fadeIn .2s ease;width:90%;max-width:440px}
+.fs-overlay.show{display:block}
+.fs-overlay-card{border-radius:var(--r2);padding:36px 32px;box-shadow:0 24px 64px rgba(0,0,0,.35)}
+.fs-overlay.red .fs-overlay-card{background:var(--red);color:#fff}
+.fs-overlay.green .fs-overlay-card{background:var(--green);color:#fff}
+.fs-overlay-icon{font-size:52px;line-height:1;margin-bottom:12px}
+.fs-overlay-title{font-family:'Nunito',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:8px}
+.fs-overlay-msg{font-size:14px;color:rgba(255,255,255,.88);line-height:1.6;margin-bottom:20px}
+.fs-overlay-btn{padding:10px 28px;border-radius:var(--r);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;border:2px solid rgba(255,255,255,.6);background:rgba(255,255,255,.2);color:#fff;transition:.15s}
 .fs-overlay-btn:hover{background:rgba(255,255,255,.35)}
+/* GREEN: no dark backdrop, just floating card */
+.fs-overlay.green{position:fixed;top:80px;left:50%;transform:translateX(-50%)}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 /* PROGRESS */
@@ -221,17 +227,25 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 </svg>
 
 <!-- FULLSCREEN OVERLAYS -->
+<!-- Dark backdrop (only for red) -->
+<div id="fsDarkBg" class="fs-dark-bg" onclick="closeFsOverlay('fsRed')"></div>
+<!-- RED: error, needs backdrop -->
 <div id="fsRed" class="fs-overlay red">
-  <div class="fs-overlay-icon">&#9888;</div>
-  <div class="fs-overlay-title" id="fsRedTitle">Chua cap quyen Drive</div>
-  <div class="fs-overlay-msg" id="fsRedMsg">Ban can cap quyen Drive truoc khi thuc hien thao tac nay.</div>
-  <button class="fs-overlay-btn" onclick="closeFsOverlay('fsRed')">Da hieu, dong lai</button>
+  <div class="fs-overlay-card">
+    <div class="fs-overlay-icon">&#9888;</div>
+    <div class="fs-overlay-title" id="fsRedTitle">Chua cap quyen Drive</div>
+    <div class="fs-overlay-msg" id="fsRedMsg">Ban can cap quyen Drive truoc khi thuc hien thao tac nay.</div>
+    <button class="fs-overlay-btn" onclick="closeFsOverlay('fsRed')">Da hieu, dong lai</button>
+  </div>
 </div>
+<!-- GREEN: success, no backdrop -->
 <div id="fsGreen" class="fs-overlay green">
-  <div class="fs-overlay-icon">&#10003;</div>
-  <div class="fs-overlay-title">Da cap quyen Drive!</div>
-  <div class="fs-overlay-msg">Quyen truy cap Google Drive da duoc cap thanh cong. Ban co the bat dau sao chep.</div>
-  <button class="fs-overlay-btn" onclick="closeFsOverlay('fsGreen')">Bat dau thoi!</button>
+  <div class="fs-overlay-card">
+    <div class="fs-overlay-icon">&#10003;</div>
+    <div class="fs-overlay-title">Da cap quyen Drive!</div>
+    <div class="fs-overlay-msg">Quyen truy cap Google Drive da duoc cap thanh cong. Ban co the bat dau sao chep.</div>
+    <button class="fs-overlay-btn" onclick="closeFsOverlay('fsGreen')">Dong</button>
+  </div>
 </div>
 
 <!-- NAV -->
@@ -444,12 +458,17 @@ let _resumeResolve = null;
 function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[], copyTree:[] }; }
 
 // FS OVERLAY
-window.closeFsOverlay = id => document.getElementById(id).classList.remove('show');
+window.closeFsOverlay = id => {
+  document.getElementById(id).classList.remove('show');
+  if(id==='fsRed') document.getElementById('fsDarkBg').classList.remove('show');
+};
 function showFsRed(title, msg){
-  document.getElementById('fsRedTitle').textContent  = title;
-  document.getElementById('fsRedMsg').textContent    = msg;
+  document.getElementById('fsRedTitle').textContent = title;
+  document.getElementById('fsRedMsg').textContent   = msg;
+  document.getElementById('fsDarkBg').classList.add('show');
   document.getElementById('fsRed').classList.add('show');
-  setTimeout(() => document.getElementById('fsRed').classList.remove('show'), 4000);
+  // auto close after 6s
+  setTimeout(() => { document.getElementById('fsRed').classList.remove('show'); document.getElementById('fsDarkBg').classList.remove('show'); }, 6000);
 }
 function showFsGreen(){
   document.getElementById('fsGreen').classList.add('show');
