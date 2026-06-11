@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- SwiftCopy.Drive v5.2 -->
+<!-- SwiftCopy.Drive v6 -->
 <html lang="vi">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>SwiftCopy.Drive</title>
+<title>SwiftCopy.Drive — Sao chép Google Drive</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -18,11 +18,12 @@
   --orange:#d97706;--orangel:#fffbea;--orangeb:#f0d060;
   --r:10px;--r2:14px;
   --sh:0 1px 4px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
-  --sh2:0 4px 20px rgba(0,0,0,.08);
+  --sh2:0 4px 20px rgba(0,0,0,.1);
 }
 body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased}
 svg.ic{width:14px;height:14px;display:inline-block;vertical-align:middle;flex-shrink:0}
 svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-shrink:0}
+svg.ic20{width:20px;height:20px;display:inline-block;vertical-align:middle;flex-shrink:0}
 
 /* NAV */
 .nav{background:var(--surface);border-bottom:2px solid var(--yellow);height:54px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:var(--sh)}
@@ -93,32 +94,45 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 .btn-red-solid:hover:not(:disabled){background:var(--redm)}
 .btn-yellow{background:var(--yellow);color:var(--text);border-color:var(--yd)}
 .btn-yellow:hover:not(:disabled){background:var(--yd)}
-.btn-yellow-solid{background:var(--text);color:#fff;border-color:var(--text)}
-.btn-yellow-solid:hover:not(:disabled){background:#333}
+.btn-black{background:var(--text);color:#fff;border-color:var(--text)}
+.btn-black:hover:not(:disabled){background:#333}
 .btn-pause{background:var(--orangel);color:var(--orange);border-color:var(--orangeb)}
 .btn-pause:hover:not(:disabled){background:var(--orange);color:#fff}
 .btn-resume{background:var(--greenl);color:var(--green);border-color:var(--greenb)}
 .btn-resume:hover:not(:disabled){background:var(--green);color:#fff}
 .btn-outline{background:var(--surface);color:var(--text2);border-color:var(--border2)}
 .btn-outline:hover:not(:disabled){background:var(--surface2)}
+.btn-white{background:#fff;color:var(--text);border:2px solid rgba(255,255,255,.5)}
+.btn-white:hover{background:rgba(255,255,255,.15);color:#fff}
 
-/* FULLSCREEN OVERLAY */
-/* RED overlay: dark backdrop + red card */
-.fs-dark-bg{display:none;position:fixed;inset:0;z-index:498;background:rgba(0,0,0,.7);animation:fadeIn .2s ease}
-.fs-dark-bg.show{display:block}
-.fs-overlay{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;text-align:center;padding:0;animation:fadeIn .2s ease;width:90%;max-width:440px}
-.fs-overlay.show{display:block}
-.fs-overlay-card{border-radius:var(--r2);padding:36px 32px;box-shadow:0 24px 64px rgba(0,0,0,.35)}
-.fs-overlay.red .fs-overlay-card{background:var(--red);color:#fff}
-.fs-overlay.green .fs-overlay-card{background:var(--green);color:#fff}
-.fs-overlay-icon{font-size:52px;line-height:1;margin-bottom:12px}
-.fs-overlay-title{font-family:'Nunito',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:8px}
-.fs-overlay-msg{font-size:14px;color:rgba(255,255,255,.88);line-height:1.6;margin-bottom:20px}
-.fs-overlay-btn{padding:10px 28px;border-radius:var(--r);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;border:2px solid rgba(255,255,255,.6);background:rgba(255,255,255,.2);color:#fff;transition:.15s}
-.fs-overlay-btn:hover{background:rgba(255,255,255,.35)}
-/* GREEN: no dark backdrop, just floating card */
-.fs-overlay.green{position:fixed;top:80px;left:50%;transform:translateX(-50%)}
+/* ── OVERLAY: CHƯA CẤP QUYỀN (đen + card đỏ) ── */
+.overlay-backdrop{display:none;position:fixed;inset:0;z-index:498;background:rgba(0,0,0,.75);backdrop-filter:blur(3px);animation:fadeIn .2s ease}
+.overlay-backdrop.show{display:block}
+.overlay-panel{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-54%);z-index:499;width:90%;max-width:460px;animation:slideUp .25s ease;transition:opacity .2s}
+.overlay-panel.show{display:block}
+@keyframes slideUp{from{transform:translate(-50%,-46%);opacity:0}to{transform:translate(-50%,-54%);opacity:1}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.no-auth-card{background:linear-gradient(145deg,#1a0a08,#2d0f0a);border:1px solid rgba(255,80,60,.3);border-radius:20px;padding:36px 32px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,80,60,.15),inset 0 1px 0 rgba(255,255,255,.05)}
+.no-auth-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(232,41,28,.2);border:1px solid rgba(232,41,28,.4);color:#ff8070;font-size:11px;font-weight:700;padding:5px 14px;border-radius:999px;margin-bottom:20px;letter-spacing:.5px}
+.no-auth-icon{font-size:52px;margin-bottom:16px;display:block}
+.no-auth-title{font-family:'Nunito',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:10px}
+.no-auth-msg{font-size:14px;color:rgba(255,255,255,.65);line-height:1.7;margin-bottom:24px}
+.no-auth-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn-auth-primary{display:inline-flex;align-items:center;gap:8px;padding:11px 24px;border-radius:var(--r);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--yellow);color:var(--text);border:none;transition:.15s}
+.btn-auth-primary:hover{background:var(--yd)}
+.btn-auth-close{display:inline-flex;align-items:center;gap:6px;padding:11px 20px;border-radius:var(--r);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.15);transition:.15s}
+.btn-auth-close:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.8)}
+
+/* ── OVERLAY: ĐÃ CẤP QUYỀN (popup nhỏ xanh, không nền tối) ── */
+.success-toast{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:499;animation:slideDown .3s ease;white-space:nowrap}
+.success-toast.show{display:block}
+@keyframes slideDown{from{transform:translateX(-50%) translateY(-12px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.success-toast-inner{background:linear-gradient(135deg,#0d5c2e,#1a9950);border:1px solid rgba(52,211,153,.3);border-radius:14px;padding:14px 22px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(26,153,80,.35),0 2px 8px rgba(0,0,0,.15)}
+.success-toast-icon{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.success-toast-text{}
+.success-toast-title{font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#fff}
+.success-toast-sub{font-size:12px;color:rgba(255,255,255,.7);margin-top:1px}
 
 /* PROGRESS */
 .prog-wrap{margin:14px 0 6px}
@@ -126,8 +140,8 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 .prog-fill{height:100%;border-radius:999px;background:var(--text);transition:width .3s;width:0}
 .prog-fill.done{background:var(--green)}
 .prog-fill.paused{background:var(--orange)}
-.prog-fill.scanning{background:#6b3fa0;animation:pulse 1.5s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.prog-fill.scanning{background:#7c3aed;animation:scanpulse 1.2s ease-in-out infinite}
+@keyframes scanpulse{0%,100%{opacity:1}50%{opacity:.5}}
 .status-lbl{font-size:11px;color:var(--text3);margin-top:5px;min-height:16px;font-family:monospace}
 
 /* STATS */
@@ -151,16 +165,14 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 .ll-ic{flex-shrink:0;width:14px}
 .ll-msg{color:#ccc;word-break:break-all}
 
-/* TREE RESULT (scan + copy modal) */
+/* TREE */
 .tree-wrap{border:1.5px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-top:12px}
 .tree-head{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid var(--border)}
 .tree-head.ok-head{background:var(--greenl);border-color:var(--greenb)}
 .tree-head.err-head{background:var(--redl);border-color:var(--redb)}
-.tree-head.copy-head{background:var(--surface2);border-color:var(--border)}
-.tree-body{background:var(--surface);overflow-x:auto}
+.tree-body{background:var(--surface)}
 .tree-note{padding:9px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:12px;color:var(--text2)}
-/* tree row */
-.tr{display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border);font-size:12px;position:relative;min-width:0}
+.tr{display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border);font-size:12px;min-width:0}
 .tr:last-child{border-bottom:none}
 .tr.tf{background:var(--surface2);cursor:pointer;font-weight:700}
 .tr.tf:hover{background:var(--border)}
@@ -170,19 +182,16 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 .tr.tfile.ferr{background:#fff8f8;color:var(--red)}
 .tr-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tr-reason{font-size:10px;background:var(--redl);color:var(--red);padding:2px 8px;border-radius:999px;flex-shrink:0;font-weight:600;border:1px solid var(--redb);white-space:nowrap}
-.tr-badge{font-size:10px;padding:2px 7px;border-radius:999px;flex-shrink:0;border:1px solid var(--border);white-space:nowrap}
-/* status icons */
-.si-ok{color:var(--green)}
-.si-err{color:var(--red)}
-.si-warn{color:var(--orange)}
+.tr-badge{font-size:10px;padding:2px 7px;border-radius:999px;flex-shrink:0;border:1px solid;white-space:nowrap}
+.si-ok{color:var(--green)}.si-err{color:var(--red)}.si-warn{color:var(--orange)}
 
 /* MODAL */
 .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center;padding:16px}
 .modal-ov.on{display:flex}
-.modal{background:var(--surface);border-radius:var(--r2);width:100%;max-width:620px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);border:1.5px solid var(--border)}
+.modal{background:var(--surface);border-radius:var(--r2);width:100%;max-width:640px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);border:1.5px solid var(--border)}
 .modal-h{padding:14px 18px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);flex-shrink:0}
 .modal-h h3{font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
-.modal-sort{font-size:11px;color:var(--text3);padding:3px 10px;background:var(--surface);border-radius:999px;border:1px solid var(--border)}
+.modal-sub{font-size:11px;color:var(--text3);padding:3px 10px;background:var(--surface);border-radius:999px;border:1px solid var(--border)}
 .modal-cls{background:none;border:1.5px solid var(--border2);color:var(--text2);cursor:pointer;padding:3px 10px;border-radius:7px;font-size:13px;font-family:inherit}
 .modal-b{overflow-y:auto;flex:1}
 
@@ -224,28 +233,40 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
   <symbol id="ic-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
   <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
   <symbol id="ic-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
-  <symbol id="ic-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+  <symbol id="ic-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
 </svg>
 
-<!-- FULLSCREEN OVERLAYS -->
-<!-- Dark backdrop (only for red) -->
-<div id="fsDarkBg" class="fs-dark-bg" onclick="closeFsOverlay('fsRed')"></div>
-<!-- RED: error, needs backdrop -->
-<div id="fsRed" class="fs-overlay red">
-  <div class="fs-overlay-card">
-    <div class="fs-overlay-icon">&#9888;</div>
-    <div class="fs-overlay-title" id="fsRedTitle">Chua cap quyen Drive</div>
-    <div class="fs-overlay-msg" id="fsRedMsg">Ban can cap quyen Drive truoc khi thuc hien thao tac nay.</div>
-    <button class="fs-overlay-btn" onclick="closeFsOverlay('fsRed')">Da hieu, dong lai</button>
+<!-- OVERLAY: Chưa cấp quyền Drive -->
+<div id="noAuthBackdrop" class="overlay-backdrop" onclick="closeNoAuth()"></div>
+<div id="noAuthPanel" class="overlay-panel">
+  <div class="no-auth-card">
+    <div class="no-auth-badge">
+      <svg class="ic" style="color:#ff8070"><use href="#ic-warn"/></svg>
+      Cần xác thực
+    </div>
+    <span class="no-auth-icon">🔐</span>
+    <div class="no-auth-title" id="noAuthTitle">Chưa cấp quyền Drive</div>
+    <div class="no-auth-msg" id="noAuthMsg">Bạn cần cấp quyền truy cập Google Drive trước khi thực hiện thao tác này.</div>
+    <div class="no-auth-btns">
+      <button class="btn-auth-primary" onclick="reAuthFromOverlay()">
+        <svg class="ic"><use href="#ic-key"/></svg>
+        Cấp quyền Drive ngay
+      </button>
+      <button class="btn-auth-close" onclick="closeNoAuth()">Đóng lại</button>
+    </div>
   </div>
 </div>
-<!-- GREEN: success, no backdrop -->
-<div id="fsGreen" class="fs-overlay green">
-  <div class="fs-overlay-card">
-    <div class="fs-overlay-icon">&#10003;</div>
-    <div class="fs-overlay-title">Da cap quyen Drive!</div>
-    <div class="fs-overlay-msg">Quyen truy cap Google Drive da duoc cap thanh cong. Ban co the bat dau sao chep.</div>
-    <button class="fs-overlay-btn" onclick="closeFsOverlay('fsGreen')">Dong</button>
+
+<!-- OVERLAY: Đã cấp quyền Drive -->
+<div id="authSuccessToast" class="success-toast">
+  <div class="success-toast-inner">
+    <div class="success-toast-icon">
+      <svg class="ic16" style="color:#fff"><use href="#ic-check"/></svg>
+    </div>
+    <div class="success-toast-text">
+      <div class="success-toast-title">Đã cấp quyền Drive!</div>
+      <div class="success-toast-sub">Bạn có thể bắt đầu sao chép ngay bây giờ</div>
+    </div>
   </div>
 </div>
 
@@ -258,46 +279,46 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
   <div class="nav-right" id="navRight" style="display:none">
     <img id="navAv" class="nav-av" src="" alt=""/>
     <div><div id="navName" class="nav-name"></div><div id="navEmail" class="nav-email"></div></div>
-    <button class="btn-sm acc" onclick="reAuth()"><svg class="ic"><use href="#ic-key"/></svg> Cap quyen Drive</button>
-    <button class="btn-sm" onclick="doLogout()"><svg class="ic"><use href="#ic-out"/></svg> Dang xuat</button>
+    <button class="btn-sm acc" onclick="reAuth()"><svg class="ic"><use href="#ic-key"/></svg> Cấp quyền Drive</button>
+    <button class="btn-sm" onclick="doLogout()"><svg class="ic"><use href="#ic-out"/></svg> Đăng xuất</button>
   </div>
 </nav>
 
 <!-- LANDING -->
 <div id="s-land">
   <div class="land">
-    <div class="land-badge"><svg class="ic"><use href="#ic-bolt"/></svg> Cong cu sao chep Drive #1</div>
+    <div class="land-badge"><svg class="ic"><use href="#ic-bolt"/></svg> Công cụ sao chép Drive #1</div>
     <h1>SwiftCopy<span style="color:var(--redm)">.</span>Drive</h1>
-    <p class="land-sub">Sao chep toan bo thu muc Google Drive nhanh chong, an toan, chay thang tren trinh duyet.</p>
+    <p class="land-sub">Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn, chạy thẳng trên trình duyệt.</p>
     <div class="feats">
-      <div class="feat"><svg class="ic"><use href="#ic-bolt"/></svg> Sao chep toc do cuc nhanh</div>
-      <div class="feat"><svg class="ic"><use href="#ic-search"/></svg> Kiem tra Drive loi truoc</div>
-      <div class="feat"><svg class="ic"><use href="#ic-check"/></svg> Bao cao ket qua chi tiet</div>
-      <div class="feat"><svg class="ic"><use href="#ic-clock"/></svg> Theo doi hanh trinh sao chep</div>
+      <div class="feat"><svg class="ic"><use href="#ic-bolt"/></svg> Sao chép tốc độ cực nhanh</div>
+      <div class="feat"><svg class="ic"><use href="#ic-search"/></svg> Kiểm tra Drive lỗi trước</div>
+      <div class="feat"><svg class="ic"><use href="#ic-check"/></svg> Báo cáo kết quả chi tiết</div>
+      <div class="feat"><svg class="ic"><use href="#ic-clock"/></svg> Theo dõi hành trình sao chép</div>
     </div>
     <button class="btn-google" onclick="doLogin()">
       <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66 2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-      Dang nhap bang Google
+      Đăng nhập bằng Google
     </button>
-    <p class="price-note">Mua 1 lan - Dung vinh vien - <b>Lien he admin sau khi thanh toan</b></p>
+    <p class="price-note">Mua 1 lần · Dùng vĩnh viễn · <b>Liên hệ admin sau khi thanh toán</b></p>
   </div>
 </div>
 
 <!-- CHECKING -->
 <div id="s-check">
-  <div class="center-wrap"><div class="spin"></div><p style="color:var(--text3);font-size:14px;font-weight:600">Dang kiem tra tai khoan...</p></div>
+  <div class="center-wrap"><div class="spin"></div><p style="color:var(--text3);font-size:14px;font-weight:600">Đang kiểm tra tài khoản...</p></div>
 </div>
 
 <!-- PENDING -->
 <div id="s-pend">
   <div class="pend-wrap">
     <div class="pend-card">
-      <div style="font-size:44px;margin-bottom:18px">&#9203;</div>
-      <h2>Cho kich hoat</h2>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7">Tai khoan da duoc ghi nhan. Sau khi thanh toan, admin se kich hoat trong thoi gian som nhat.</p>
-      <div class="pend-pill">Dang cho duyet</div>
-      <p style="font-size:11px;color:var(--text3);margin-top:12px">Da thanh toan nhung chua duoc kich hoat sau 24h? Lien he admin.</p>
-      <br/><button class="btn btn-outline" style="margin:0 auto" onclick="location.reload()"><svg class="ic"><use href="#ic-reset"/></svg> Kiem tra lai</button>
+      <div style="font-size:44px;margin-bottom:18px">⏳</div>
+      <h2>Chờ kích hoạt</h2>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7">Tài khoản đã được ghi nhận. Sau khi thanh toán, admin sẽ kích hoạt trong thời gian sớm nhất.</p>
+      <div class="pend-pill">Đang chờ duyệt</div>
+      <p style="font-size:11px;color:var(--text3);margin-top:12px">Đã thanh toán nhưng chưa được kích hoạt sau 24h? Liên hệ admin.</p>
+      <br/><button class="btn btn-outline" style="margin:0 auto" onclick="location.reload()"><svg class="ic"><use href="#ic-reset"/></svg> Kiểm tra lại</button>
     </div>
   </div>
 </div>
@@ -308,54 +329,50 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 
     <!-- RESUME BANNER -->
     <div id="resumeBanner" class="resume-banner" style="display:none">
-      <div class="resume-text"><svg class="ic"><use href="#ic-clock"/></svg> Phat hien phien sao chep chua hoan tat. Tiep tuc?</div>
+      <div class="resume-text"><svg class="ic"><use href="#ic-clock"/></svg> Phát hiện phiên sao chép chưa hoàn tất. Tiếp tục?</div>
       <div style="display:flex;gap:7px">
-        <button class="btn btn-yellow" onclick="resumeSession()"><svg class="ic"><use href="#ic-play"/></svg> Tiep tuc</button>
-        <button class="btn btn-outline" onclick="clearSession()"><svg class="ic"><use href="#ic-reset"/></svg> Bo qua</button>
+        <button class="btn btn-yellow" onclick="resumeSession()"><svg class="ic"><use href="#ic-play"/></svg> Tiếp tục</button>
+        <button class="btn btn-outline" onclick="clearSession()"><svg class="ic"><use href="#ic-reset"/></svg> Bỏ qua</button>
       </div>
     </div>
 
     <!-- CONFIG CARD -->
     <div class="card">
-      <div class="card-h"><span class="card-t"><svg class="ic16"><use href="#ic-link"/></svg> Cau hinh nguon &amp; dich</span></div>
+      <div class="card-h"><span class="card-t"><svg class="ic16"><use href="#ic-link"/></svg> Cấu hình nguồn &amp; đích</span></div>
       <div class="card-b">
         <div class="input-grid">
           <div class="fg" style="margin-bottom:0">
-            <label class="fl"><svg class="ic" style="color:var(--text3)"><use href="#ic-folder"/></svg> Drive nguon (Shared Drive)</label>
-            <input id="srcInput" class="fi" placeholder="Dan URL hoac Folder ID Drive nguon"/>
+            <label class="fl"><svg class="ic" style="color:var(--text3)"><use href="#ic-folder"/></svg> Drive nguồn (Shared Drive)</label>
+            <input id="srcInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive nguồn"/>
           </div>
           <div class="fg" style="margin-bottom:0">
-            <label class="fl"><svg class="ic" style="color:var(--text3)"><use href="#ic-folder"/></svg> Drive ban tai ve</label>
-            <input id="destInput" class="fi" placeholder="Dan URL hoac Folder ID Drive dich"/>
+            <label class="fl"><svg class="ic" style="color:var(--text3)"><use href="#ic-folder"/></svg> Drive bạn tải về</label>
+            <input id="destInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive đích"/>
           </div>
         </div>
         <div class="frow">
           <div class="fg" style="margin-bottom:0">
-            <label class="fl">Tu trang</label>
+            <label class="fl">Từ trang</label>
             <input id="fromPage" class="fi" type="number" value="1" min="1"/>
           </div>
           <div class="fg" style="margin-bottom:0">
-            <label class="fl">Den trang</label>
+            <label class="fl">Đến trang</label>
             <input id="toPage" class="fi" type="number" value="0" min="0"/>
-            <div class="fhint">0 = tat ca - moi trang 100 muc</div>
+            <div class="fhint">0 = tất cả · mỗi trang 100 mục</div>
           </div>
         </div>
         <div class="action-bar">
           <div class="action-left">
-            <!-- btnScan: idle=red scan btn, running=red STOP scan btn -->
             <button id="btnScan" class="btn btn-red" onclick="handleScanBtn()">
               <svg class="ic"><use href="#ic-search"/></svg>
-              <span id="btnScanTxt">Kiem tra truoc</span>
+              <span id="btnScanTxt">Kiểm tra trước</span>
             </button>
-            <!-- btnStart: idle=yellow copy btn, running=black STOP copy btn -->
             <button id="btnStart" class="btn btn-yellow" onclick="handleStartBtn()">
               <svg class="ic" id="btnStartIco"><use href="#ic-play"/></svg>
-              <span id="btnStartTxt">Bat dau sao chep</span>
+              <span id="btnStartTxt">Bắt đầu sao chép</span>
             </button>
-            <!-- Pause/Resume -->
-            <button id="btnPause" class="btn btn-pause" onclick="doPause()" style="display:none"><svg class="ic"><use href="#ic-pause"/></svg> Tam dung</button>
-            <button id="btnResume" class="btn btn-resume" onclick="doResume()" style="display:none"><svg class="ic"><use href="#ic-play"/></svg> Tiep tuc</button>
-            <!-- Reset -->
+            <button id="btnPause" class="btn btn-pause" onclick="doPause()" style="display:none"><svg class="ic"><use href="#ic-pause"/></svg> Tạm dừng</button>
+            <button id="btnResume" class="btn btn-resume" onclick="doResume()" style="display:none"><svg class="ic"><use href="#ic-play"/></svg> Tiếp tục</button>
             <button id="btnReset" class="btn btn-outline" onclick="doReset()"><svg class="ic"><use href="#ic-reset"/></svg> Reset</button>
           </div>
           <span id="actionStatus" style="font-size:11px;color:var(--text3);font-family:monospace;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
@@ -363,33 +380,33 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
       </div>
     </div>
 
-    <!-- SCAN RESULT (shown after scan) -->
+    <!-- SCAN RESULT -->
     <div id="scanResult" style="display:none"></div>
 
     <!-- PROGRESS CARD -->
     <div class="card">
-      <div class="card-h"><span class="card-t"><svg class="ic16"><use href="#ic-bolt"/></svg> Tien trinh</span></div>
+      <div class="card-h"><span class="card-t"><svg class="ic16"><use href="#ic-bolt"/></svg> Tiến trình</span></div>
       <div class="card-b">
         <div class="prog-wrap">
           <div class="prog-track"><div id="progFill" class="prog-fill" style="width:0%"></div></div>
         </div>
-        <div id="statusLbl" class="status-lbl">Chua bat dau</div>
+        <div id="statusLbl" class="status-lbl">Chưa bắt đầu</div>
 
         <div id="statsRow" class="stats" style="display:none">
           <div class="sc gr" onclick="openModal('result')">
             <div id="sCopied" class="sc-n">0</div>
-            <div class="sc-l">KET QUA SAO CHEP</div>
-            <div class="sc-h">&#9660; Xem</div>
+            <div class="sc-l">Kết quả sao chép</div>
+            <div class="sc-h">▾ Xem</div>
           </div>
           <div class="sc re" onclick="openModal('failed')">
             <div id="sFailed" class="sc-n">0</div>
-            <div class="sc-l">Loi</div>
-            <div class="sc-h">&#9660; Xem</div>
+            <div class="sc-l">Lỗi</div>
+            <div class="sc-h">▾ Xem</div>
           </div>
           <div class="sc bk" onclick="openModal('folders')">
             <div id="sFolders" class="sc-n">0</div>
-            <div class="sc-l">Thu muc</div>
-            <div class="sc-h">&#9660; Xem</div>
+            <div class="sc-l">Thư mục</div>
+            <div class="sc-h">▾ Xem</div>
           </div>
         </div>
 
@@ -403,14 +420,14 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
   </div>
 </div>
 
-<!-- MODAL -->
+<!-- MODAL - hiển thị toàn bộ không ẩn -->
 <div id="modalOv" class="modal-ov" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-h">
-      <h3 id="modalTitle">Chi tiet</h3>
+      <h3 id="modalTitle">Chi tiết</h3>
       <div style="display:flex;align-items:center;gap:8px">
-        <span class="modal-sort"><svg class="ic" style="margin-right:3px"><use href="#ic-sort"/></svg> Thu muc lon - nho</span>
-        <button class="modal-cls" onclick="closeModal()">Dong</button>
+        <span class="modal-sub">Thư mục lớn → nhỏ · Mở rộng tất cả</span>
+        <button class="modal-cls" onclick="closeModal()">Đóng</button>
       </div>
     </div>
     <div id="modalBody" class="modal-b"></div>
@@ -439,658 +456,685 @@ const EMAILJS_SERVICE  = "service_9x4l8p6";
 const EMAILJS_TEMPLATE = "template_z8q2r4w";
 const EMAILJS_KEY      = "user_KjH7Gf5D4s3a2P1oN";
 
-const fbApp = initializeApp(firebaseConfig);
-const auth  = getAuth(fbApp);
-const db    = getFirestore(fbApp);
+const fbApp    = initializeApp(firebaseConfig);
+const auth     = getAuth(fbApp);
+const db       = getFirestore(fbApp);
 const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/drive');
 
-let gUser    = null;
-let gToken   = null;
-let pauseFlag   = false;
-let stopFlag    = false;
-let isRunning   = false;
-let runMode     = 'idle'; // 'idle' | 'scan' | 'copy'
-let stats       = ns();
-let scanTree    = [];
-let copyTree    = [];
+let gUser  = null, gToken = null;
+let pauseFlag = false, stopFlag = false;
+let runMode = 'idle';
+let stats = ns();
 let _resumeResolve = null;
 
-function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[], copyTree:[] }; }
+function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[] }; }
 
-// FS OVERLAY
-window.closeFsOverlay = id => {
-  document.getElementById(id).classList.remove('show');
-  if(id==='fsRed') document.getElementById('fsDarkBg').classList.remove('show');
+// OVERLAY handlers
+window.closeNoAuth = () => {
+  document.getElementById('noAuthBackdrop').classList.remove('show');
+  document.getElementById('noAuthPanel').classList.remove('show');
 };
-function showFsRed(title, msg){
-  document.getElementById('fsRedTitle').textContent = title;
-  document.getElementById('fsRedMsg').textContent   = msg;
-  document.getElementById('fsDarkBg').classList.add('show');
-  document.getElementById('fsRed').classList.add('show');
-  // auto close after 6s
-  setTimeout(() => { document.getElementById('fsRed').classList.remove('show'); document.getElementById('fsDarkBg').classList.remove('show'); }, 6000);
+window.reAuthFromOverlay = async () => {
+  closeNoAuth();
+  await reAuth();
+};
+function showNoAuth(title, msg) {
+  document.getElementById('noAuthTitle').textContent = title || 'Chưa cấp quyền Drive';
+  document.getElementById('noAuthMsg').textContent   = msg || 'Nhấn nút bên dưới để cấp quyền truy cập Google Drive.';
+  document.getElementById('noAuthBackdrop').classList.add('show');
+  document.getElementById('noAuthPanel').classList.add('show');
 }
-function showFsGreen(){
-  document.getElementById('fsGreen').classList.add('show');
-  setTimeout(() => document.getElementById('fsGreen').classList.remove('show'), 3000);
+function showAuthSuccess() {
+  const el = document.getElementById('authSuccessToast');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
 }
 
 // PAUSE/RESUME
-function pausePoint(){ return pauseFlag ? new Promise(r => { _resumeResolve = r; }) : Promise.resolve(); }
+function pausePoint() { return pauseFlag ? new Promise(r => { _resumeResolve = r; }) : Promise.resolve(); }
+
 window.doPause = () => {
   pauseFlag = true;
   document.getElementById('btnPause').style.display  = 'none';
   document.getElementById('btnResume').style.display = 'inline-flex';
-  setProgress(null,null,'paused');
-  addLog('Tam dung','warn');
+  setProgress(null, null, 'paused');
+  addLog('Tạm dừng', 'warn');
 };
 window.doResume = () => {
   pauseFlag = false;
   document.getElementById('btnPause').style.display  = 'inline-flex';
   document.getElementById('btnResume').style.display = 'none';
-  setProgress(null,null, runMode==='scan'?'scanning':'running');
-  addLog('Tiep tuc','info');
-  if(_resumeResolve){ _resumeResolve(); _resumeResolve=null; }
+  setProgress(null, null, runMode === 'scan' ? 'scanning' : 'running');
+  addLog('Tiếp tục', 'info');
+  if (_resumeResolve) { _resumeResolve(); _resumeResolve = null; }
 };
 
-// SCAN STOP / COPY STOP buttons
-window.handleScanBtn = () => {
-  if(runMode==='scan'){ doStopScan(); } else { startScan(); }
-};
-window.handleStartBtn = () => {
-  if(runMode==='copy'){ doStopCopy(); } else { window.startCopy(); }
-};
-function doStopScan(){
-  stopFlag=true; pauseFlag=false;
-  if(_resumeResolve){ _resumeResolve(); _resumeResolve=null; }
-  toast('Da dung kiem tra','ok');
+// BTN HANDLERS
+window.handleScanBtn = () => { if (runMode === 'scan') doStopScan(); else startScan(); };
+window.handleStartBtn = () => { if (runMode === 'copy') doStopCopy(); else window.startCopy(); };
+
+function doStopScan() {
+  stopFlag = true; pauseFlag = false;
+  if (_resumeResolve) { _resumeResolve(); _resumeResolve = null; }
+  // setBtnMode('idle') will be called in finally block of startScan
 }
-function doStopCopy(){
-  stopFlag=true; pauseFlag=false;
-  if(_resumeResolve){ _resumeResolve(); _resumeResolve=null; }
-  toast('Da dung sao chep','ok');
+function doStopCopy() {
+  stopFlag = true; pauseFlag = false;
+  if (_resumeResolve) { _resumeResolve(); _resumeResolve = null; }
 }
 
-// RESET
 window.doReset = () => {
-  stopFlag=true; pauseFlag=false;
-  if(_resumeResolve){ _resumeResolve(); _resumeResolve=null; }
-  stats=ns(); scanTree=[]; copyTree=[];
+  stopFlag = true; pauseFlag = false;
+  if (_resumeResolve) { _resumeResolve(); _resumeResolve = null; }
+  stats = ns();
   document.getElementById('srcInput').value  = '';
   document.getElementById('destInput').value = '';
   document.getElementById('fromPage').value  = '1';
   document.getElementById('toPage').value    = '0';
-  setStatus('Chua bat dau');
-  document.getElementById('progFill').style.width='0%';
-  document.getElementById('progFill').className='prog-fill';
+  document.getElementById('progFill').style.width  = '0%';
+  document.getElementById('progFill').className    = 'prog-fill';
   document.getElementById('logBox').innerHTML      = '';
-  document.getElementById('scanResult').style.display='none';
-  document.getElementById('statsRow').style.display='none';
+  document.getElementById('scanResult').style.display = 'none';
+  document.getElementById('statsRow').style.display   = 'none';
+  setStatus('Chưa bắt đầu');
   clearSession();
   setBtnMode('idle');
-  toast('Da reset toan bo','ok');
+  toast('Đã reset toàn bộ', 'ok');
 };
 
 // AUTH
 window.doLogin = async () => {
-  try{
-    const res = await signInWithPopup(auth,provider);
+  try {
+    const res = await signInWithPopup(auth, provider);
     gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
-  }catch(e){ toast('Dang nhap that bai','err'); }
+  } catch(e) { toast('Đăng nhập thất bại', 'err'); }
 };
 window.doLogout = () => signOut(auth);
 window.reAuth = async () => {
-  try{
-    const res = await signInWithPopup(auth,provider);
+  try {
+    const res = await signInWithPopup(auth, provider);
     gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
-    showFsGreen();
-  }catch(e){ toast('Loi cap quyen: '+e.message,'err'); }
+    showAuthSuccess();
+  } catch(e) { toast('Lỗi cấp quyền: ' + e.message, 'err'); }
 };
 
 onAuthStateChanged(auth, async u => {
-  if(!u){ gUser=null; gToken=null; sec('land'); return; }
-  gUser=u; sec('check');
-  try{
-    const isAdmin = u.email===ADMIN_EMAIL;
-    if(!isAdmin) await ensureUser(u);
+  if (!u) { gUser = null; gToken = null; sec('land'); return; }
+  gUser = u; sec('check');
+  try {
+    const isAdmin = u.email === ADMIN_EMAIL;
+    if (!isAdmin) await ensureUser(u);
     const approved = isAdmin || await checkApproval(u);
     setNavUser(u);
-    if(approved){ sec('app'); checkResume(); }
+    if (approved) { sec('app'); checkResume(); }
     else sec('pend');
-  }catch(e){ setNavUser(u); sec('pend'); }
+  } catch(e) { setNavUser(u); sec('pend'); }
 });
 
-async function ensureUser(u){
-  const ref=doc(db,'users',u.uid);
-  const snap=await getDoc(ref);
-  if(!snap.exists()){
-    await setDoc(ref,{ email:u.email, displayName:u.displayName, photoURL:u.photoURL, approved:false, status:'pending', createdAt:serverTimestamp() });
+async function ensureUser(u) {
+  const ref  = doc(db, 'users', u.uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await setDoc(ref, { email:u.email, displayName:u.displayName, photoURL:u.photoURL, approved:false, status:'pending', createdAt:serverTimestamp() });
     sendRegEmail(u);
-  } else if(snap.data().status==='kicked'){
+  } else if (snap.data().status === 'kicked') {
     notifyAdminKicked(u, snap.data().kickReason);
   }
 }
-async function checkApproval(u){
-  const snap=await getDoc(doc(db,'users',u.uid));
-  if(!snap.exists()) return false;
-  const d=snap.data();
-  return d.status!=='kicked' && d.approved===true;
+async function checkApproval(u) {
+  const snap = await getDoc(doc(db, 'users', u.uid));
+  if (!snap.exists()) return false;
+  const d = snap.data();
+  return d.status !== 'kicked' && d.approved === true;
 }
-function sendRegEmail(u){
-  if(!EMAILJS_KEY||EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY') return;
-  loadEJS().then(()=>emailjs.send(EMAILJS_SERVICE,EMAILJS_TEMPLATE,{
-    to_email:ADMIN_EMAIL, subject:'[SwiftCopy.Drive] Nguoi dung moi dang ky',
-    message:'Nguoi dung '+u.email+' vua dang ky tai khoan SwiftCopy.Drive.'
+function sendRegEmail(u) {
+  if (!EMAILJS_KEY || EMAILJS_KEY === 'YOUR_EMAILJS_PUBLIC_KEY') return;
+  loadEJS().then(() => emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+    to_email: ADMIN_EMAIL,
+    subject:  '[SwiftCopy.Drive] Người dùng mới đăng ký',
+    message:  'Người dùng ' + u.email + ' vừa đăng ký tài khoản SwiftCopy.Drive.'
   }));
 }
-function notifyAdminKicked(u,reason){
-  if(!EMAILJS_KEY||EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY') return;
-  loadEJS().then(()=>emailjs.send(EMAILJS_SERVICE,EMAILJS_TEMPLATE,{
-    to_email:ADMIN_EMAIL, subject:'[SwiftCopy.Drive] Canh bao: user bi kick dang dang nhap',
-    message:'User '+u.email+' da bi kick (ly do: '+(reason||'?')+') nhung dang co dang nhap lai.'
+function notifyAdminKicked(u, reason) {
+  if (!EMAILJS_KEY || EMAILJS_KEY === 'YOUR_EMAILJS_PUBLIC_KEY') return;
+  loadEJS().then(() => emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+    to_email: ADMIN_EMAIL,
+    subject:  '[SwiftCopy.Drive] Cảnh báo: user bị kick đang đăng nhập',
+    message:  'User ' + u.email + ' đã bị kick (lý do: ' + (reason||'?') + ') nhưng đang cố đăng nhập lại.'
   }));
 }
-let _ejsLoaded=false;
-function loadEJS(){ if(_ejsLoaded) return Promise.resolve(); return new Promise(r=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js'; s.onload=()=>{ emailjs.init(EMAILJS_KEY); _ejsLoaded=true; r(); }; document.head.appendChild(s); }); }
+let _ejsLoaded = false;
+function loadEJS() {
+  if (_ejsLoaded) return Promise.resolve();
+  return new Promise(r => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+    s.onload = () => { emailjs.init(EMAILJS_KEY); _ejsLoaded = true; r(); };
+    document.head.appendChild(s);
+  });
+}
 
 // DRIVE API
-const BASE='https://www.googleapis.com/drive/v3';
-const FMIME='application/vnd.google-apps.folder';
-const SMIME='application/vnd.google-apps.shortcut';
-const CONCUR=4;
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const hdr=()=>({Authorization:'Bearer '+gToken,'Content-Type':'application/json'});
-async function dget(path,p={}){
-  if(!gToken) throw new Error('NO_TOKEN');
-  const url=new URL(BASE+path);
-  Object.entries(p).forEach(([k,v])=>url.searchParams.set(k,v));
-  const r=await fetch(url,{headers:hdr()});
-  if(!r.ok){ const t=await r.text(); throw new Error('Drive '+r.status+': '+t.slice(0,80)); }
+const BASE  = 'https://www.googleapis.com/drive/v3';
+const FMIME = 'application/vnd.google-apps.folder';
+const SMIME = 'application/vnd.google-apps.shortcut';
+const CONCUR = 4;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const hdr = () => ({ Authorization: 'Bearer ' + gToken, 'Content-Type': 'application/json' });
+
+async function dget(path, p = {}) {
+  if (!gToken) throw new Error('NO_TOKEN');
+  const url = new URL(BASE + path);
+  Object.entries(p).forEach(([k,v]) => url.searchParams.set(k, v));
+  const r = await fetch(url, { headers: hdr() });
+  if (!r.ok) { const t = await r.text(); throw new Error('Drive ' + r.status + ': ' + t.slice(0,80)); }
   return r.json();
 }
-async function dpost(path,body){
-  if(!gToken) throw new Error('NO_TOKEN');
-  const r=await fetch(BASE+path,{method:'POST',headers:hdr(),body:JSON.stringify(body)});
-  if(!r.ok){ const t=await r.text(); throw new Error('Drive '+r.status+': '+t.slice(0,80)); }
+async function dpost(path, body) {
+  if (!gToken) throw new Error('NO_TOKEN');
+  const r = await fetch(BASE + path, { method:'POST', headers:hdr(), body:JSON.stringify(body) });
+  if (!r.ok) { const t = await r.text(); throw new Error('Drive ' + r.status + ': ' + t.slice(0,80)); }
   return r.json();
 }
-async function ddel(id){ try{ await fetch(BASE+'/files/'+id+'?supportsAllDrives=true',{method:'DELETE',headers:hdr()}); }catch{} }
-function fid(s){
-  s=s.trim();
-  let m=s.match(/\/folders\/([a-zA-Z0-9_-]+)/); if(m) return m[1];
-  m=s.match(/id=([a-zA-Z0-9_-]+)/); if(m) return m[1];
-  if(/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
-  throw new Error('Khong nhan dien duoc Folder ID: '+s);
+async function ddel(id) { try { await fetch(BASE+'/files/'+id+'?supportsAllDrives=true', {method:'DELETE',headers:hdr()}); } catch{} }
+
+function fid(s) {
+  s = s.trim();
+  let m = s.match(/\/folders\/([a-zA-Z0-9_-]+)/); if (m) return m[1];
+  m = s.match(/id=([a-zA-Z0-9_-]+)/); if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
+  throw new Error('Không nhận diện được Folder ID: ' + s);
 }
-async function fname(id){ try{ return (await dget('/files/'+id,{fields:'name',supportsAllDrives:true})).name; }catch{ return 'Unknown'; } }
-async function listItems(folderId){
-  let res=[],pt=null;
-  do{
-    const p={q:"'"+folderId+"' in parents and trashed=false",pageSize:1000,fields:'nextPageToken,files(id,name,mimeType)',supportsAllDrives:true,includeItemsFromAllDrives:true};
-    if(pt) p.pageToken=pt;
-    const r=await dget('/files',p); res.push(...(r.files||[])); pt=r.nextPageToken;
-  }while(pt);
+async function fname(id) { try { return (await dget('/files/'+id, {fields:'name',supportsAllDrives:true})).name; } catch { return 'Unknown'; } }
+async function listItems(folderId) {
+  let res = [], pt = null;
+  do {
+    const p = { q:"'"+folderId+"' in parents and trashed=false", pageSize:1000, fields:'nextPageToken,files(id,name,mimeType)', supportsAllDrives:true, includeItemsFromAllDrives:true };
+    if (pt) p.pageToken = pt;
+    const r = await dget('/files', p); res.push(...(r.files||[])); pt = r.nextPageToken;
+  } while (pt);
   return res;
 }
-async function existNames(folderId){ return new Set((await listItems(folderId)).map(i=>i.name)); }
-async function copyFileSingle(fileId,destId){
-  for(let i=0;i<4;i++){
-    await pausePoint(); if(stopFlag) return {ok:false,reason:'Da dung'};
-    try{ await dpost('/files/'+fileId+'/copy',{parents:[destId]}); return {ok:true}; }
-    catch(e){
-      const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
-      if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*800);continue;}
-      if(c===403) return {ok:false,reason:'Khong co quyen copy'};
-      if(c===404) return {ok:false,reason:'File khong tim thay'};
-      return {ok:false,reason:e.message.slice(0,60)};
+async function existNames(folderId) { return new Set((await listItems(folderId)).map(i => i.name)); }
+
+async function copyFileSingle(fileId, destId) {
+  for (let i = 0; i < 4; i++) {
+    await pausePoint(); if (stopFlag) return { ok:false, reason:'Đã dừng' };
+    try { await dpost('/files/'+fileId+'/copy', { parents:[destId] }); return { ok:true }; }
+    catch(e) {
+      const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
+      if ([429,500,503].includes(c)) { await sleep(Math.pow(2,i)*800); continue; }
+      if (c === 403) return { ok:false, reason:'Không có quyền copy' };
+      if (c === 404) return { ok:false, reason:'File không tìm thấy' };
+      return { ok:false, reason: e.message.slice(0,60) };
     }
   }
-  return {ok:false,reason:'Het so lan thu'};
+  return { ok:false, reason:'Hết số lần thử' };
 }
-async function mkFolder(name,parentId){
-  const r=await dget('/files',{q:"'"+parentId+"' in parents and name='"+name.replace(/'/g,"\\'")+"' and mimeType='"+FMIME+"' and trashed=false",fields:'files(id)',supportsAllDrives:true,includeItemsFromAllDrives:true});
-  if(r.files?.length) return r.files[0].id;
-  return (await dpost('/files',{name,mimeType:FMIME,parents:[parentId]})).id;
+async function mkFolder(name, parentId) {
+  const r = await dget('/files', { q:"'"+parentId+"' in parents and name='"+name.replace(/'/g,"\\'")+"' and mimeType='"+FMIME+"' and trashed=false", fields:'files(id)', supportsAllDrives:true, includeItemsFromAllDrives:true });
+  if (r.files?.length) return r.files[0].id;
+  return (await dpost('/files', { name, mimeType:FMIME, parents:[parentId] })).id;
 }
-
-// Progress tracking for scan
-let scanTotal=0, scanDone=0;
-function scanProgressInc(){ scanDone++; if(scanTotal>0) setProgress(scanDone,scanTotal,'scanning'); }
 
 // SCAN
-async function startScan(){
-  if(!gToken){ showFsRed('Chua cap quyen Drive!','Ban can nhan "Cap quyen Drive" o goc tren phai truoc khi kiem tra.'); return; }
-  const sv=document.getElementById('srcInput').value.trim();
-  const dv=document.getElementById('destInput').value.trim();
-  if(!sv||!dv){ toast('Nhap du Drive nguon va dich!','warn'); return; }
-  stopFlag=false; pauseFlag=false; runMode='scan';
-  scanTree=[]; scanTotal=0; scanDone=0;
-  document.getElementById('scanResult').style.display='none';
-  document.getElementById('logBox').innerHTML='';
+let scanTotal = 0, scanDone = 0;
+function scanInc() { scanDone++; if (scanTotal > 0) setProgress(scanDone, scanTotal, 'scanning'); }
+
+async function startScan() {
+  if (!gToken) { showNoAuth('Chưa cấp quyền Drive!', 'Bạn cần cấp quyền truy cập Google Drive trước khi kiểm tra.'); return; }
+  const sv = document.getElementById('srcInput').value.trim();
+  const dv = document.getElementById('destInput').value.trim();
+  if (!sv || !dv) { toast('Nhập đủ Drive nguồn và đích!', 'warn'); return; }
+
+  stopFlag = false; pauseFlag = false; runMode = 'scan';
+  scanTotal = 0; scanDone = 0;
+  document.getElementById('scanResult').style.display = 'none';
+  document.getElementById('logBox').innerHTML = '';
   setBtnMode('scan');
-  setProgress(0,1,'scanning');
-  const t0=Date.now();
-  try{
-    const srcId=fid(sv), destId=fid(dv);
-    const sn=await fname(srcId);
-    setStatus('Dang kiem tra "'+sn+'"...');
-    addLog('Bat dau kiem tra quyen...','info');
-    // First count total items for progress bar
+  setProgress(0, 100, 'scanning');
+
+  const t0 = Date.now();
+  try {
+    const srcId  = fid(sv), destId = fid(dv);
+    const sn     = await fname(srcId);
+    setStatus('Đang kiểm tra "' + sn + '"...');
+    addLog('Bắt đầu kiểm tra quyền...', 'info');
+
     const topItems = await listItems(srcId);
-    scanTotal = await countDeep(topItems, srcId);
-    setProgress(0, scanTotal, 'scanning');
-    scanTree = await scanNodes(topItems, destId, sn, 0);
-    if(stopFlag){ setStatus('Da dung kiem tra'); setBtnMode('idle'); return; }
-    const elapsed=Math.round((Date.now()-t0)/1000);
-    const totalErr=countTreeErrors(scanTree);
-    setProgress(scanTotal,scanTotal,'done');
-    setStatus(totalErr===0?'Kiem tra xong - Khong co loi ('+elapsed+'s)':'Phat hien '+totalErr+' van de ('+elapsed+'s)');
-    renderScanResult(scanTree, totalErr);
-  }catch(e){
-    addLog('Loi: '+e.message,'err'); setStatus('Loi kiem tra');
-    if(e.message==='NO_TOKEN') showFsRed('Chua cap quyen Drive!','Hay nhan nut Cap quyen Drive o goc tren phai.');
-  }
-  finally{ runMode='idle'; setBtnMode('idle'); }
-}
-
-async function countDeep(items){
-  let count=items.length;
-  for(const item of items){
-    if(item.mimeType===FMIME){
-      const children=await listItems(item.id);
-      count+=await countDeep(children);
+    // Count total for progress
+    scanTotal = topItems.length;
+    for (const item of topItems) {
+      if (item.mimeType === FMIME) {
+        const ch = await listItems(item.id);
+        scanTotal += ch.length;
+      }
     }
+    setProgress(0, scanTotal, 'scanning');
+
+    const tree = await scanNodes(topItems, destId, '', 0);
+
+    if (stopFlag) { setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
+
+    const elapsed   = Math.round((Date.now()-t0)/1000);
+    const totalErr  = cntErr(tree);
+    setProgress(scanTotal, scanTotal, totalErr === 0 ? 'done' : 'done');
+    setStatus(totalErr === 0 ? 'Kiểm tra xong - Không có lỗi (' + elapsed + 's)' : 'Phát hiện ' + totalErr + ' vấn đề (' + elapsed + 's)');
+    renderScanResult(tree, totalErr);
+  } catch(e) {
+    addLog('Lỗi: ' + e.message, 'err'); setStatus('Lỗi kiểm tra');
+    if (e.message === 'NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!', 'Nhấn nút bên dưới để cấp quyền.');
+  } finally {
+    runMode = 'idle'; setBtnMode('idle');
   }
-  return count;
 }
 
-async function scanNodes(items, destId, path, depth){
-  const nodes=[];
-  for(const item of items){
-    await pausePoint(); if(stopFlag) break;
-    const fp=path?path+' > '+item.name:item.name;
-    if(item.mimeType===SMIME){
-      scanProgressInc();
-      nodes.push({name:item.name,path:fp,type:'file',depth,error:'La shortcut - bo qua',children:[]});
-      addLog('Shortcut: '+item.name,'skip');
+async function scanNodes(items, destId, path, depth) {
+  const nodes = [];
+  for (const item of items) {
+    await pausePoint(); if (stopFlag) break;
+    const fp = path ? path + ' > ' + item.name : item.name;
+    if (item.mimeType === SMIME) {
+      scanInc();
+      nodes.push({ name:item.name, path:fp, type:'file', depth, error:'Là shortcut - bỏ qua', children:[] });
       continue;
     }
-    if(item.mimeType===FMIME){
-      const children=await listItems(item.id);
-      scanProgressInc();
-      addLog('Kiem tra thu muc: '+item.name,'info');
-      const testFile=children.find(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME);
-      let selfErr=null;
-      if(testFile){
-        try{
-          const r=await dpost('/files/'+testFile.id+'/copy',{name:'__swtest_'+testFile.name,parents:[destId]});
+    if (item.mimeType === FMIME) {
+      const children = await listItems(item.id);
+      scanInc();
+      addLog('Thư mục: ' + item.name, 'info');
+      const testFile = children.find(c => c.mimeType !== FMIME && c.mimeType !== SMIME);
+      let selfErr = null;
+      if (testFile) {
+        try {
+          const r = await dpost('/files/'+testFile.id+'/copy', { name:'__swtest_'+testFile.name, parents:[destId] });
           await ddel(r.id);
-          addLog('OK: '+item.name,'ok');
-        }catch(e){
-          const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
-          selfErr=c===403?'Khong co quyen copy':'Loi API '+c;
-          addLog('Loi thu muc: '+item.name+' - '+selfErr,'err');
+        } catch(e) {
+          const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
+          selfErr = c === 403 ? 'Không có quyền copy' : 'Lỗi API ' + c;
+          addLog('Lỗi thư mục: ' + item.name + ' - ' + selfErr, 'err');
         }
       }
-      const subChildren=selfErr?[]:await scanNodes(children.filter(c=>c.mimeType===FMIME),destId,fp,depth+1);
-      const subFiles=selfErr?[]:await scanFileNodes(children.filter(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME),destId,fp,depth+1);
-      const allChildren=[...subFiles,...subChildren];
-      nodes.push({name:item.name,path:fp,type:'folder',depth,error:selfErr,children:allChildren});
+      const subFolders = selfErr ? [] : await scanNodes(children.filter(c => c.mimeType === FMIME), destId, fp, depth+1);
+      const subFiles   = selfErr ? [] : await scanFileNodes(children.filter(c => c.mimeType !== FMIME && c.mimeType !== SMIME), destId, fp, depth+1);
+      nodes.push({ name:item.name, path:fp, type:'folder', depth, error:selfErr, children:[...subFiles,...subFolders] });
     } else {
-      scanProgressInc();
-      addLog('Kiem tra: '+item.name,'skip');
-      let err=null;
-      try{
-        const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});
+      scanInc();
+      addLog('Kiểm tra: ' + item.name, 'skip');
+      let err = null;
+      try {
+        const r = await dpost('/files/'+item.id+'/copy', { name:'__swtest_'+item.name, parents:[destId] });
         await ddel(r.id);
-        addLog('OK: '+item.name,'ok');
-      }catch(e){
-        const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
-        err=c===403?'Khong co quyen copy':'Loi API '+c;
-        addLog('Loi: '+item.name+' - '+err,'err');
+        addLog('OK: ' + item.name, 'ok');
+      } catch(e) {
+        const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
+        err = c === 403 ? 'Không có quyền copy' : 'Lỗi API ' + c;
+        addLog('Lỗi: ' + item.name, 'err');
       }
-      nodes.push({name:item.name,path:fp,type:'file',depth,error:err,children:[]});
+      nodes.push({ name:item.name, path:fp, type:'file', depth, error:err, children:[] });
     }
   }
   return nodes;
 }
 
-async function scanFileNodes(items,destId,path,depth){
-  const nodes=[];
-  for(const item of items){
-    await pausePoint(); if(stopFlag) break;
-    scanProgressInc();
-    const fp=path?path+' > '+item.name:item.name;
-    let err=null;
-    addLog('Kiem tra: '+item.name,'skip');
-    try{
-      const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});
+async function scanFileNodes(items, destId, path, depth) {
+  const nodes = [];
+  for (const item of items) {
+    await pausePoint(); if (stopFlag) break;
+    scanInc();
+    const fp = path ? path + ' > ' + item.name : item.name;
+    let err = null;
+    addLog('Kiểm tra: ' + item.name, 'skip');
+    try {
+      const r = await dpost('/files/'+item.id+'/copy', { name:'__swtest_'+item.name, parents:[destId] });
       await ddel(r.id);
-      addLog('OK: '+item.name,'ok');
-    }catch(e){
-      const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
-      err=c===403?'Khong co quyen copy':'Loi API '+c;
-      addLog('Loi: '+item.name+' - '+err,'err');
+      addLog('OK: ' + item.name, 'ok');
+    } catch(e) {
+      const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
+      err = c === 403 ? 'Không có quyền copy' : 'Lỗi API ' + c;
+      addLog('Lỗi: ' + item.name, 'err');
     }
-    nodes.push({name:item.name,path:fp,type:'file',depth,error:err,children:[]});
+    nodes.push({ name:item.name, path:fp, type:'file', depth, error:err, children:[] });
   }
   return nodes;
 }
 
-function countTreeErrors(nodes){
-  let c=0;
-  for(const n of nodes){
-    if(n.error) c++;
-    if(n.children?.length) c+=countTreeErrors(n.children);
-  }
+function cntErr(nodes) {
+  let c = 0;
+  for (const n of nodes) { if (n.error) c++; if (n.children?.length) c += cntErr(n.children); }
   return c;
 }
-function hasDescendantError(node){
-  if(node.error) return true;
-  return (node.children||[]).some(hasDescendantError);
+function hasErr(node) {
+  if (node.error) return true;
+  return (node.children||[]).some(hasErr);
 }
 
-// RENDER SCAN RESULT
-function renderScanResult(tree,totalErr){
-  const el=document.getElementById('scanResult');
-  el.style.display='block';
-  if(totalErr===0){
-    el.innerHTML='<div class="tree-wrap"><div class="tree-head ok-head" style="justify-content:flex-start;gap:8px"><svg class="ic16" style="color:var(--green)"><use href="#ic-check-c"/></svg><span style="font-size:13px;font-weight:700;color:var(--green)">Tat ca deu co the sao chep!</span></div></div>';
+function renderScanResult(tree, totalErr) {
+  const el = document.getElementById('scanResult');
+  el.style.display = 'block';
+  if (totalErr === 0) {
+    el.innerHTML = '<div class="tree-wrap"><div class="tree-head ok-head" style="justify-content:flex-start;gap:8px"><svg class="ic16" style="color:var(--green)"><use href="#ic-check-c"/></svg><span style="font-size:13px;font-weight:700;color:var(--green)">Tất cả đều có thể sao chép!</span></div></div>';
     return;
   }
-  el.innerHTML='<div class="tree-wrap"><div class="tree-head err-head"><span style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:7px"><svg class="ic16" style="color:var(--red)"><use href="#ic-warn"/></svg>'+totalErr+' muc bi loi quyen</span><span style="font-size:11px;font-weight:700;background:var(--red);color:#fff;padding:2px 8px;border-radius:999px">'+totalErr+'</span></div><div class="tree-body" id="scanTreeBody"></div><div class="tree-note"><svg class="ic" style="color:var(--text3);margin-right:4px"><use href="#ic-info"/></svg>Vao Drive nguon - chuot phai - <b>Chia se</b> - them email ban quyen <b>Nguoi chinh sua</b></div></div>';
-  const openSet=new Set();
-  function rebuildScan(){ document.getElementById('scanTreeBody').innerHTML=buildTreeHTML(tree,openSet,true); }
-  window._scanToggle=function(path){ openSet.has(path)?openSet.delete(path):openSet.add(path); rebuildScan(); };
+  // ALL expanded by default for scan result
+  const allPaths = new Set();
+  function collectPaths(nodes) { nodes.forEach(n => { if (n.type==='folder') { allPaths.add(n.path); collectPaths(n.children||[]); } }); }
+  collectPaths(tree);
+
+  el.innerHTML = '<div class="tree-wrap">'
+    + '<div class="tree-head err-head">'
+    + '<span style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:7px"><svg class="ic16" style="color:var(--red)"><use href="#ic-warn"/></svg>' + totalErr + ' mục bị lỗi quyền</span>'
+    + '<span style="font-size:11px;font-weight:700;background:var(--red);color:#fff;padding:2px 8px;border-radius:999px">' + totalErr + '</span>'
+    + '</div>'
+    + '<div class="tree-body" id="scanTreeBody"></div>'
+    + '<div class="tree-note"><svg class="ic" style="color:var(--text3);margin-right:4px"><use href="#ic-info"/></svg>Vào Drive nguồn → chuột phải → <b>Chia sẻ</b> → thêm email bạn quyền <b>Người chỉnh sửa</b></div>'
+    + '</div>';
+
+  window._scanToggle = function(path) { allPaths.has(path) ? allPaths.delete(path) : allPaths.add(path); rebuildScan(); };
+  function rebuildScan() { document.getElementById('scanTreeBody').innerHTML = buildTreeHTML(tree, allPaths); }
   rebuildScan();
 }
 
 // COPY
 window.startCopy = async () => {
-  if(!gToken){ showFsRed('Chua cap quyen Drive!','Ban can nhan "Cap quyen Drive" o goc tren phai truoc khi sao chep.'); return; }
-  const sv=document.getElementById('srcInput').value.trim();
-  const dv=document.getElementById('destInput').value.trim();
-  if(!sv||!dv){ toast('Nhap du Drive nguon va dich!','warn'); return; }
-  stopFlag=false; pauseFlag=false; runMode='copy';
-  stats=ns(); copyTree=[];
-  document.getElementById('logBox').innerHTML='';
-  document.getElementById('scanResult').style.display='none';
-  document.getElementById('statsRow').style.display='flex';
+  if (!gToken) { showNoAuth('Chưa cấp quyền Drive!', 'Bạn cần cấp quyền truy cập Google Drive trước khi sao chép.'); return; }
+  const sv = document.getElementById('srcInput').value.trim();
+  const dv = document.getElementById('destInput').value.trim();
+  if (!sv || !dv) { toast('Nhập đủ Drive nguồn và đích!', 'warn'); return; }
+
+  stopFlag = false; pauseFlag = false; runMode = 'copy';
+  stats = ns();
+  document.getElementById('logBox').innerHTML      = '';
+  document.getElementById('scanResult').style.display = 'none';
+  document.getElementById('statsRow').style.display   = 'flex';
   updStats(); setBtnMode('copy');
-  const t0=Date.now();
-  try{
-    const srcId=fid(sv), destId=fid(dv);
-    const sn=await fname(srcId), dn=await fname(destId);
-    setStatus('Dang sao chep "'+sn+'" > "'+dn+'"');
-    addLog('Nguon: '+sn,'info'); addLog('Dich: '+dn,'info');
-    saveSessionData({sv,dv,srcId,sn,destId,dn});
-    const top=await listItems(srcId);
-    const fp=Math.max(0,(parseInt(document.getElementById('fromPage').value)||1)-1);
-    const tp=parseInt(document.getElementById('toPage').value)||0;
-    const sel=tp>0?top.slice(fp,tp):top.slice(fp);
-    if(!sel.length){ toast('Khong tim thay muc nao!','warn'); setBtnMode('idle'); runMode='idle'; return; }
-    setProgress(0,sel.length);
-    addLog('Bat dau '+sel.length+' muc ('+CONCUR+' luong song song)...','info');
-    const dex=await existNames(destId);
-    for(let i=0;i<sel.length;i++){
-      await pausePoint(); if(stopFlag) break;
-      const item=sel[i];
-      setProgress(i,sel.length); setStatus('['+(i+1)+'/'+sel.length+'] '+item.name);
-      if(item.mimeType===FMIME){
-        const nid=await mkFolder(item.name,destId);
+
+  const t0 = Date.now();
+  try {
+    const srcId = fid(sv), destId = fid(dv);
+    const sn    = await fname(srcId), dn = await fname(destId);
+    setStatus('Đang sao chép "' + sn + '" -> "' + dn + '"');
+    addLog('Nguồn: ' + sn, 'info'); addLog('Đích: ' + dn, 'info');
+    saveSessionData({ sv, dv, srcId, sn, destId, dn });
+
+    const top = await listItems(srcId);
+    const fp  = Math.max(0, (parseInt(document.getElementById('fromPage').value)||1)-1);
+    const tp  = parseInt(document.getElementById('toPage').value)||0;
+    const sel = tp > 0 ? top.slice(fp, tp) : top.slice(fp);
+    if (!sel.length) { toast('Không tìm thấy mục nào!', 'warn'); setBtnMode('idle'); runMode='idle'; return; }
+
+    setProgress(0, sel.length, 'running');
+    addLog('Bắt đầu ' + sel.length + ' mục (' + CONCUR + ' luồng song song)...', 'info');
+    const dex = await existNames(destId);
+
+    for (let i = 0; i < sel.length; i++) {
+      await pausePoint(); if (stopFlag) break;
+      const item = sel[i];
+      setProgress(i, sel.length, 'running');
+      setStatus('[' + (i+1) + '/' + sel.length + '] ' + item.name);
+
+      if (item.mimeType === FMIME) {
+        const nid  = await mkFolder(item.name, destId);
         stats.folders++;
-        const node={name:item.name,path:item.name,type:'folder',depth:0,error:null,children:[],_destId:nid,_srcId:item.id};
+        const node = { name:item.name, path:item.name, type:'folder', depth:0, error:null, children:[] };
         stats.folderList.push(node);
-        addLog('Thu muc: '+item.name,'folder');
+        addLog('Thư mục: ' + item.name, 'folder');
         updStats(); saveSession();
-        await copyRecTree(item.id,nid,item.name,1,node.children);
+        await copyRecTree(item.id, nid, item.name, 1, node.children);
       } else {
-        if(dex.has(item.name)){ addLog('Da co: '+item.name,'skip'); setProgress(i+1,sel.length); continue; }
-        const res=await copyFileSingle(item.id,destId);
-        const node={name:item.name,path:item.name,type:'file',depth:0,error:res.ok?null:(res.reason||'Loi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-        if(res.ok){ stats.copied++; stats.copiedFiles.push(node); addLog('OK: '+item.name,'ok'); }
-        else { stats.failed++; stats.failedFiles.push(node); addLog('Loi: '+item.name+' - '+res.reason,'err'); }
+        if (dex.has(item.name)) { addLog('Đã có: ' + item.name, 'skip'); setProgress(i+1, sel.length, 'running'); continue; }
+        const res  = await copyFileSingle(item.id, destId);
+        const node = { name:item.name, path:item.name, type:'file', depth:0, error:res.ok?null:(res.reason||'Lỗi'), children:[], link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view' };
+        if (res.ok) { stats.copied++; stats.copiedFiles.push(node); addLog('OK: ' + item.name, 'ok'); }
+        else        { stats.failed++; stats.failedFiles.push(node); addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
         updStats(); saveSession();
       }
-      setProgress(i+1,sel.length);
+      setProgress(i+1, sel.length, 'running');
     }
-    const elapsed=Math.round((Date.now()-t0)/1000);
-    setProgress(sel.length,sel.length,stopFlag?'paused':'done');
-    if(!stopFlag){ setStatus('Hoan thanh '+elapsed+'s'); clearSession(); await saveHist(srcId,sn,destId,dn,elapsed); }
-    else setStatus('Da dung sao chep');
-  }catch(e){
-    addLog('Loi: '+e.message,'err'); setStatus('Loi sao chep');
-    if(e.message==='NO_TOKEN') showFsRed('Chua cap quyen Drive!','Hay nhan nut Cap quyen Drive o goc tren phai.');
+
+    const elapsed = Math.round((Date.now()-t0)/1000);
+    setProgress(sel.length, sel.length, stopFlag ? 'paused' : 'done');
+    if (!stopFlag) { setStatus('Hoàn thành ' + elapsed + 's'); clearSession(); await saveHist(srcId,sn,destId,dn,elapsed); }
+    else setStatus('Đã dừng sao chép');
+  } catch(e) {
+    addLog('Lỗi: ' + e.message, 'err'); setStatus('Lỗi sao chép');
+    if (e.message === 'NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!', 'Nhấn nút bên dưới để cấp quyền.');
+  } finally {
+    runMode = 'idle'; setBtnMode('idle');
   }
-  finally{ runMode='idle'; setBtnMode('idle'); }
 };
 
-async function copyRecTree(srcId,destId,path,depth,parentChildren){
-  await pausePoint(); if(stopFlag) return;
-  const items=await listItems(srcId);
-  const dnames=await existNames(destId);
-  const folders=items.filter(i=>i.mimeType===FMIME);
-  const files=items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&!dnames.has(i.name));
-  items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&dnames.has(i.name)).forEach(i=>addLog('Da co: '+i.name,'skip'));
-  // Batch copy files
-  for(let i=0;i<files.length;i+=CONCUR){
-    await pausePoint(); if(stopFlag) break;
-    await Promise.all(files.slice(i,i+CONCUR).map(async item=>{
-      if(stopFlag) return;
+async function copyRecTree(srcId, destId, path, depth, parentChildren) {
+  await pausePoint(); if (stopFlag) return;
+  const items  = await listItems(srcId);
+  const dnames = await existNames(destId);
+  const folders = items.filter(i => i.mimeType === FMIME);
+  const files   = items.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && !dnames.has(i.name));
+  items.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && dnames.has(i.name)).forEach(i => addLog('Đã có: '+i.name, 'skip'));
+  for (let i = 0; i < files.length; i += CONCUR) {
+    await pausePoint(); if (stopFlag) break;
+    await Promise.all(files.slice(i, i+CONCUR).map(async item => {
+      if (stopFlag) return;
       await pausePoint();
-      const fp=path?path+' > '+item.name:item.name;
-      const res=await copyFileSingle(item.id,destId);
-      const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Loi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-      if(res.ok){ stats.copied++; stats.copiedFiles.push(node); addLog('OK: '+item.name,'ok'); }
-      else { stats.failed++; stats.failedFiles.push(node); addLog('Loi: '+item.name+' - '+res.reason,'err'); }
+      const fp  = path ? path + ' > ' + item.name : item.name;
+      const res = await copyFileSingle(item.id, destId);
+      const node = { name:item.name, path:fp, type:'file', depth, error:res.ok?null:(res.reason||'Lỗi'), children:[], link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view' };
+      if (res.ok) { stats.copied++; stats.copiedFiles.push(node); addLog('OK: '+item.name,'ok'); }
+      else        { stats.failed++; stats.failedFiles.push(node); addLog('Lỗi: '+item.name+' - '+res.reason,'err'); }
       parentChildren.push(node); updStats(); saveSession();
     }));
   }
-  for(const f of folders){
-    await pausePoint(); if(stopFlag) return;
-    const fp=path?path+' > '+f.name:f.name;
-    const nid=await mkFolder(f.name,destId);
+  for (const f of folders) {
+    await pausePoint(); if (stopFlag) return;
+    const fp  = path ? path + ' > ' + f.name : f.name;
+    const nid = await mkFolder(f.name, destId);
     stats.folders++;
-    const node={name:f.name,path:fp,type:'folder',depth,error:null,children:[]};
+    const node = { name:f.name, path:fp, type:'folder', depth, error:null, children:[] };
     stats.folderList.push(node); parentChildren.push(node);
-    addLog('Thu muc: '+f.name,'folder'); updStats();
-    await copyRecTree(f.id,nid,fp,depth+1,node.children);
+    addLog('Thư mục: ' + f.name, 'folder'); updStats();
+    await copyRecTree(f.id, nid, fp, depth+1, node.children);
   }
 }
 
-// TREE HTML BUILDER (shared by scan+copy modal)
-function buildTreeHTML(nodes, openSet, isScanMode){
-  let html='';
-  for(const node of nodes){
-    const indent=16+node.depth*20;
-    const hasChildren=node.children?.length>0;
-    const isFolder=node.type==='folder';
-    const isOpen=openSet.has(node.path);
-    const hasErr=!!node.error;
-    const childHasErr=hasChildren&&node.children.some(hasDescendantError);
+// TREE HTML - all expanded by default, no toggle for copy result modal
+function buildTreeHTML(nodes, openSet) {
+  let html = '';
+  for (const node of nodes) {
+    const indent      = 16 + node.depth * 20;
+    const isFolder    = node.type === 'folder';
+    const hasChildren = isFolder && node.children?.length > 0;
+    const isOpen      = !openSet || openSet.has(node.path);
+    const nodeHasErr  = !!node.error;
+    const childHasErr = hasChildren && node.children.some(hasErr);
 
-    let statusIco='', rowCls='', nameClr='';
-    if(isFolder){
-      if(hasErr||childHasErr){
-        rowCls='tf has-err';
-        nameClr='color:var(--text);font-weight:700';
-        statusIco=isOpen
-          ?'<svg class="ic si-warn" style="opacity:.4"><use href="#ic-warn"/></svg>'
-          :'<svg class="ic si-warn"><use href="#ic-warn"/></svg>';
+    let statusIco = '', rowCls = '', nameClr = '';
+    if (isFolder) {
+      if (nodeHasErr || childHasErr) {
+        rowCls   = 'tf has-err';
+        nameClr  = 'color:var(--text);font-weight:700';
+        statusIco = isOpen
+          ? '<svg class="ic si-warn" style="opacity:.35"><use href="#ic-warn"/></svg>'
+          : '<svg class="ic si-warn"><use href="#ic-warn"/></svg>';
       } else {
-        rowCls='tf all-ok';
-        nameClr='color:var(--green);font-weight:700';
-        statusIco='<svg class="ic si-ok"><use href="#ic-check-c"/></svg>';
+        rowCls    = 'tf all-ok';
+        nameClr   = 'color:var(--green);font-weight:700';
+        statusIco = '<svg class="ic si-ok"><use href="#ic-check-c"/></svg>';
       }
     } else {
-      if(hasErr){
-        rowCls='tfile ferr';
-        nameClr='color:var(--red)';
-        statusIco='<svg class="ic si-err"><use href="#ic-x-c"/></svg>';
+      if (nodeHasErr) {
+        rowCls    = 'tfile ferr';
+        nameClr   = 'color:var(--red)';
+        statusIco = '<svg class="ic si-err"><use href="#ic-x-c"/></svg>';
       } else {
-        rowCls='tfile';
-        nameClr='color:var(--text2)';
-        statusIco='<svg class="ic si-ok"><use href="#ic-check-c"/></svg>';
+        rowCls    = 'tfile';
+        nameClr   = 'color:var(--text2)';
+        statusIco = '<svg class="ic si-ok"><use href="#ic-check-c"/></svg>';
       }
     }
 
-    const chevron=isFolder
-      ?'<svg class="ic" style="color:var(--text3);flex-shrink:0"><use href="#ic-'+(isOpen?'chev-d':'chev-r')+'"/></svg>'
-      :'<span style="width:14px;flex-shrink:0;display:inline-block"></span>';
-    const folderIco=isFolder
-      ?'<svg class="ic16" style="color:'+(hasErr||childHasErr?'var(--text)':'var(--green)')+'"><use href="#ic-'+(isOpen?'folder-o':'folder')+'"/></svg>'
-      :'<svg class="ic" style="color:'+(hasErr?'var(--red)':'var(--text3)')+'"><use href="#ic-file"/></svg>';
+    const chevron   = isFolder ? '<svg class="ic" style="color:var(--text3);flex-shrink:0"><use href="#ic-'+(isOpen?'chev-d':'chev-r')+'"/></svg>' : '<span style="width:14px;flex-shrink:0;display:inline-block"></span>';
+    const folderIco = isFolder ? '<svg class="ic16" style="color:'+(nodeHasErr||childHasErr?'var(--text)':'var(--green)')+'"><use href="#ic-'+(isOpen?'folder-o':'folder')+'"/></svg>' : '<svg class="ic" style="color:'+(nodeHasErr?'var(--red)':'var(--text3)')+'"><use href="#ic-file"/></svg>';
+    const errPill   = nodeHasErr ? '<span class="tr-reason">'+escH(node.error)+'</span>' : '';
+    const warnBadge = (isFolder && childHasErr && !nodeHasErr) ? '<span class="tr-badge" style="background:var(--orangel);color:var(--orange);border-color:var(--orangeb)">'+cntErr(node.children)+' lỗi bên trong</span>' : '';
+    const linkBtn   = node.link ? '<a href="'+node.link+'" target="_blank" style="color:var(--text3);flex-shrink:0;display:inline-flex"><svg class="ic"><use href="#ic-ext"/></svg></a>' : '';
 
-    const errPill=hasErr?'<span class="tr-reason">'+node.error+'</span>':'';
-    const childErrBadge=(isFolder&&childHasErr&&!hasErr)
-      ?'<span class="tr-badge" style="background:var(--orangel);color:var(--orange);border-color:var(--orangeb)">'+countTreeErrors(node.children)+' loi ben trong</span>':''
-    const linkBtn=node.link?'<a href="'+node.link+'" target="_blank" style="color:var(--text3);flex-shrink:0;display:inline-flex"><svg class="ic"><use href="#ic-ext"/></svg></a>':'';
-
-    const clickAttr=isFolder?'onclick="window._treeToggle(\''+node.path.replace(/'/g,"\\'")+'\')"':'';
-    html+='<div class="tr '+rowCls+'" style="padding:7px 16px 7px '+indent+'px" '+clickAttr+'>'
-      +chevron+folderIco
-      +'<span class="tr-name" style="'+nameClr+'">'+escHtml(node.name)+'</span>'
-      +errPill+childErrBadge+linkBtn+statusIco
-      +'</div>';
-    if(isFolder&&isOpen&&hasChildren){
-      html+=buildTreeHTML(node.children,openSet,isScanMode);
+    const clickAttr = isFolder && openSet ? 'onclick="window._treeToggle(\''+node.path.replace(/'/g,"\\'")+'\')"' : '';
+    html += '<div class="tr '+rowCls+'" style="padding:7px 16px 7px '+indent+'px" '+clickAttr+'>'
+      + chevron + folderIco
+      + '<span class="tr-name" style="'+nameClr+'">'+escH(node.name)+'</span>'
+      + errPill + warnBadge + linkBtn + statusIco
+      + '</div>';
+    if (isFolder && (isOpen || !openSet) && hasChildren) {
+      html += buildTreeHTML(node.children, openSet);
     }
   }
   return html;
 }
 
-function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escH(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // SESSION
-const SK='swiftcopy_session';
-function saveSessionData(d){ localStorage.setItem(SK,JSON.stringify({...d,stats,ts:Date.now()})); }
-function saveSession(){ const s=getSession(); if(s){s.stats=stats;s.ts=Date.now();localStorage.setItem(SK,JSON.stringify(s));} }
-function getSession(){ try{return JSON.parse(localStorage.getItem(SK)||'null');}catch{return null;} }
-function clearSession(){ localStorage.removeItem(SK); document.getElementById('resumeBanner').style.display='none'; }
-function checkResume(){
-  const s=getSession(); if(!s) return;
-  if((Date.now()-s.ts)/1000/60>120){clearSession();return;}
-  const b=document.getElementById('resumeBanner'); b.style.display='flex';
-  document.getElementById('srcInput').value=s.sv||'';
-  document.getElementById('destInput').value=s.dv||'';
+const SK = 'swiftcopy_session';
+function saveSessionData(d) { localStorage.setItem(SK, JSON.stringify({...d,stats,ts:Date.now()})); }
+function saveSession()      { const s=getSession(); if(s){s.stats=stats;s.ts=Date.now();localStorage.setItem(SK,JSON.stringify(s));} }
+function getSession()       { try{return JSON.parse(localStorage.getItem(SK)||'null');}catch{return null;} }
+function clearSession()     { localStorage.removeItem(SK); document.getElementById('resumeBanner').style.display='none'; }
+function checkResume() {
+  const s = getSession(); if (!s) return;
+  if ((Date.now()-s.ts)/1000/60 > 120) { clearSession(); return; }
+  const b = document.getElementById('resumeBanner'); b.style.display = 'flex';
+  document.getElementById('srcInput').value  = s.sv || '';
+  document.getElementById('destInput').value = s.dv || '';
 }
-window.resumeSession=async()=>{
-  const s=getSession(); if(!s){clearSession();return;}
-  if(s.stats){stats=s.stats;updStats();document.getElementById('statsRow').style.display='flex';}
-  document.getElementById('resumeBanner').style.display='none';
-  addLog('Tiep tuc phien cu...','info');
+window.resumeSession = async () => {
+  const s = getSession(); if (!s) { clearSession(); return; }
+  if (s.stats) { stats=s.stats; updStats(); document.getElementById('statsRow').style.display='flex'; }
+  document.getElementById('resumeBanner').style.display = 'none';
+  addLog('Tiếp tục phiên cũ...', 'info');
   await window.startCopy();
 };
-window.clearSession=clearSession;
+window.clearSession = clearSession;
 
-// FIREBASE HISTORY
-async function saveHist(si,sn,di,dn,el){
-  try{await addDoc(collection(db,'history'),{uid:gUser.uid,email:gUser.email,srcId:si,srcName:sn,destId:di,destName:dn,copied:stats.copied,failed:stats.failed,folders:stats.folders,elapsed:el,createdAt:serverTimestamp()});}
-  catch(e){console.warn('saveHist',e);}
+async function saveHist(si,sn,di,dn,el) {
+  try { await addDoc(collection(db,'history'),{uid:gUser.uid,email:gUser.email,srcId:si,srcName:sn,destId:di,destName:dn,copied:stats.copied,failed:stats.failed,folders:stats.folders,elapsed:el,createdAt:serverTimestamp()}); }
+  catch(e) { console.warn('saveHist',e); }
 }
 
-// MODAL
-const _mOpen=new Set();
-window.openModal=(type)=>{
-  const cfgMap={
-    result:{label:'Ket qua sao chep',nodes:buildResultTree()},
-    failed:{label:'Loi',nodes:stats.failedFiles},
-    folders:{label:'Thu muc',nodes:stats.folderList}
+// MODAL - fully expanded (null openSet = show all)
+const _mOpen = new Set();
+window.openModal = (type) => {
+  const cfgMap = {
+    result:  { label:'Kết quả sao chép', nodes: stats.folderList.length ? stats.folderList : [...stats.copiedFiles,...stats.failedFiles] },
+    failed:  { label:'Lỗi',             nodes: stats.failedFiles },
+    folders: { label:'Thư mục',         nodes: stats.folderList }
   };
-  const cfg=cfgMap[type]; if(!cfg) return;
+  const cfg = cfgMap[type]; if (!cfg) return;
+
+  // Expand all folders by default
   _mOpen.clear();
-  document.getElementById('modalTitle').innerHTML='<span>'+cfg.label+'</span><span style="font-size:12px;background:var(--surface2);color:var(--text3);padding:2px 8px;border-radius:999px;font-family:monospace;margin-left:6px">'+(type==='result'?stats.copied+stats.failed:cfg.nodes.length)+'</span>';
-  function rerender(){ document.getElementById('modalBody').innerHTML=buildTreeHTML(cfg.nodes,_mOpen,false)||'<p style="color:var(--text3);text-align:center;padding:28px;font-size:13px">Khong co muc nao.</p>'; }
-  window._treeToggle=path=>{ _mOpen.has(path)?_mOpen.delete(path):_mOpen.add(path); rerender(); };
+  function expandAll(nodes) { nodes.forEach(n => { if(n.type==='folder'){ _mOpen.add(n.path); expandAll(n.children||[]); } }); }
+  expandAll(cfg.nodes);
+
+  document.getElementById('modalTitle').innerHTML = '<span>' + cfg.label + '</span><span style="font-size:12px;background:var(--surface2);color:var(--text3);padding:2px 8px;border-radius:999px;font-family:monospace;margin-left:6px">' + cfg.nodes.length + '</span>';
+
+  function rerender() {
+    const body = document.getElementById('modalBody');
+    body.innerHTML = cfg.nodes.length === 0
+      ? '<p style="color:var(--text3);text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>'
+      : buildTreeHTML(cfg.nodes, _mOpen);
+  }
+  window._treeToggle = path => { _mOpen.has(path) ? _mOpen.delete(path) : _mOpen.add(path); rerender(); };
   rerender();
   document.getElementById('modalOv').classList.add('on');
 };
-window.closeModal=()=>document.getElementById('modalOv').classList.remove('on');
-
-function buildResultTree(){
-  // Merge copied + failed into folder tree structure
-  const allFiles=[...stats.copiedFiles,...stats.failedFiles];
-  if(!stats.folderList.length) return allFiles;
-  // Attach files to their parent folders
-  const tree=JSON.parse(JSON.stringify(stats.folderList));
-  // Already structured with children from copy
-  return tree;
-}
+window.closeModal = () => document.getElementById('modalOv').classList.remove('on');
 
 // UI HELPERS
-function sec(name){
-  ['land','check','pend','app'].forEach(s=>{const el=document.getElementById('s-'+s);if(el)el.style.display=s===name?'block':'none';});
-  const nr=document.getElementById('navRight');
-  if(nr) nr.style.display=name==='app'?'flex':'none';
+function sec(name) {
+  ['land','check','pend','app'].forEach(s => { const el=document.getElementById('s-'+s); if(el) el.style.display=s===name?'block':'none'; });
+  const nr = document.getElementById('navRight');
+  if (nr) nr.style.display = name==='app' ? 'flex' : 'none';
 }
-function setNavUser(u){
-  document.getElementById('navAv').src=u.photoURL||'';
-  document.getElementById('navName').textContent=u.displayName||u.email;
-  document.getElementById('navEmail').textContent=u.email;
+function setNavUser(u) {
+  document.getElementById('navAv').src          = u.photoURL || '';
+  document.getElementById('navName').textContent  = u.displayName || u.email;
+  document.getElementById('navEmail').textContent = u.email;
 }
-function setBtnMode(mode){
-  runMode=mode;
-  const btnScan=document.getElementById('btnScan');
-  const btnStart=document.getElementById('btnStart');
-  const btnScanTxt=document.getElementById('btnScanTxt');
-  const btnStartTxt=document.getElementById('btnStartTxt');
-  const btnStartIco=document.getElementById('btnStartIco');
-  const btnPause=document.getElementById('btnPause');
-  const btnResume=document.getElementById('btnResume');
-  const btnReset=document.getElementById('btnReset');
-  if(mode==='idle'){
-    btnScan.className='btn btn-red';
-    btnScanTxt.textContent='Kiem tra truoc';
-    btnStart.className='btn btn-yellow';
-    btnStartTxt.textContent='Bat dau sao chep';
-    btnStartIco.innerHTML='<use href="#ic-play"/>';
-    btnPause.style.display='none'; btnResume.style.display='none';
-    btnReset.disabled=false;
-  } else if(mode==='scan'){
-    btnScan.className='btn btn-red-solid';
-    btnScanTxt.textContent='Dung Kiem tra';
-    btnStart.className='btn btn-yellow'; btnStart.disabled=false;
-    btnStartTxt.textContent='Bat dau sao chep';
-    btnPause.style.display='inline-flex'; btnResume.style.display='none';
-    btnReset.disabled=true;
-  } else if(mode==='copy'){
-    btnScan.className='btn btn-red'; btnScan.disabled=false;
-    btnScanTxt.textContent='Kiem tra truoc';
-    btnStart.className='btn btn-yellow-solid';
-    btnStartTxt.textContent='Dung Sao chep';
-    btnStartIco.innerHTML='<use href="#ic-stop"/>';
-    btnPause.style.display='inline-flex'; btnResume.style.display='none';
-    btnReset.disabled=true;
+function setBtnMode(mode) {
+  runMode = mode;
+  const btnScan    = document.getElementById('btnScan');
+  const btnStart   = document.getElementById('btnStart');
+  const btnScanTxt = document.getElementById('btnScanTxt');
+  const btnStartTxt= document.getElementById('btnStartTxt');
+  const btnStartIco= document.getElementById('btnStartIco');
+  const btnPause   = document.getElementById('btnPause');
+  const btnResume  = document.getElementById('btnResume');
+  const btnReset   = document.getElementById('btnReset');
+
+  // Always re-enable both buttons first
+  btnScan.disabled  = false;
+  btnStart.disabled = false;
+
+  if (mode === 'idle') {
+    btnScan.className     = 'btn btn-red';
+    btnScanTxt.textContent = 'Kiểm tra trước';
+    btnStart.className     = 'btn btn-yellow';
+    btnStartTxt.textContent= 'Bắt đầu sao chép';
+    btnStartIco.innerHTML  = '<use href="#ic-play"/>';
+    btnPause.style.display = 'none';
+    btnResume.style.display= 'none';
+    btnReset.disabled      = false;
+  } else if (mode === 'scan') {
+    btnScan.className      = 'btn btn-red-solid';
+    btnScanTxt.textContent  = 'Dừng kiểm tra';
+    btnStart.className      = 'btn btn-yellow';
+    btnStartTxt.textContent = 'Bắt đầu sao chép';
+    btnPause.style.display  = 'inline-flex';
+    btnResume.style.display = 'none';
+    btnReset.disabled       = true;
+  } else if (mode === 'copy') {
+    btnScan.className       = 'btn btn-red';
+    btnScanTxt.textContent   = 'Kiểm tra trước';
+    btnStart.className       = 'btn btn-black';
+    btnStartTxt.textContent  = 'Dừng sao chép';
+    btnStartIco.innerHTML    = '<use href="#ic-stop"/>';
+    btnPause.style.display   = 'inline-flex';
+    btnResume.style.display  = 'none';
+    btnReset.disabled        = true;
   }
 }
 
-let _pv=0,_pm=1;
-function setProgress(v,max,state){
-  if(v!==null)_pv=v; if(max!==null)_pm=max;
-  const f=document.getElementById('progFill');
-  f.style.width=(_pm?Math.round(_pv/_pm*100):0)+'%';
-  if(state) f.className='prog-fill '+state;
+let _pv = 0, _pm = 1;
+function setProgress(v, max, state) {
+  if (v !== null)   _pv = v;
+  if (max !== null) _pm = max;
+  const f = document.getElementById('progFill');
+  f.style.width = (_pm ? Math.round(_pv/_pm*100) : 0) + '%';
+  if (state) f.className = 'prog-fill ' + state;
 }
-function setStatus(msg){ document.getElementById('statusLbl').textContent=msg; document.getElementById('actionStatus').textContent=msg; }
-function addLog(msg,lv='ok'){
-  const C={ok:'#4ade80',err:'#f87171',info:'#93c5fd',skip:'#555',folder:'#c084fc',warn:'#fbbf24'};
-  const I={ok:'v',err:'x',info:'>',skip:'-',folder:'[]',warn:'||'};
-  const b=document.getElementById('logBox');
-  const d=document.createElement('div'); d.className='ll';
-  const ts=new Date().toLocaleTimeString('vi-VN');
-  d.innerHTML='<span class="ll-ts">'+ts+'</span><span class="ll-ic" style="color:'+(C[lv]||'#888')+'">'+(I[lv]||'.')+'</span><span class="ll-msg">'+escHtml(msg)+'</span>';
-  b.appendChild(d); b.scrollTop=b.scrollHeight;
+function setStatus(msg) {
+  document.getElementById('statusLbl').textContent    = msg;
+  document.getElementById('actionStatus').textContent = msg;
 }
-function updStats(){
-  document.getElementById('sCopied').textContent=stats.copied;
-  document.getElementById('sFailed').textContent=stats.failed;
-  document.getElementById('sFolders').textContent=stats.folders;
+function addLog(msg, lv='ok') {
+  const C = {ok:'#4ade80',err:'#f87171',info:'#93c5fd',skip:'#555',folder:'#c084fc',warn:'#fbbf24'};
+  const I = {ok:'✓',err:'✗',info:'→',skip:'⏭',folder:'▣',warn:'⏸'};
+  const b = document.getElementById('logBox');
+  const d = document.createElement('div'); d.className = 'll';
+  const ts = new Date().toLocaleTimeString('vi-VN');
+  d.innerHTML = '<span class="ll-ts">'+ts+'</span><span class="ll-ic" style="color:'+(C[lv]||'#888')+'">'+(I[lv]||'·')+'</span><span class="ll-msg">'+escH(msg)+'</span>';
+  b.appendChild(d); b.scrollTop = b.scrollHeight;
 }
-function toast(msg,type='info'){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.className='toast on '+(type||'');
-  setTimeout(()=>t.classList.remove('on'),3000);
+function updStats() {
+  document.getElementById('sCopied').textContent  = stats.copied;
+  document.getElementById('sFailed').textContent  = stats.failed;
+  document.getElementById('sFolders').textContent = stats.folders;
+}
+function toast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast on ' + (type||'');
+  setTimeout(() => t.classList.remove('on'), 3000);
 }
 </script>
 </body>
