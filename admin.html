@@ -127,6 +127,8 @@ tbody tr:last-child td{border-bottom:none}
 
 @media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -290,24 +292,42 @@ let _readdUid = null, _readdEmail = '', _readdName = '';
 
 let _ejsLoaded = false;
 function loadEmailJS(){
-  if (_ejsLoaded) return Promise.resolve();
-  return new Promise(r => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
-    s.onload = () => { emailjs.init(EMAILJS_KEY); _ejsLoaded=true; r(); };
-    document.head.appendChild(s);
+  if(_ejsLoaded) return Promise.resolve();
+  return new Promise((res,rej)=>{
+    const tryInit = () => {
+      if(typeof emailjs !== 'undefined'){
+        emailjs.init(EMAILJS_KEY); _ejsLoaded=true; res();
+      } else {
+        setTimeout(tryInit, 100);
+      }
+    };
+    tryInit();
   });
 }
 
 async function sendEmail(toEmail, subject, message){
-  if (!EMAILJS_KEY || EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY') return;
+  if (!EMAILJS_KEY || EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY'){
+    console.warn('[SwiftCopy] EmailJS chua duoc cau hinh. Email gui den:', toEmail, '|', subject);
+    return;
+  }
   try {
     await loadEmailJS();
-    await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
-      to_email: toEmail, subject, message,
-      site_name: SITE_NAME, site_url: SITE_URL
+    // EmailJS: template can dung bien {{to_email}}, {{subject}}, {{message}}
+    const result = await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+      to_email:  toEmail,
+      to_name:   toEmail,
+      from_name: SITE_NAME,
+      subject:   subject,
+      message:   message,
+      site_name: SITE_NAME,
+      site_url:  SITE_URL,
+      reply_to:  ADMIN_EMAIL
     });
-  } catch(e){ console.warn('Email error', e); }
+    console.log('[SwiftCopy] Email da gui den', toEmail, result.status);
+  } catch(e){
+    console.error('[SwiftCopy] Loi gui email:', e);
+    toast('Loi gui email: '+e.text, 'err');
+  }
 }
 
 
@@ -356,10 +376,10 @@ function renderUsers(filter){
   if (!list.length){ tbody.innerHTML='<tr><td colspan="5" class="empty-cell">Không có người dùng nào.</td></tr>'; return; }
 
   tbody.innerHTML = list.map(u => {
-    const dt = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString('vi-VN') : '-';
+    const dt = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString('vi-VN') : '—';
     let statusBadge = '';
     if (u.status==='kicked')
-      statusBadge = `<span class="badge red">Bị kick</span>${u.kickReason?`<span style="font-size:10px;color:var(--text3);margin-left:4px">- ${u.kickReason.slice(0,40)}</span>`:''}`;
+      statusBadge = `<span class="badge red">Bị kick</span>${u.kickReason?`<span style="font-size:10px;color:var(--text3);margin-left:4px">— ${u.kickReason.slice(0,40)}</span>`:''}`;
     else if (u.approved)
       statusBadge = `<span class="badge green">Đã kích hoạt</span>`;
     else
@@ -393,7 +413,7 @@ function renderUsers(filter){
       <td>
         <div class="user-cell">
           <img class="uav" src="${u.photoURL||''}" onerror="this.style.display='none'" alt=""/>
-          <div><div class="u-name">${u.displayName||'-'}</div><div class="u-email">${u.email}</div></div>
+          <div><div class="u-name">${u.displayName||'—'}</div><div class="u-email">${u.email}</div></div>
         </div>
       </td>
       <td><span class="uid-txt">${u.id.slice(0,10)}…</span></td>
