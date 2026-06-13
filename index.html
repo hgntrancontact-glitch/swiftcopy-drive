@@ -568,7 +568,16 @@ window.doLogin = async () => {
 };
 window.doLogout = () => signOut(auth);
 window.reAuth   = async () => {
-  try { const res=await signInWithPopup(auth,provider); gToken=GoogleAuthProvider.credentialFromResult(res)?.accessToken; showAuthOK(); }
+  try {
+    const res=await signInWithPopup(auth,provider);
+    gToken=GoogleAuthProvider.credentialFromResult(res)?.accessToken;
+    showAuthOK();
+    // Re-trigger folder name preview for inputs that already have values
+    const sv=document.getElementById('srcInput').value.trim();
+    const dv=document.getElementById('destInput').value.trim();
+    if (sv) window.onInputChange('src');
+    if (dv) window.onInputChange('dest');
+  }
   catch(e){ toast('Lỗi cấp quyền: '+e.message,'err'); }
 };
 
@@ -885,6 +894,24 @@ function getSelectedItems() {
   return clItems.filter(i => i.checked || i.indeterminate);
 }
 
+// ── GLOBAL PROGRESS COUNTERS ───────────────────────────────────
+let progDone = 0, progTotal = 1;
+function progReset(total){ progDone=0; progTotal=Math.max(1,total); setProgress(0,progTotal, runMode==='scan'?'scanning':'running'); }
+function progInc(n){ progDone+=(n||1); if(progDone>progTotal) progTotal=progDone; setProgress(progDone,progTotal, runMode==='scan'?'scanning':'running'); }
+
+// Recursively count all items under a list of top-level items (for progress denominator)
+async function countAllItems(items){
+  let total=items.length;
+  for(const item of items){
+    if(item.mimeType===FMIME){
+      await pausePoint(); if(stopFlag) return total;
+      const children=await listItems(item.id);
+      total+=await countAllItems(children);
+    }
+  }
+  return total;
+}
+
 // ── SCAN ─────────────────────────────────────────────────────
 async function startScan() {
   if (!gToken){ showNoAuth('Chưa cấp quyền Drive!','Bạn cần cấp quyền truy cập Google Drive trước khi kiểm tra.'); return; }
@@ -896,14 +923,13 @@ async function startScan() {
   document.getElementById('scanResult').style.display='none';
   document.getElementById('logBox').innerHTML='';
   setBtnMode('scan');
-  // Use animated scanning bar (no % since depth unknown)
   setProgress(0,100,'scanning');
+  setStatus('Đang chuẩn bị kiểm tra...');
 
   const t0=Date.now();
   try {
     const srcId=fid(sv), destId=fid(dv);
     const sn=await fname(srcId);
-    setStatus('Đang kiểm tra "'+sn+'"...');
     addLog('Bắt đầu kiểm tra quyền...','info');
 
     // Get items to scan (respect checklist selection)
@@ -913,13 +939,21 @@ async function startScan() {
       topItems = topItems.filter(i=>selIds.has(i.id));
     }
 
-    const tree = await scanNodes(topItems, destId, '', 0);
+    if (stopFlag){ setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
+
+    // Pre-count total items for accurate progress bar
+    setStatus('Đang đếm tổng số mục...');
+    const totalCount = await countAllItems(topItems);
+    if (stopFlag){ setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
+    progReset(totalCount);
+    setStatus('Đang kiểm tra "'+sn+'"... (0/'+totalCount+')');
+
+    const tree = await scanNodes(topItems, destId, '', 0, sn, totalCount);
     if (stopFlag){ setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
 
     const elapsed=Math.round((Date.now()-t0)/1000);
     const totalErr=cntErr(tree);
-    // Set to 100% when truly done
-    setProgress(100,100,'done');
+    setProgress(progTotal,progTotal,'done');
     setStatus(totalErr===0?'Kiểm tra xong - Không có lỗi ('+elapsed+'s)':'Phát hiện '+totalErr+' vấn đề ('+elapsed+'s)');
     renderScanResult(tree,totalErr);
   } catch(e){
@@ -930,17 +964,19 @@ async function startScan() {
   }
 }
 
-async function scanNodes(items, destId, path, depth) {
+async function scanNodes(items, destId, path, depth, srcName, totalCount) {
   const nodes=[];
   for (const item of items) {
     await pausePoint(); if(stopFlag) break;
     const fp=path?path+' > '+item.name:item.name;
     if (item.mimeType===SMIME){
+      progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+'/'+progTotal+') '+item.name);
       nodes.push({name:item.name,path:fp,type:'file',depth,error:'Là shortcut - bỏ qua',children:[]});
       continue;
     }
     if (item.mimeType===FMIME){
       const children=await listItems(item.id);
+      progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+'/'+progTotal+') '+item.name);
       addLog('Thư mục: '+item.name,'info');
       const testFile=children.find(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME);
       let selfErr=null;
@@ -948,10 +984,11 @@ async function scanNodes(items, destId, path, depth) {
         try{const r=await dpost('/files/'+testFile.id+'/copy',{name:'__swtest_'+testFile.name,parents:[destId]});await ddel(r.id);}
         catch(e){const c=parseInt(e.message.match(/\d+/)?.[0]||'0');selfErr=c===403?'Không có quyền copy':'Lỗi API '+c;addLog('Lỗi: '+item.name+' - '+selfErr,'err');}
       }
-      const subFolders=selfErr?[]:await scanNodes(children.filter(c=>c.mimeType===FMIME),destId,fp,depth+1);
-      const subFiles  =selfErr?[]:await scanFileNodes(children.filter(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME),destId,fp,depth+1);
+      const subFolders=selfErr?[]:await scanNodes(children.filter(c=>c.mimeType===FMIME),destId,fp,depth+1,srcName,totalCount);
+      const subFiles  =selfErr?[]:await scanFileNodes(children.filter(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME),destId,fp,depth+1,srcName,totalCount);
       nodes.push({name:item.name,path:fp,type:'folder',depth,error:selfErr,children:[...subFiles,...subFolders]});
     } else {
+      progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+'/'+progTotal+') '+item.name);
       addLog('Kiểm tra: '+item.name,'skip');
       let err=null;
       try{const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});await ddel(r.id);addLog('OK: '+item.name,'ok');}
@@ -961,12 +998,13 @@ async function scanNodes(items, destId, path, depth) {
   }
   return nodes;
 }
-async function scanFileNodes(items,destId,path,depth){
+async function scanFileNodes(items,destId,path,depth,srcName,totalCount){
   const nodes=[];
   for (const item of items){
     await pausePoint(); if(stopFlag) break;
     const fp=path?path+' > '+item.name:item.name;
     let err=null;
+    progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+'/'+progTotal+') '+item.name);
     addLog('Kiểm tra: '+item.name,'skip');
     try{const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});await ddel(r.id);addLog('OK: '+item.name,'ok');}
     catch(e){const c=parseInt(e.message.match(/\d+/)?.[0]||'0');err=c===403?'Không có quyền copy':'Lỗi API '+c;addLog('Lỗi: '+item.name,'err');}
@@ -988,19 +1026,19 @@ function renderScanResult(tree,totalErr){
   function ep(nodes){nodes.forEach(n=>{if(n.type==='folder'){allPaths.add(n.path);ep(n.children||[]);}}); }
   ep(tree);
   el.innerHTML='<div class="tree-wrap"><div class="tree-head err-head"><span style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:7px"><svg class="ic16" style="color:var(--red)"><use href="#ic-warn"/></svg>'+totalErr+' mục bị lỗi quyền</span><span style="font-size:11px;font-weight:700;background:var(--red);color:#fff;padding:2px 8px;border-radius:999px">'+totalErr+'</span></div><div class="tree-body" id="scanTreeBody"></div><div class="tree-note"><svg class="ic" style="color:var(--text3);margin-right:4px"><use href="#ic-info"/></svg>Vào Drive nguồn → chuột phải → <b>Chia sẻ</b> → thêm email bạn quyền <b>Người chỉnh sửa</b></div></div>';
-  window._scanToggle=function(path){allPaths.has(path)?allPaths.delete(path):allPaths.add(path);document.getElementById('scanTreeBody').innerHTML=buildTreeHTML(tree,allPaths);};
-  document.getElementById('scanTreeBody').innerHTML=buildTreeHTML(tree,allPaths);
+  window._scanToggle=function(path){allPaths.has(path)?allPaths.delete(path):allPaths.add(path);document.getElementById('scanTreeBody').innerHTML=buildTreeHTML(tree,allPaths,'_scanToggle');};
+  document.getElementById('scanTreeBody').innerHTML=buildTreeHTML(tree,allPaths,'_scanToggle');
 }
 
 // ── COPY ─────────────────────────────────────────────────────
-window.startCopy = async () => {
+window.startCopy = async (isResume) => {
   if (!gToken){ showNoAuth('Chưa cấp quyền Drive!','Bạn cần cấp quyền truy cập Google Drive trước khi sao chép.'); return; }
   const sv=document.getElementById('srcInput').value.trim();
   const dv=document.getElementById('destInput').value.trim();
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
   stopFlag=false; pauseFlag=false; runMode='copy';
-  stats=ns();
+  if (!isResume) stats=ns();
   document.getElementById('logBox').innerHTML='';
   document.getElementById('scanResult').style.display='none';
   document.getElementById('statsRow').style.display='flex';
@@ -1010,7 +1048,7 @@ window.startCopy = async () => {
   try {
     const srcId=fid(sv), destId=fid(dv);
     const sn=await fname(srcId), dn=await fname(destId);
-    setStatus('Đang sao chép "'+sn+'" -> "'+dn+'"');
+    setStatus('Đang chuẩn bị "'+sn+'" -> "'+dn+'"');
     addLog('Nguồn: '+sn,'info'); addLog('Đích: '+dn,'info');
     saveSessionData({sv,dv,srcId,sn,destId,dn});
 
@@ -1022,21 +1060,31 @@ window.startCopy = async () => {
     }
     if (!top.length){toast('Không có mục nào được chọn!','warn');setBtnMode('idle');runMode='idle';return;}
 
-    setProgress(0,top.length,'running');
-    addLog('Bắt đầu '+top.length+' mục ('+CONCUR+' luồng song song)...','info');
+    if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
+
+    // Pre-count total items for accurate progress bar
+    setStatus('Đang đếm tổng số mục...');
+    const totalCount = await countAllItems(top);
+    if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
+    progReset(totalCount);
+    addLog((isResume?'Tiếp tục':'Bắt đầu')+' '+totalCount+' mục ('+CONCUR+' luồng song song)...','info');
+
     const dex=await existNames(destId);
 
     for (let i=0;i<top.length;i++){
       await pausePoint(); if(stopFlag) break;
       const item=top[i];
-      setProgress(i,top.length,'running');
-      setStatus('['+(i+1)+'/'+top.length+'] '+item.name);
+      setStatus('('+progDone+'/'+progTotal+') '+item.name);
       if (item.mimeType===FMIME){
         const nid=await mkFolder(item.name,destId);
-        stats.folders++;
-        const node={name:item.name,path:item.name,type:'folder',depth:0,error:null,children:[]};
-        stats.folderList.push(node);
+        let node=stats.folderList.find(f=>f.depth===0&&f.name===item.name&&f._srcId===item.id);
+        if (!node){
+          stats.folders++;
+          node={name:item.name,path:item.name,type:'folder',depth:0,error:null,children:[],_srcId:item.id};
+          stats.folderList.push(node);
+        }
         addLog('Thư mục: '+item.name,'folder'); updStats(); saveSession();
+        progInc();
         // Check if this folder has partial selection
         const clItem=clItems.find(ci=>ci.id===item.id);
         if (clItem&&clItem.indeterminate&&clItem.children){
@@ -1045,18 +1093,18 @@ window.startCopy = async () => {
           await copyRecTree(item.id,nid,item.name,1,node.children);
         }
       } else {
-        if (dex.has(item.name)){addLog('Đã có: '+item.name,'skip');setProgress(i+1,top.length,'running');continue;}
+        if (dex.has(item.name)){addLog('Đã có: '+item.name,'skip');progInc();continue;}
         const res=await copyFileSingle(item.id,destId);
         const node={name:item.name,path:item.name,type:'file',depth:0,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
         if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
         else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
         updStats(); saveSession();
+        progInc();
       }
-      setProgress(i+1,top.length,'running');
     }
 
     const elapsed=Math.round((Date.now()-t0)/1000);
-    setProgress(top.length,top.length,stopFlag?'paused':'done');
+    setProgress(progTotal,progTotal,stopFlag?'paused':'done');
     if (!stopFlag){setStatus('Hoàn thành '+elapsed+'s');clearSession();await saveHist(srcId,sn,destId,dn,elapsed);}
     else setStatus('Đã dừng sao chép');
   } catch(e){
@@ -1073,7 +1121,8 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
   const dnames=await existNames(destId);
   const folders=items.filter(i=>i.mimeType===FMIME);
   const files=items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&!dnames.has(i.name));
-  items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&dnames.has(i.name)).forEach(i=>addLog('Đã có: '+i.name,'skip'));
+  const skippedFiles=items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&dnames.has(i.name));
+  skippedFiles.forEach(i=>{addLog('Đã có: '+i.name,'skip'); progInc();});
   for(let i=0;i<files.length;i+=CONCUR){
     await pausePoint(); if(stopFlag) break;
     await Promise.all(files.slice(i,i+CONCUR).map(async item=>{
@@ -1084,6 +1133,7 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
       if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
       else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
       parentChildren.push(node); updStats(); saveSession();
+      progInc(); setStatus('('+progDone+'/'+progTotal+') '+item.name);
     }));
   }
   for(const f of folders){
@@ -1094,6 +1144,7 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
     const node={name:f.name,path:fp,type:'folder',depth,error:null,children:[]};
     stats.folderList.push(node); parentChildren.push(node);
     addLog('Thư mục: '+f.name,'folder'); updStats();
+    progInc(); setStatus('('+progDone+'/'+progTotal+') '+f.name);
     await copyRecTree(f.id,nid,fp,depth+1,node.children);
   }
 }
@@ -1107,6 +1158,8 @@ async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem
   const filteredItems = checkedChildIds ? items.filter(i=>checkedChildIds.has(i.id)) : items;
   const folders=filteredItems.filter(i=>i.mimeType===FMIME);
   const files=filteredItems.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&!dnames.has(i.name));
+  const skippedFiles=filteredItems.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&dnames.has(i.name));
+  skippedFiles.forEach(i=>{addLog('Đã có: '+i.name,'skip'); progInc();});
   for(let i=0;i<files.length;i+=CONCUR){
     await pausePoint(); if(stopFlag)break;
     await Promise.all(files.slice(i,i+CONCUR).map(async item=>{
@@ -1117,6 +1170,7 @@ async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem
       if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
       else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
       parentChildren.push(node); updStats(); saveSession();
+      progInc(); setStatus('('+progDone+'/'+progTotal+') '+item.name);
     }));
   }
   for(const f of folders){
@@ -1127,6 +1181,7 @@ async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem
     const node={name:f.name,path:fp,type:'folder',depth,error:null,children:[]};
     stats.folderList.push(node); parentChildren.push(node);
     addLog('Thư mục: '+f.name,'folder'); updStats();
+    progInc(); setStatus('('+progDone+'/'+progTotal+') '+f.name);
     const subCl=clItem.children?clItem.children.find(c=>c.id===f.id):null;
     if(subCl&&subCl.indeterminate) await copyRecTreeFiltered(f.id,nid,fp,depth+1,node.children,subCl);
     else await copyRecTree(f.id,nid,fp,depth+1,node.children);
@@ -1134,7 +1189,8 @@ async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem
 }
 
 // ── TREE HTML ────────────────────────────────────────────────
-function buildTreeHTML(nodes,openSet){
+function buildTreeHTML(nodes,openSet,toggleFn){
+  toggleFn=toggleFn||'_scanToggle';
   let html='';
   for(const node of nodes){
     const indent=16+node.depth*20;
@@ -1156,9 +1212,9 @@ function buildTreeHTML(nodes,openSet){
     const errPill=nodeHasErr?'<span class="tr-reason">'+escH(node.error)+'</span>':'';
     const warnBadge=(isFolder&&childHasErr&&!nodeHasErr)?'<span class="tr-badge" style="background:var(--orangel);color:var(--orange);border-color:var(--orangeb)">'+cntErr(node.children)+' lỗi bên trong</span>':'';
     const linkBtn=node.link?'<a href="'+node.link+'" target="_blank" style="color:var(--text3);flex-shrink:0;display:inline-flex"><svg class="ic"><use href="#ic-ext"/></svg></a>':'';
-    const clickAttr=isFolder&&openSet?'onclick="window._scanToggle(\''+node.path.replace(/'/g,"\\'")+'\')"':'';
+    const clickAttr=isFolder&&openSet?'onclick="window.'+toggleFn+'(\''+node.path.replace(/'/g,"\\'")+'\')"':'';
     html+='<div class="tr '+rowCls+'" style="padding:7px 16px 7px '+indent+'px" '+clickAttr+'>'+chevron+folderIco+'<span class="tr-name" style="'+nameClr+'">'+escH(node.name)+'</span>'+errPill+warnBadge+linkBtn+statusIco+'</div>';
-    if(isFolder&&(isOpen||!openSet)&&hasChildren) html+=buildTreeHTML(node.children,openSet);
+    if(isFolder&&(isOpen||!openSet)&&hasChildren) html+=buildTreeHTML(node.children,openSet,toggleFn);
   }
   return html;
 }
@@ -1177,13 +1233,16 @@ function checkResume(){
   const b=document.getElementById('resumeBanner');b.style.display='flex';
   document.getElementById('srcInput').value=s.sv||'';
   document.getElementById('destInput').value=s.dv||'';
+  // Trigger folder name preview for restored links
+  if(s.sv) window.onInputChange('src');
+  if(s.dv) window.onInputChange('dest');
 }
 window.resumeSession=async()=>{
   const s=getSession();if(!s){clearSession();return;}
   if(s.stats){stats=s.stats;updStats();document.getElementById('statsRow').style.display='flex';}
   document.getElementById('resumeBanner').style.display='none';
-  addLog('Tiếp tục phiên cũ...','info');
-  await window.startCopy();
+  addLog('Tiếp tục phiên cũ - chỉ sao chép các mục chưa hoàn thành...','info');
+  await window.startCopy(true);
 };
 window.clearSession=clearSession;
 
@@ -1205,7 +1264,7 @@ window.openModal=(type)=>{
   function ea(nodes){nodes.forEach(n=>{if(n.type==='folder'){_mOpen.add(n.path);ea(n.children||[]);}}); }
   ea(cfg.nodes);
   document.getElementById('modalTitle').innerHTML='<span>'+cfg.label+'</span><span style="font-size:12px;background:var(--surface2);color:var(--text3);padding:2px 8px;border-radius:999px;font-family:monospace;margin-left:6px">'+cfg.nodes.length+'</span>';
-  function rerender(){document.getElementById('modalBody').innerHTML=cfg.nodes.length===0?'<p style="color:var(--text3);text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>':buildTreeHTML(cfg.nodes,_mOpen);}
+  function rerender(){document.getElementById('modalBody').innerHTML=cfg.nodes.length===0?'<p style="color:var(--text3);text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>':buildTreeHTML(cfg.nodes,_mOpen,'_treeToggle');}
   window._treeToggle=path=>{_mOpen.has(path)?_mOpen.delete(path):_mOpen.add(path);rerender();};
   rerender();
   document.getElementById('modalOv').classList.add('on');
