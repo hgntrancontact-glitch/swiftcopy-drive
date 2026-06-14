@@ -179,6 +179,7 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 .prog-fill.done{background:var(--green)}
 .prog-fill.paused{background:var(--orange)}
 .prog-fill.scanning{background:#7c3aed;background-size:200% 100%;animation:scanslide 1.5s linear infinite}
+.prog-fill.running{background:linear-gradient(90deg,var(--text) 0%,#444 50%,var(--text) 100%);background-size:200% 100%;animation:scanslide 1.2s linear infinite}
 @keyframes scanslide{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .status-lbl{font-size:11px;color:var(--text3);margin-top:5px;min-height:16px;font-family:monospace}
 
@@ -596,6 +597,9 @@ let _dragActive = false, _dragCheckValue = null;
 const VIDEO_EXT = /\.(mp4|mov|mkv|avi|wmv|flv|webm|m4v|mpg|mpeg|3gp|ts|m2ts)$/i;
 const VIDEO_MIME = /^video\//;
 let _pendingCopyResume = false;
+// Auth-expiry handling
+let _authExpiredHandled = false;
+let _resumeAfterReauth = null; // 'copy' if a copy run was interrupted by token expiry
 
 function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[] }; }
 
@@ -603,8 +607,15 @@ function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFil
 window.closeNoAuth = () => {
   document.getElementById('noAuthBackdrop').classList.remove('show');
   document.getElementById('noAuthPanel').classList.remove('show');
+  _authExpiredHandled = false;
+  _resumeAfterReauth = null;
 };
-window.reAuthFromOverlay = async () => { closeNoAuth(); await reAuth(); };
+window.reAuthFromOverlay = async () => {
+  const pendingResume = _resumeAfterReauth;
+  closeNoAuth();
+  _resumeAfterReauth = pendingResume;
+  await reAuth();
+};
 function showNoAuth(title, msg) {
   document.getElementById('noAuthTitle').textContent = title || 'Chưa cấp quyền Drive';
   document.getElementById('noAuthMsg').textContent   = msg   || 'Nhấn nút bên dưới để cấp quyền.';
@@ -674,9 +685,35 @@ window.reAuth   = async () => {
     const dv=document.getElementById('destInput').value.trim();
     if (sv) window.onInputChange('src');
     if (dv) window.onInputChange('dest');
+    await handleReauthSuccess();
   }
   catch(e){ toast('Lỗi cấp quyền: '+e.message,'err'); }
 };
+
+// If the previous run was interrupted by an expired token while copying,
+// automatically resume it once a fresh token is obtained.
+async function handleReauthSuccess(){
+  if (_resumeAfterReauth === 'copy'){
+    _resumeAfterReauth = null;
+    toast('Đã cấp quyền lại - tiếp tục sao chép...','ok');
+    await window.startCopy(true);
+  } else {
+    _resumeAfterReauth = null;
+  }
+}
+
+// Called whenever any Drive operation hits AUTH_EXPIRED (401 with an existing token).
+// Stops the current run, clears the stale token, and shows the full-screen overlay.
+function handleAuthExpired(){
+  if (_authExpiredHandled) return;
+  _authExpiredHandled = true;
+  gToken = null;
+  stopFlag = true; pauseFlag = false;
+  if (_resumeResolve){ _resumeResolve(); _resumeResolve=null; }
+  _resumeAfterReauth = (runMode==='copy') ? 'copy' : null;
+  setStatus('Đã dừng - cần cấp quyền lại');
+  showNoAuth('Phiên cấp quyền đã hết hạn','Quyền truy cập Google Drive đã hết hạn sau một thời gian. Vui lòng cấp quyền lại để tiếp tục.');
+}
 
 onAuthStateChanged(auth, async u => {
   if (!u){ gUser=null; gToken=null; sec('land'); return; }
@@ -720,7 +757,8 @@ function loadEJS(){ if(_ejsLoaded)return Promise.resolve(); return new Promise(r
 const BASE='https://www.googleapis.com/drive/v3';
 const FMIME='application/vnd.google-apps.folder';
 const SMIME='application/vnd.google-apps.shortcut';
-const CONCUR=4;
+const CONCUR=8;
+const FOLDER_CONCUR=3; // sibling folders processed in parallel during copy
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const hdr=()=>({Authorization:'Bearer '+gToken,'Content-Type':'application/json'});
 
@@ -729,15 +767,18 @@ async function dget(path,p={}){
   const url=new URL(BASE+path);
   Object.entries(p).forEach(([k,v])=>url.searchParams.set(k,v));
   const r=await fetch(url,{headers:hdr()});
+  if (r.status===401){ const t=await r.text(); throw new Error('AUTH_EXPIRED: '+t.slice(0,80)); }
   if (!r.ok){const t=await r.text();throw new Error('Drive '+r.status+': '+t.slice(0,80));}
   return r.json();
 }
 async function dpost(path,body){
   if (!gToken) throw new Error('NO_TOKEN');
   const r=await fetch(BASE+path,{method:'POST',headers:hdr(),body:JSON.stringify(body)});
+  if (r.status===401){ const t=await r.text(); throw new Error('AUTH_EXPIRED: '+t.slice(0,80)); }
   if (!r.ok){const t=await r.text();throw new Error('Drive '+r.status+': '+t.slice(0,80));}
   return r.json();
 }
+function isAuthExpiredErr(e){ return e && typeof e.message==='string' && e.message.startsWith('AUTH_EXPIRED'); }
 async function ddel(id){ try{await fetch(BASE+'/files/'+id+'?supportsAllDrives=true',{method:'DELETE',headers:hdr()});}catch{} }
 
 function fid(s){
@@ -747,7 +788,7 @@ function fid(s){
   if(/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
   throw new Error('Không nhận diện được Folder ID: '+s);
 }
-async function fname(id){ try{return (await dget('/files/'+id,{fields:'name',supportsAllDrives:true})).name;}catch{return null;} }
+async function fname(id){ try{return (await dget('/files/'+id,{fields:'name',supportsAllDrives:true})).name;}catch(e){ if(isAuthExpiredErr(e)) throw e; return null; } }
 async function listItems(folderId){
   let res=[],pt=null;
   do {
@@ -763,6 +804,7 @@ async function copyFileSingle(fileId,destId){
     await pausePoint(); if(stopFlag) return {ok:false,reason:'Đã dừng'};
     try{await dpost('/files/'+fileId+'/copy',{parents:[destId]});return {ok:true};}
     catch(e){
+      if(isAuthExpiredErr(e)) throw e;
       const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
       if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*800);continue;}
       if(c===403) return {ok:false,reason:'Không có quyền copy'};
@@ -804,6 +846,12 @@ window.onInputChange = async (which) => {
       // Load checklist only for src
       if (which==='src' && !clLoaded) loadChecklist(id);
     } catch(e){
+      if(isAuthExpiredErr(e)){
+        el.className='folder-preview error';
+        el.innerHTML='<svg class="ic" style="color:var(--red)"><use href="#ic-warn"/></svg> Phiên cấp quyền đã hết hạn';
+        handleAuthExpired();
+        return;
+      }
       el.className='folder-preview error';
       el.innerHTML='<svg class="ic" style="color:var(--red)"><use href="#ic-warn"/></svg> Link không hợp lệ';
     }
@@ -834,6 +882,7 @@ async function loadChecklist(srcId) {
     renderChecklist();
     updateClInfo();
   } catch(e) {
+    if(isAuthExpiredErr(e)){ body.innerHTML = '<div class="cl-empty">Phiên cấp quyền đã hết hạn</div>'; handleAuthExpired(); return; }
     body.innerHTML = '<div class="cl-empty">Lỗi tải danh sách: '+escH(e.message)+'</div>';
   }
 }
@@ -917,7 +966,7 @@ window.clToggleExpand = async (e, id) => {
         parentId: item.id
       }));
       item.expanded = true;
-    } catch(e) { toast('Lỗi tải thư mục: '+e.message,'err'); }
+    } catch(e) { if(isAuthExpiredErr(e)){ handleAuthExpired(); return; } toast('Lỗi tải thư mục: '+e.message,'err'); }
   } else {
     item.expanded = !item.expanded;
   }
@@ -991,73 +1040,15 @@ function getSelectedItems() {
   return clItems.filter(i => i.checked || i.indeterminate);
 }
 
-// ── GLOBAL PROGRESS COUNTERS ───────────────────────────────────
-let progDone = 0, progTotal = 1;
-function progReset(total){ progDone=0; progTotal=Math.max(1,total); setProgress(0,progTotal, runMode==='scan'?'scanning':'running'); }
-function progInc(n){ progDone+=(n||1); if(progDone>progTotal) progTotal=progDone; setProgress(progDone,progTotal, runMode==='scan'?'scanning':'running'); }
-
-// Recursively count all items under a list of top-level items (for progress denominator)
-async function countAllItems(items){
-  let total=items.length;
-  for(const item of items){
-    if(item.mimeType===FMIME){
-      await pausePoint(); if(stopFlag) return total;
-      const children=await listItems(item.id);
-      total+=await countAllItems(children);
-    }
-  }
-  return total;
-}
-
-// Recursively count only items that DON'T already exist by name in the matching dest folder.
-// Mirrors the skip logic used during copy (existNames check) so the resume progress bar
-// reflects only the work that's actually left to do.
-async function countRemainingItems(items, destId, clFilterChildren){
-  let total=0;
-  let dnames;
-  try { dnames = await existNames(destId); } catch { dnames = new Set(); }
-
-  // Apply checklist filter at this level if provided
-  let workItems = items;
-  if (clFilterChildren){
-    const allowedIds = new Set(clFilterChildren.filter(c=>c.checked||c.indeterminate).map(c=>c.id));
-    workItems = items.filter(i=>allowedIds.has(i.id));
-  }
-
-  for (const item of workItems){
-    await pausePoint(); if(stopFlag) return total;
-    if (item.mimeType===FMIME){
-      // Folder: count as 1 (creating/locating it), then recurse into its children
-      total += 1;
-      let children=[];
-      try { children = await listItems(item.id); } catch { children=[]; }
-      let subFilter=null;
-      if (clFilterChildren){
-        const clItem=clFilterChildren.find(c=>c.id===item.id);
-        if (clItem && clItem.indeterminate && clItem.children) subFilter=clItem.children;
-      }
-      // Find/derive the matching destination subfolder id by name, if it exists, to check its contents too
-      let subDestId=null;
-      try {
-        const r=await dget('/files',{q:"'"+destId+"' in parents and name='"+item.name.replace(/'/g,"\\'")+"' and mimeType='"+FMIME+"' and trashed=false",fields:'files(id)',supportsAllDrives:true,includeItemsFromAllDrives:true});
-        if (r.files?.length) subDestId=r.files[0].id;
-      } catch {}
-      if (subDestId){
-        total += await countRemainingItems(children, subDestId, subFilter);
-      } else {
-        // Destination subfolder doesn't exist yet -> everything inside still needs copying
-        total += await countAllItems(subFilter ? children.filter(c=>{
-          const allowedIds=new Set(subFilter.filter(x=>x.checked||x.indeterminate).map(x=>x.id));
-          return allowedIds.has(c.id);
-        }) : children);
-      }
-    } else if (item.mimeType!==SMIME) {
-      // File: only counts if it doesn't already exist at destination
-      if (!dnames.has(item.name)) total += 1;
-    }
-  }
-  return total;
-}
+// ── GLOBAL PROGRESS COUNTERS (dynamic, no pre-count) ───────────
+// Instead of pre-scanning the whole tree to compute a denominator (slow),
+// the progress bar runs in "indeterminate" mode (animated, full-width sweep)
+// while items are processed, and only snaps to 100% when the run finishes.
+let progDone = 0;
+function progStart(){ progDone=0; setProgress(0,1, runMode==='scan'?'scanning':'running'); }
+function progInc(n){ progDone+=(n||1); setStatusCount(); }
+function progFinish(){ setProgress(1,1, stopFlag?'paused':'done'); }
+function setStatusCount(){ /* hook used by callers to refresh the "(N mục)" label */ }
 
 // ── SCAN ─────────────────────────────────────────────────────
 async function startScan() {
@@ -1066,11 +1057,11 @@ async function startScan() {
   const dv=document.getElementById('destInput').value.trim();
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
-  stopFlag=false; pauseFlag=false; runMode='scan';
+  stopFlag=false; pauseFlag=false; runMode='scan'; _authExpiredHandled=false;
   document.getElementById('scanResult').style.display='none';
   document.getElementById('logBox').innerHTML='';
   setBtnMode('scan');
-  setProgress(0,100,'scanning');
+  progStart();
   setStatus('Đang chuẩn bị kiểm tra...');
 
   const t0=Date.now();
@@ -1088,22 +1079,18 @@ async function startScan() {
 
     if (stopFlag){ setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
 
-    // Pre-count total items for accurate progress bar
-    setStatus('Đang đếm tổng số mục...');
-    const totalCount = await countAllItems(topItems);
-    if (stopFlag){ setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
-    progReset(totalCount);
-    setStatus('Đang kiểm tra "'+sn+'"... (0/'+totalCount+')');
+    setStatus('Đang kiểm tra "'+sn+'"... (0 mục)');
 
-    const tree = await scanNodes(topItems, destId, '', 0, sn, totalCount);
-    if (stopFlag){ setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
+    const tree = await scanNodes(topItems, destId, '', 0, sn);
+    if (stopFlag){ if(!_authExpiredHandled) setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
 
     const elapsed=Math.round((Date.now()-t0)/1000);
     const totalErr=cntErr(tree);
-    setProgress(progTotal,progTotal,'done');
+    progFinish();
     setStatus(totalErr===0?'Kiểm tra xong - Không có lỗi ('+elapsed+'s)':'Phát hiện '+totalErr+' vấn đề ('+elapsed+'s)');
     renderScanResult(tree,totalErr);
   } catch(e){
+    if(isAuthExpiredErr(e)){ handleAuthExpired(); return; }
     addLog('Lỗi: '+e.message,'err'); setStatus('Lỗi kiểm tra');
     if(e.message==='NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!','Nhấn nút bên dưới để cấp quyền.');
   } finally {
@@ -1111,53 +1098,93 @@ async function startScan() {
   }
 }
 
-async function scanNodes(items, destId, path, depth, srcName, totalCount) {
-  const nodes=[];
-  for (const item of items) {
-    await pausePoint(); if(stopFlag) break;
-    const fp=path?path+' > '+item.name:item.name;
-    if (item.mimeType===SMIME){
-      progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+'/'+progTotal+') '+item.name);
-      nodes.push({name:item.name,path:fp,type:'file',depth,error:'Là shortcut - bỏ qua',children:[]});
-      continue;
-    }
-    if (item.mimeType===FMIME){
-      const children=await listItems(item.id);
-      progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+'/'+progTotal+') '+item.name);
+// How many "copy-test + delete" probes run in parallel, and how many
+// sibling folders are scanned concurrently. Higher = faster but more
+// load on the Drive API; these values balance speed and rate limits.
+const SCAN_FILE_CONCUR   = 8;
+const SCAN_FOLDER_CONCUR = 4;
+
+// Test whether a single file can be copied to destId (copy + immediately delete the test copy).
+// Throws on AUTH_EXPIRED so callers can stop the whole run.
+async function testFileCopy(item, destId){
+  try{
+    const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});
+    await ddel(r.id);
+    return null; // no error
+  } catch(e){
+    if(isAuthExpiredErr(e)) throw e;
+    const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
+    return c===403?'Không có quyền copy':'Lỗi API '+c;
+  }
+}
+
+async function scanNodes(items, destId, path, depth, srcName) {
+  const folderItems = items.filter(c=>c.mimeType===FMIME);
+  const fileItems   = items.filter(c=>c.mimeType!==FMIME);
+
+  // Scan files (and shortcuts) in parallel batches
+  const fileNodes = await scanFileNodes(fileItems, destId, path, depth, srcName);
+  if(stopFlag) return [...fileNodes];
+
+  // Scan folders with limited concurrency
+  const folderNodes = new Array(folderItems.length);
+  let idx=0;
+  async function worker(){
+    while(true){
+      const i=idx++; if(i>=folderItems.length) return;
+      await pausePoint(); if(stopFlag) return;
+      const item=folderItems[i];
+      const fp=path?path+' > '+item.name:item.name;
+      let children;
+      try{ children=await listItems(item.id); }
+      catch(e){ if(isAuthExpiredErr(e)) throw e; children=[]; }
+      progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+' mục) '+item.name);
       addLog('Thư mục: '+item.name,'info');
+
       const testFile=children.find(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME);
       let selfErr=null;
       if (testFile){
-        try{const r=await dpost('/files/'+testFile.id+'/copy',{name:'__swtest_'+testFile.name,parents:[destId]});await ddel(r.id);}
-        catch(e){const c=parseInt(e.message.match(/\d+/)?.[0]||'0');selfErr=c===403?'Không có quyền copy':'Lỗi API '+c;addLog('Lỗi: '+item.name+' - '+selfErr,'err');}
+        selfErr=await testFileCopy(testFile,destId);
+        if(selfErr) addLog('Lỗi: '+item.name+' - '+selfErr,'err');
       }
-      const subFolders=selfErr?[]:await scanNodes(children.filter(c=>c.mimeType===FMIME),destId,fp,depth+1,srcName,totalCount);
-      const subFiles  =selfErr?[]:await scanFileNodes(children.filter(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME),destId,fp,depth+1,srcName,totalCount);
-      nodes.push({name:item.name,path:fp,type:'folder',depth,error:selfErr,children:[...subFiles,...subFolders]});
-    } else {
-      progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+'/'+progTotal+') '+item.name);
-      addLog('Kiểm tra: '+item.name,'skip');
-      let err=null;
-      try{const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});await ddel(r.id);addLog('OK: '+item.name,'ok');}
-      catch(e){const c=parseInt(e.message.match(/\d+/)?.[0]||'0');err=c===403?'Không có quyền copy':'Lỗi API '+c;addLog('Lỗi: '+item.name,'err');}
-      nodes.push({name:item.name,path:fp,type:'file',depth,error:err,children:[]});
+      const subNodes = selfErr?[]:await scanNodes(children,destId,fp,depth+1,srcName);
+      folderNodes[i]={name:item.name,path:fp,type:'folder',depth,error:selfErr,children:subNodes};
     }
   }
-  return nodes;
+  const workers=[];
+  for(let w=0;w<Math.min(SCAN_FOLDER_CONCUR,Math.max(folderItems.length,1));w++) workers.push(worker());
+  try{ await Promise.all(workers); }
+  catch(e){ if(isAuthExpiredErr(e)) throw e; }
+  if(stopFlag) return [...fileNodes,...folderNodes.filter(Boolean)];
+
+  return [...fileNodes,...folderNodes];
 }
-async function scanFileNodes(items,destId,path,depth,srcName,totalCount){
-  const nodes=[];
-  for (const item of items){
+
+async function scanFileNodes(items,destId,path,depth,srcName){
+  const nodes=new Array(items.length);
+  for(let i=0;i<items.length;i+=SCAN_FILE_CONCUR){
     await pausePoint(); if(stopFlag) break;
-    const fp=path?path+' > '+item.name:item.name;
-    let err=null;
-    progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+'/'+progTotal+') '+item.name);
-    addLog('Kiểm tra: '+item.name,'skip');
-    try{const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});await ddel(r.id);addLog('OK: '+item.name,'ok');}
-    catch(e){const c=parseInt(e.message.match(/\d+/)?.[0]||'0');err=c===403?'Không có quyền copy':'Lỗi API '+c;addLog('Lỗi: '+item.name,'err');}
-    nodes.push({name:item.name,path:fp,type:'file',depth,error:err,children:[]});
+    const batch=items.slice(i,i+SCAN_FILE_CONCUR);
+    await Promise.all(batch.map(async (item,bi)=>{
+      const realIdx=i+bi;
+      await pausePoint(); if(stopFlag) return;
+      const fp=path?path+' > '+item.name:item.name;
+      if (item.mimeType===SMIME){
+        progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+' mục) '+item.name);
+        nodes[realIdx]={name:item.name,path:fp,type:'file',depth,error:'Là shortcut - bỏ qua',children:[]};
+        return;
+      }
+      addLog('Kiểm tra: '+item.name,'skip');
+      let err;
+      try{ err=await testFileCopy(item,destId); }
+      catch(e){ if(isAuthExpiredErr(e)) throw e; err='Lỗi'; }
+      if(err) addLog('Lỗi: '+item.name,'err'); else addLog('OK: '+item.name,'ok');
+      progInc(); setStatus('Đang kiểm tra "'+srcName+'"... ('+progDone+' mục) '+item.name);
+      nodes[realIdx]={name:item.name,path:fp,type:'file',depth,error:err,children:[]};
+    }));
+    if(stopFlag) break;
   }
-  return nodes;
+  return nodes.filter(Boolean);
 }
 
 function cntErr(nodes){ let c=0; for(const n of nodes){if(n.error)c++;if(n.children?.length)c+=cntErr(n.children);} return c; }
@@ -1297,7 +1324,10 @@ window.startCopy = async (isResume) => {
         setStatus('Chưa bắt đầu');
         return;
       }
-    } catch(e){ /* if detection fails, proceed without blocking */ }
+    } catch(e){
+      if(isAuthExpiredErr(e)){ runMode='copy'; handleAuthExpired(); runMode='idle'; return; }
+      /* if detection fails for other reasons, proceed without blocking */
+    }
   }
 
   await _runCopyInternal(isResume);
@@ -1308,12 +1338,13 @@ async function _runCopyInternal(isResume) {
   const dv=document.getElementById('destInput').value.trim();
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
-  stopFlag=false; pauseFlag=false; runMode='copy';
+  stopFlag=false; pauseFlag=false; runMode='copy'; _authExpiredHandled=false;
   if (!isResume) stats=ns();
   document.getElementById('logBox').innerHTML='';
   document.getElementById('scanResult').style.display='none';
   document.getElementById('statsRow').style.display='flex';
   updStats(); setBtnMode('copy');
+  progStart();
 
   const t0=Date.now();
   let videoCountForCompletion=0;
@@ -1336,64 +1367,75 @@ async function _runCopyInternal(isResume) {
 
     if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
 
-    // Track video count for the completion summary
-    try { videoCountForCompletion = await countVideoFiles(top, clFilter); } catch { videoCountForCompletion=0; }
+    // Track video count for the completion summary (best-effort, doesn't block on failure)
+    try { videoCountForCompletion = await countVideoFiles(top, clFilter); } catch(e){ if(isAuthExpiredErr(e)) throw e; videoCountForCompletion=0; }
     if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
 
-    // Pre-count total items for accurate progress bar.
-    // On resume, count only the items that still need copying (skip ones already at destination).
-    setStatus(isResume?'Đang tính phần còn lại...':'Đang đếm tổng số mục...');
-    const totalCount = isResume
-      ? await countRemainingItems(top, destId, clFilter)
-      : await countAllItems(top);
-    if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
-    progReset(Math.max(totalCount,1));
-    addLog((isResume?'Tiếp tục - còn lại':'Bắt đầu')+' '+totalCount+' mục ('+CONCUR+' luồng song song)...','info');
+    addLog((isResume?'Tiếp tục sao chép':'Bắt đầu sao chép')+' ('+CONCUR+' luồng song song)...','info');
 
     const dex=await existNames(destId);
 
-    for (let i=0;i<top.length;i++){
+    // Split top-level items into folders and files; run both with bounded concurrency.
+    const topFolders=top.filter(i=>i.mimeType===FMIME);
+    const topFiles  =top.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME);
+
+    // Files: batches of CONCUR
+    for(let i=0;i<topFiles.length;i+=CONCUR){
       await pausePoint(); if(stopFlag) break;
-      const item=top[i];
-      setStatus('('+progDone+'/'+progTotal+') '+item.name);
-      if (item.mimeType===FMIME){
-        const nid=await mkFolder(item.name,destId);
-        let node=stats.folderList.find(f=>f.depth===0&&f.name===item.name&&f._srcId===item.id);
-        if (!node){
-          stats.folders++;
-          node={name:item.name,path:item.name,type:'folder',depth:0,error:null,children:[],_srcId:item.id};
-          stats.folderList.push(node);
-        }
-        addLog('Thư mục: '+item.name,'folder'); updStats(); saveSession();
-        progInc();
-        // Check if this folder has partial selection
-        const clItem=clItems.find(ci=>ci.id===item.id);
-        if (clItem&&clItem.indeterminate&&clItem.children){
-          await copyRecTreeFiltered(item.id,nid,item.name,1,node.children,clItem);
-        } else {
-          await copyRecTree(item.id,nid,item.name,1,node.children);
-        }
-      } else {
-        if (dex.has(item.name)){addLog('Đã có: '+item.name,'skip');progInc();continue;}
+      const batch=topFiles.slice(i,i+CONCUR);
+      await Promise.all(batch.map(async item=>{
+        if(stopFlag) return; await pausePoint();
+        if (dex.has(item.name)){addLog('Đã có: '+item.name,'skip');progInc();return;}
         const res=await copyFileSingle(item.id,destId);
         const node={name:item.name,path:item.name,type:'file',depth:0,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
         if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
         else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
         updStats(); saveSession();
-        progInc();
+        progInc(); setStatus('('+progDone+' mục) '+item.name);
+      }));
+    }
+
+    // Folders: bounded parallel workers
+    if(!stopFlag && topFolders.length){
+      let idx=0;
+      async function folderWorker(){
+        while(true){
+          const i=idx++; if(i>=topFolders.length) return;
+          await pausePoint(); if(stopFlag) return;
+          const item=topFolders[i];
+          const nid=await mkFolder(item.name,destId);
+          let node=stats.folderList.find(f=>f.depth===0&&f.name===item.name&&f._srcId===item.id);
+          if (!node){
+            stats.folders++;
+            node={name:item.name,path:item.name,type:'folder',depth:0,error:null,children:[],_srcId:item.id};
+            stats.folderList.push(node);
+          }
+          addLog('Thư mục: '+item.name,'folder'); updStats(); saveSession();
+          progInc(); setStatus('('+progDone+' mục) '+item.name);
+          const clItem=clItems.find(ci=>ci.id===item.id);
+          if (clItem&&clItem.indeterminate&&clItem.children){
+            await copyRecTreeFiltered(item.id,nid,item.name,1,node.children,clItem);
+          } else {
+            await copyRecTree(item.id,nid,item.name,1,node.children);
+          }
+        }
       }
+      const workers=[];
+      for(let w=0;w<Math.min(FOLDER_CONCUR,topFolders.length);w++) workers.push(folderWorker());
+      await Promise.all(workers);
     }
 
     const elapsed=Math.round((Date.now()-t0)/1000);
-    setProgress(progTotal,progTotal,stopFlag?'paused':'done');
+    progFinish();
     if (!stopFlag){
       setStatus('Hoàn thành '+elapsed+'s');
       clearSession();
       await saveHist(srcId,sn,destId,dn,elapsed);
       showComplModal(elapsed, videoCountForCompletion);
     }
-    else setStatus('Đã dừng sao chép');
+    else if(!_authExpiredHandled) setStatus('Đã dừng sao chép');
   } catch(e){
+    if(isAuthExpiredErr(e)){ handleAuthExpired(); return; }
     addLog('Lỗi: '+e.message,'err'); setStatus('Lỗi sao chép');
     if(e.message==='NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!','Nhấn nút bên dưới để cấp quyền.');
   } finally {
@@ -1419,20 +1461,30 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
       if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
       else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
       parentChildren.push(node); updStats(); saveSession();
-      progInc(); setStatus('('+progDone+'/'+progTotal+') '+item.name);
+      progInc(); setStatus('('+progDone+' mục) '+item.name);
     }));
   }
-  for(const f of folders){
-    await pausePoint(); if(stopFlag)return;
-    const fp=path?path+' > '+f.name:f.name;
-    const nid=await mkFolder(f.name,destId);
-    stats.folders++;
-    const node={name:f.name,path:fp,type:'folder',depth,error:null,children:[]};
-    stats.folderList.push(node); parentChildren.push(node);
-    addLog('Thư mục: '+f.name,'folder'); updStats();
-    progInc(); setStatus('('+progDone+'/'+progTotal+') '+f.name);
-    await copyRecTree(f.id,nid,fp,depth+1,node.children);
+  if(stopFlag||!folders.length) return;
+  // Process sibling folders with bounded concurrency
+  let idx=0;
+  async function worker(){
+    while(true){
+      const i=idx++; if(i>=folders.length) return;
+      await pausePoint(); if(stopFlag) return;
+      const f=folders[i];
+      const fp=path?path+' > '+f.name:f.name;
+      const nid=await mkFolder(f.name,destId);
+      stats.folders++;
+      const node={name:f.name,path:fp,type:'folder',depth,error:null,children:[]};
+      stats.folderList.push(node); parentChildren.push(node);
+      addLog('Thư mục: '+f.name,'folder'); updStats();
+      progInc(); setStatus('('+progDone+' mục) '+f.name);
+      await copyRecTree(f.id,nid,fp,depth+1,node.children);
+    }
   }
+  const workers=[];
+  for(let w=0;w<Math.min(FOLDER_CONCUR,folders.length);w++) workers.push(worker());
+  await Promise.all(workers);
 }
 
 // Copy with checklist filter (for partially selected folders)
@@ -1456,22 +1508,31 @@ async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem
       if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
       else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
       parentChildren.push(node); updStats(); saveSession();
-      progInc(); setStatus('('+progDone+'/'+progTotal+') '+item.name);
+      progInc(); setStatus('('+progDone+' mục) '+item.name);
     }));
   }
-  for(const f of folders){
-    await pausePoint(); if(stopFlag)return;
-    const fp=path?path+' > '+f.name:f.name;
-    const nid=await mkFolder(f.name,destId);
-    stats.folders++;
-    const node={name:f.name,path:fp,type:'folder',depth,error:null,children:[]};
-    stats.folderList.push(node); parentChildren.push(node);
-    addLog('Thư mục: '+f.name,'folder'); updStats();
-    progInc(); setStatus('('+progDone+'/'+progTotal+') '+f.name);
-    const subCl=clItem.children?clItem.children.find(c=>c.id===f.id):null;
-    if(subCl&&subCl.indeterminate) await copyRecTreeFiltered(f.id,nid,fp,depth+1,node.children,subCl);
-    else await copyRecTree(f.id,nid,fp,depth+1,node.children);
+  if(stopFlag||!folders.length) return;
+  let idx=0;
+  async function worker(){
+    while(true){
+      const i=idx++; if(i>=folders.length) return;
+      await pausePoint(); if(stopFlag) return;
+      const f=folders[i];
+      const fp=path?path+' > '+f.name:f.name;
+      const nid=await mkFolder(f.name,destId);
+      stats.folders++;
+      const node={name:f.name,path:fp,type:'folder',depth,error:null,children:[]};
+      stats.folderList.push(node); parentChildren.push(node);
+      addLog('Thư mục: '+f.name,'folder'); updStats();
+      progInc(); setStatus('('+progDone+' mục) '+f.name);
+      const subCl=clItem.children?clItem.children.find(c=>c.id===f.id):null;
+      if(subCl&&subCl.indeterminate) await copyRecTreeFiltered(f.id,nid,fp,depth+1,node.children,subCl);
+      else await copyRecTree(f.id,nid,fp,depth+1,node.children);
+    }
   }
+  const workers=[];
+  for(let w=0;w<Math.min(FOLDER_CONCUR,folders.length);w++) workers.push(worker());
+  await Promise.all(workers);
 }
 
 // ── TREE HTML ────────────────────────────────────────────────
@@ -1611,7 +1672,12 @@ let _pv=0,_pm=1;
 function setProgress(v,max,state){
   if(v!==null)_pv=v;if(max!==null)_pm=max;
   const f=document.getElementById('progFill');
-  f.style.width=(_pm?Math.round(_pv/_pm*100):0)+'%';
+  if(state==='scanning'||state==='running'||state==='paused'){
+    // Indeterminate mode: full-width animated/static sweep, we don't know the total yet
+    f.style.width='100%';
+  } else {
+    f.style.width=(_pm?Math.round(_pv/_pm*100):0)+'%';
+  }
   if(state)f.className='prog-fill '+state;
 }
 function setStatus(msg){document.getElementById('statusLbl').textContent=msg;document.getElementById('actionStatus').textContent=msg;}
