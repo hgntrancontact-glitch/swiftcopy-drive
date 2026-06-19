@@ -180,11 +180,13 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 .prog-wrap{margin:14px 0 6px}
 .prog-track{height:8px;background:var(--surface2);border-radius:999px;overflow:hidden;border:1px solid var(--border)}
 .prog-fill{height:100%;border-radius:999px;background:var(--text);transition:width .3s;width:0}
-.prog-fill.done{background:var(--green)}
-.prog-fill.paused{background:var(--orange)}
-.prog-fill.scanning{background:#7c3aed;background-size:200% 100%;animation:scanslide 1.5s linear infinite}
-.prog-fill.running{background:linear-gradient(90deg,var(--text) 0%,#444 50%,var(--text) 100%);background-size:200% 100%;animation:scanslide 1.2s linear infinite}
-@keyframes scanslide{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.prog-fill.done{background:var(--green);width:100%!important;animation:none!important}
+.prog-fill.paused{background:var(--orange);width:60%!important;animation:none!important}
+.prog-track.indeterminate{position:relative;overflow:hidden}
+.prog-track.indeterminate .prog-fill{position:absolute;top:0;left:0;height:100%;width:35%!important;border-radius:999px}
+.prog-fill.scanning{background:#7c3aed;animation:sweep 1.1s ease-in-out infinite}
+.prog-fill.running{background:var(--text);animation:sweep 1.1s ease-in-out infinite}
+@keyframes sweep{0%{left:-35%}50%{left:55%}100%{left:100%}}
 .status-lbl{font-size:11px;color:var(--text3);margin-top:5px;min-height:16px;font-family:monospace}
 
 /* STATS */
@@ -1306,36 +1308,35 @@ window.confirmVidWarn=()=>{
 };
 
 // ── COPY ─────────────────────────────────────────────────────
+// Video warning is now resolved live during the actual copy run (see videoGate below)
+// instead of via a separate full-tree pre-scan, which was the main cause of the long
+// lag and inconsistent "có lúc không" behaviour when starting a copy right after a scan.
+let _videoWarnShown = false;   // shown once per run
+let _videoWarnResolve = null;  // resolves when user confirms the modal
+let _videoSeenCount = 0;       // running tally of video files encountered this run
+
 window.startCopy = async (isResume) => {
   if (!gToken){ showNoAuth('Chưa cấp quyền Drive!','Bạn cần cấp quyền truy cập Google Drive trước khi sao chép.'); return; }
   const sv=document.getElementById('srcInput').value.trim();
   const dv=document.getElementById('destInput').value.trim();
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
-
-  // Check for video files before starting, unless user opted out of the warning
-  if (localStorage.getItem(VIDWARN_KEY)!=='1'){
-    try {
-      const srcId=fid(sv);
-      let top=await listItems(srcId);
-      let clFilter=null;
-      if (clLoaded&&clItems.length>0) clFilter=clItems;
-      setStatus('Đang kiểm tra file video...');
-      const vidCount=await countVideoFiles(top, clFilter);
-      if (vidCount>0){
-        document.getElementById('vidWarnCount').textContent=vidCount;
-        _pendingCopyResume=!!isResume;
-        document.getElementById('vidWarnOv').classList.add('on');
-        setStatus('Chưa bắt đầu');
-        return;
-      }
-    } catch(e){
-      if(isAuthExpiredErr(e)){ runMode='copy'; handleAuthExpired(); runMode='idle'; return; }
-      /* if detection fails for other reasons, proceed without blocking */
-    }
-  }
-
   await _runCopyInternal(isResume);
 };
+
+// Called right before copying a video file. Shows the warning modal (once per run)
+// and waits for confirmation, unless the user has opted out via "Không hiển thị lại".
+function videoGate(item){
+  _videoSeenCount++;
+  if (localStorage.getItem(VIDWARN_KEY)==='1') return Promise.resolve();
+  if (_videoWarnShown) return Promise.resolve();
+  _videoWarnShown = true;
+  return new Promise(resolve=>{
+    _videoWarnResolve = resolve;
+    document.getElementById('vidWarnCount').textContent = '';
+    document.getElementById('vidWarnTitleNote').style.display='block';
+    document.getElementById('vidWarnOv').classList.add('on');
+  });
+}
 
 async function _runCopyInternal(isResume) {
   const sv=document.getElementById('srcInput').value.trim();
@@ -1676,11 +1677,17 @@ let _pv=0,_pm=1;
 function setProgress(v,max,state){
   if(v!==null)_pv=v;if(max!==null)_pm=max;
   const f=document.getElementById('progFill');
-  if(state==='scanning'||state==='running'||state==='paused'){
-    // Indeterminate mode: full-width animated/static sweep, we don't know the total yet
-    f.style.width='100%';
+  const track=f.parentElement;
+  if(state==='scanning'||state==='running'){
+    track.classList.add('indeterminate');
+    f.style.width='';
   } else {
-    f.style.width=(_pm?Math.round(_pv/_pm*100):0)+'%';
+    track.classList.remove('indeterminate');
+    if(state==='done'||state==='paused'){
+      f.style.width='';
+    } else {
+      f.style.width=(_pm?Math.round(_pv/_pm*100):0)+'%';
+    }
   }
   if(state)f.className='prog-fill '+state;
 }
