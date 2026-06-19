@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="2" y="2" width="60" height="60" rx="14" fill="#f5c518"/>
-  <text x="32" y="46" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="38" fill="#111110">S</text>
-  <path d="M 45 17 L 53 17 M 49 13 L 53 17 L 49 21" fill="none" stroke="#e8291c" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
