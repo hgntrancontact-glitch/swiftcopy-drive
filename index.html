@@ -318,20 +318,20 @@
 <div id="s-land">
     <main class="flex-1 flex flex-col items-center px-4 py-10">
         <div class="text-center max-w-[750px] mb-10">
-            <div class="bg-[#ffc107] inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-black font-bold text-[18px] mb-6 shadow-sm">
+            <div class="bg-[#ffc107] inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-black font-bold text-xs mb-6 shadow-sm">
                 ⚡ Công cụ sao chép Drive #1
             </div>
-            <h1 class="text-[54px] md:text-[72px] font-bold text-black mb-4 tracking-tight">
+            <h1 class="text-4xl md:text-5xl font-bold text-black mb-4 tracking-tight">
                 SwiftCopy<span class="text-[#dc3545]">.</span><span>Drive</span>
             </h1>
-            <p class="text-[24px] md:text-[27px] text-[#6c757d] mb-8 leading-relaxed">
+            <p class="text-base md:text-lg text-[#6c757d] mb-8 leading-relaxed">
                 Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn,<br class="hidden md:block">chạy thẳng trên trình duyệt.
             </p>
             <div class="flex gap-4 justify-center">
-                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-[24px] text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] hover:opacity-95 active:scale-95 transition-all" onclick="doLogin()">Đăng ký dùng thử</button>
-                <button class="bg-white hover:bg-[#fffbea] hover:border-[#ffc107] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-[24px] text-[#212529] cursor-pointer active:scale-95 transition-all" onclick="doLogin()">Đăng nhập</button>
+                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] hover:opacity-95 active:scale-95 transition-all" onclick="doLogin()">Đăng ký dùng thử</button>
+                <button class="bg-white hover:bg-[#fffbea] hover:border-[#ffc107] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer active:scale-95 transition-all" onclick="doLogin()">Đăng nhập</button>
             </div>
-            <p class="text-[21px] text-[#868e96] mt-4">Mua một lần, sử dụng trọn đời</p>
+            <p class="text-sm text-[#868e96] mt-4">Mua một lần, sử dụng trọn đời</p>
         </div>
 
         <!-- TỐI ƯU DASHBOARD: Mở rộng chiều ngang (max-w-7xl), nén padding, thu gọn chiều cao log -->
@@ -424,57 +424,66 @@
         </div>
     </main>
 
-    <section class="bg-white px-6 md:px-20 py-12 border-t border-[#f1f3f5]">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 items-start">
-        <div>
-            <h3 class="font-bold text-black mb-4 tracking-tight text-[21px]">SwiftCopy<span class="text-[#dc3545]">.</span>Drive</h3>
-            <p class="text-[18px] text-black leading-relaxed">Tối ưu hóa thời gian xử lý dữ liệu sao chép trên nền tảng Google Drive cho cá nhân và doanh nghiệp sản xuất nội dung số.</p>
-        </div>
-        <div>
-            <h3 class="font-bold text-[#dc3545] text-[21px] mb-4 tracking-tight uppercase">TÍNH NĂNG VƯỢT TRỘI</h3>
-            <ul class="text-[18px] text-[#6c757d] space-y-3">
-                <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Sao chép tốc độ cực nhanh</li>
-                <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Kiểm tra Drive lỗi trước</li>
-                <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Chọn lọc mục muốn copy</li>
-                <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Theo dõi hành trình sao chép</li>
-                <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Tự động sao chép tiếp nếu mất mạng</li>
-            </ul>
-        </div>
-        <div>
-            <h3 class="font-bold text-black text-[21px] mb-4 tracking-tight uppercase">HỖ TRỢ KỸ THUẬT</h3>
-            <ul class="text-[18px] text-[#6c757d] space-y-2">
-                <li class="flex items-center gap-2">
-                    <svg class="w-6 h-6 stroke-[#868e96] fill-none stroke-2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                    hgntran.contact@gmail.com
-                </li>
-            </ul>
-            <span class="font-bold text-black text-[21px] block mt-5 mb-2">ZALO</span>
-            <div class="border border-[#dee2e6] rounded-md p-1.5 bg-white grid grid-cols-4 grid-rows-4 gap-1 w-[108px] h-[108px] box-border">
-                <div class="border-[3px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black"></div>
-                <div class="border-[3px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black" style="grid-column: 4; grid-row: 1;"></div>
-                <div class="border-[3px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black" style="grid-column: 1; grid-row: 4;"></div>
-                <div style="grid-column: 2 / 5; grid-row: 2 / 5; background-image: linear-gradient(45deg, #000 25%, transparent 25%), linear-gradient(-45deg, #000 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #000 75%), linear-gradient(-45deg, transparent 75%, #000 75%); background-size: 7px 7px; background-position: 0 0, 0 4px, 4px -4px, -4px 0px;"></div>
+    <section class="bg-white px-6 md:px-20 pt-12 pb-8 border-t border-[#f1f3f5]">
+        <div class="max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 items-start mb-10">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <svg class="w-9 h-9 rounded-lg flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
+                      <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
+                      <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h3 class="font-bold text-black tracking-tight">SwiftCopy<span class="text-[#dc3545]">.</span>Drive</h3>
+                </div>
+                <p class="text-xs text-[#868e96] leading-relaxed">Tối ưu hóa thời gian xử lý dữ liệu sao chép trên nền tảng Google Drive cho cá nhân và doanh nghiệp sản xuất nội dung số.</p>
+            </div>
+            <div>
+                <h3 class="font-bold text-black text-[14px] mb-4 tracking-tight">Tính năng</h3>
+                <ul class="text-xs text-[#6c757d] space-y-3">
+                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Sao chép tốc độ cực nhanh</li>
+                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Kiểm tra Drive lỗi trước</li>
+                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Chọn lọc mục muốn copy</li>
+                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Theo dõi hành trình sao chép</li>
+                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Tự động sao chép tiếp nếu mất mạng</li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="font-bold text-black text-[14px] mb-4 tracking-tight">Liên hệ</h3>
+                <ul class="text-xs text-[#6c757d] space-y-3">
+                    <li class="flex items-center gap-2">
+                        <svg class="w-4 h-4 stroke-[#868e96] fill-none stroke-2 flex-shrink-0" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        hgntran.contact@gmail.com
+                    </li>
+                </ul>
+                <span class="font-bold text-black text-xs block mt-5 mb-2">ZALO</span>
+                <div class="border border-[#dee2e6] rounded-md p-1.5 bg-white grid grid-cols-4 grid-rows-4 gap-1 w-[88px] h-[88px] box-border">
+                    <div class="border-[2.5px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black"></div>
+                    <div class="border-[2.5px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black" style="grid-column: 4; grid-row: 1;"></div>
+                    <div class="border-[2.5px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black" style="grid-column: 1; grid-row: 4;"></div>
+                    <div style="grid-column: 2 / 5; grid-row: 2 / 5; background-image: linear-gradient(45deg, #000 25%, transparent 25%), linear-gradient(-45deg, #000 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #000 75%), linear-gradient(-45deg, transparent 75%, #000 75%); background-size: 6px 6px; background-position: 0 0, 0 4px, 4px -4px, -4px 0px;"></div>
+                </div>
+            </div>
+            <div>
+                <h3 class="font-bold text-black text-[14px] mb-4 tracking-tight">Hỗ trợ</h3>
+                <div class="flex flex-col items-start gap-2.5 mb-5">
+                    <span class="text-xs text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
+                    <span class="text-xs text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openReviewListModal()">Xem thử đánh giá</span>
+                </div>
+                <button class="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#ffc107] to-[#ff8f00] text-black px-4 py-2 rounded-full text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all whitespace-nowrap" id="reviewBtn">
+                    <span class="text-black text-xs">★</span>
+                    <span>Đánh giá SwiftCopy<span class="text-[#dc3545]">.</span>Drive</span>
+                </button>
             </div>
         </div>
-        <div>
-            <h3 class="font-bold text-black text-[21px] mb-4 tracking-tight uppercase">ĐÁNH GIÁ HỆ THỐNG</h3>
-            <span class="block text-[21px] text-[#212529] mb-3 hover:underline hover:text-[#dc3545] active:opacity-70 cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
-            <span class="block text-[21px] text-[#212529] mb-3 hover:underline hover:text-[#dc3545] active:opacity-70 cursor-pointer transition-colors" onclick="openReviewListModal()">Xem thử đánh giá</span>
-            <button class="inline-flex items-center bg-[#ffc107] text-black px-6 py-3 rounded-full text-[21px] font-bold shadow-md hover:scale-105 active:scale-95 transition-all" id="reviewBtn">
-                <span class="text-black text-[21px] mr-1.5">★</span>
-                <span>Đánh giá SwiftCopy<span class="text-[#dc3545]">.</span>Drive</span>
-            </button>
+        <div class="border-t border-[#f1f3f5] pt-5 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-[#868e96]">
+            <div>© 2026 SwiftCopy<span class="text-[#dc3545]">.</span>Drive. All rights reserved.</div>
+            <div class="font-bold text-black">Mua 1 lần sử dụng trọn đời</div>
         </div>
         </div>
     </section>
-
-    <footer class="bg-[#f8f9fa] px-6 md:px-20 py-5 border-t border-[#e9ecef]">
-        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="bg-white px-7 py-3.5 rounded border border-[#f1f3f5] text-[21px] text-[#868e96] w-full sm:w-auto text-center">© 2026 SwiftCopy<span class="text-[#dc3545]">.</span>Drive. All rights reserved.</div>
-            <div class="bg-white px-7 py-3.5 rounded border border-[#f1f3f5] text-[21px] text-black font-bold w-full sm:w-auto text-center">Mua 1 lần sử dụng trọn đời</div>
-        </div>
-    </footer>
 </div>
+
 
 <!-- ══════════════ CHECKING ══════════════ -->
 <div id="s-check">
