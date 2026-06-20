@@ -10,8 +10,20 @@
 <link rel="icon" href="favicon.ico"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ["Nunito Sans", "Nunito", "sans-serif"],
+        }
+      }
+    }
+  }
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
+*, *::before, *::after { font-family: 'Nunito Sans', 'Nunito', sans-serif; }
 :root {
   --text:#212529; --text2:#495057; --text3:#868e96; --surface2:#f8f9fa;
   --green:#099268; --red:#fa5252; --orange:#d97706; --orangel:#fffbea; --orangeb:#f0d060;
@@ -327,80 +339,78 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
             <button class="bg-white hover:bg-[#fffbea] hover:border-[#ffc107] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer active:scale-95 active:bg-[#fff3c4] transition-all" onclick="doLogin()">Đăng nhập</button>
         </div>
         <p class="text-sm text-[#868e96] mt-3">Mua một lần, sử dụng trọn đời</p>
-        <p class="text-sm text-[#868e96] mt-4">Mua một lần, sử dụng trọn đời</p>
-        <p class="text-[13px] md:text-sm font-bold text-[#111110] mt-3 mb-1 tracking-tight">💎 Mua <span class="text-[#dc3545]">1 lần</span> — Sử dụng <span class="text-[#a87c00]">trọn đời</span>, không phí ẩn</p>
     </div>
 
     <!-- PREVIEW DASHBOARD (fake demo, mirrors the real app layout) -->
-    <div class="w-full max-w-3xl bg-[#f1f3f5] rounded-2xl p-2 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group mt-2">
+    <div class="w-full max-w-5xl bg-[#f1f3f5] rounded-2xl p-3 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group mt-5">
 
         <div class="absolute inset-0 bg-white/5 backdrop-blur-[1.5px] rounded-2xl z-30 pointer-events-none flex items-center justify-center border border-white/10">
-            <span class="bg-black/75 text-white text-[10px] font-bold tracking-widest uppercase px-3 py-1.5 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Preview Dashboard</span>
+            <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Preview Dashboard</span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 relative z-20">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-20">
 
             <!-- mini config card, mirrors real CONFIG CARD -->
-            <div class="bg-white rounded-lg p-2 border border-[#e9ecef] flex flex-col">
-                <div class="text-[10px] font-bold text-[#495057] mb-1.5 pb-1 border-b border-[#f1f3f5]">📁 Cấu hình nguồn &amp; đích</div>
+            <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col">
+                <div class="text-xs font-bold text-[#495057] mb-2 pb-1.5 border-b border-[#f1f3f5]">📁 Cấu hình nguồn &amp; đích</div>
 
-                <div class="space-y-1 mb-1.5">
-                    <div class="text-[7px] font-bold text-[#868e96] uppercase tracking-wider">Drive Nguồn (Shared Drive)</div>
-                    <div class="bg-[#f8f9fa] border border-[#dee2e6] px-1.5 py-0.5 rounded text-[9px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/19TIcajH...</div>
+                <div class="space-y-1.5 mb-2">
+                    <div class="text-[9px] font-bold text-[#868e96] uppercase tracking-wider">Drive Nguồn (Shared Drive)</div>
+                    <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/19TIcajH26y2uh5bV...</div>
                 </div>
-                <div class="space-y-1 mb-1.5">
-                    <div class="text-[7px] font-bold text-[#868e96] uppercase tracking-wider">Drive Bạn Tải Về</div>
-                    <div class="bg-[#f8f9fa] border border-[#dee2e6] px-1.5 py-0.5 rounded text-[9px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/11yngY7q...</div>
+                <div class="space-y-1.5 mb-2">
+                    <div class="text-[9px] font-bold text-[#868e96] uppercase tracking-wider">Drive Bạn Tải Về</div>
+                    <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/11yngY7qmJLYAgAr1...</div>
                 </div>
 
-                <div class="text-[7px] font-bold text-[#868e96] mb-0.5 uppercase tracking-wider">Thư mục chọn lọc (2/13)</div>
-                <div class="space-y-0.5 mb-1.5">
-                    <div class="flex items-center justify-between px-1.5 py-1 bg-[#f8f9fa]/60 rounded border border-[#f1f3f5] text-[9px] text-[#343a40] transition-colors duration-300" id="pvFolderRow1">
-                        <span class="font-medium truncate">📁 12. Thiết lập tiến độ MS PROJECT</span>
+                <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Thư mục chọn lọc (2/13)</div>
+                <div class="space-y-1 mb-2">
+                    <div class="flex items-center justify-between px-2 py-1.5 bg-[#f8f9fa]/60 rounded border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow1">
+                        <span class="font-medium truncate">📁 12. Thiết lập tiến độ với MS PROJECT</span>
                     </div>
-                    <div class="flex items-center justify-between px-1.5 py-1 bg-[#f8f9fa]/60 rounded border border-[#f1f3f5] text-[9px] text-[#343a40] transition-colors duration-300" id="pvFolderRow2">
-                        <span class="font-medium truncate">📁 13. Spreadsheet hiệu quả</span>
+                    <div class="flex items-center justify-between px-2 py-1.5 bg-[#f8f9fa]/60 rounded border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow2">
+                        <span class="font-medium truncate">📁 13. Làm việc hiệu quả với Spreadsheet</span>
                     </div>
                 </div>
 
-                <div class="flex gap-1 mt-auto border-t border-[#f1f3f5] pt-1.5">
-                    <div class="flex-1 text-center py-1 text-[8px] font-bold rounded border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] cursor-pointer transition-colors duration-300" id="pvBtnScan">Kiểm tra trước</div>
-                    <div class="flex-1 text-center py-1 text-[8px] font-bold rounded bg-[#ffc107] text-black cursor-pointer transition-colors duration-300" id="pvBtnStart">Bắt đầu sao chép</div>
-                    <div class="px-1.5 text-center py-1 text-[8px] font-bold rounded bg-[#212529] text-white cursor-pointer transition-colors duration-300" id="pvBtnCopy">Reset</div>
+                <div class="flex gap-1.5 mt-auto border-t border-[#f1f3f5] pt-2">
+                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] cursor-pointer transition-colors duration-300" id="pvBtnScan">Kiểm tra trước</div>
+                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg bg-[#ffc107] text-black cursor-pointer transition-colors duration-300" id="pvBtnStart">Bắt đầu sao chép</div>
+                    <div class="px-2.5 text-center py-1.5 text-[10px] font-bold rounded-lg bg-[#212529] text-white cursor-pointer transition-colors duration-300" id="pvBtnCopy">Reset</div>
                 </div>
             </div>
 
             <!-- mini progress card, mirrors real PROGRESS CARD -->
-            <div class="bg-white rounded-lg p-2 border border-[#e9ecef] flex flex-col">
-                <div class="text-[10px] font-bold text-[#495057] mb-1.5 pb-1 border-b border-[#f1f3f5]">⚡ Tiến trình đồng bộ</div>
+            <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col">
+                <div class="text-xs font-bold text-[#495057] mb-2 pb-1.5 border-b border-[#f1f3f5]">⚡ Tiến trình đồng bộ</div>
 
-                <div class="mb-1.5">
-                    <div class="flex justify-between text-[8px] font-bold text-[#6c757d] mb-1">
+                <div class="mb-2">
+                    <div class="flex justify-between text-[10px] font-bold text-[#6c757d] mb-1">
                         <span class="truncate" id="pvStatusText">Đang xử lý: 56. Hàm thống kê - COUNT.mp4</span>
                         <span class="text-black flex-shrink-0 ml-1" id="pvPercentText">73%</span>
                     </div>
-                    <div class="h-1 bg-[#e9ecef] rounded-full overflow-hidden">
+                    <div class="h-1.5 bg-[#e9ecef] rounded-full overflow-hidden">
                         <div class="h-full bg-[#212529] transition-[width] duration-300 ease-linear" id="pvProgBar" style="width:73%"></div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-1.5 mb-1.5">
-                    <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded p-1 text-center flex flex-col justify-center h-[34px]">
-                        <span class="text-xs font-bold text-[#099268] block leading-none" id="pvStatOk">70</span>
-                        <span class="text-[6.5px] uppercase font-bold text-[#20c997] tracking-tight leading-tight mt-0.5">Thành công</span>
+                <div class="grid grid-cols-3 gap-2 mb-2">
+                    <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-lg p-1.5 text-center flex flex-col justify-center h-[52px]">
+                        <span class="text-lg font-bold text-[#099268] block leading-none" id="pvStatOk">70</span>
+                        <span class="text-[8px] uppercase font-bold text-[#20c997] tracking-tight leading-tight mt-1">Thành công</span>
                     </div>
-                    <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded p-1 text-center flex flex-col justify-center h-[34px]">
-                        <span class="text-xs font-bold text-[#fa5252] block leading-none" id="pvStatErr">139</span>
-                        <span class="text-[6.5px] uppercase font-bold text-[#f03e3e] tracking-tight leading-tight mt-0.5">Lỗi Drive</span>
+                    <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-lg p-1.5 text-center flex flex-col justify-center h-[52px]">
+                        <span class="text-lg font-bold text-[#fa5252] block leading-none" id="pvStatErr">139</span>
+                        <span class="text-[8px] uppercase font-bold text-[#f03e3e] tracking-tight leading-tight mt-1">Lỗi Drive</span>
                     </div>
-                    <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded p-1 text-center flex flex-col justify-center h-[34px]">
-                        <span class="text-xs font-bold text-[#495057] block leading-none" id="pvStatFold">25</span>
-                        <span class="text-[6.5px] uppercase font-bold text-[#868e96] tracking-tight leading-tight mt-0.5">Thư mục</span>
+                    <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-lg p-1.5 text-center flex flex-col justify-center h-[52px]">
+                        <span class="text-lg font-bold text-[#495057] block leading-none" id="pvStatFold">25</span>
+                        <span class="text-[8px] uppercase font-bold text-[#868e96] tracking-tight leading-tight mt-1">Thư mục</span>
                     </div>
                 </div>
 
-                <div class="text-[7px] font-bold text-[#868e96] mb-0.5 uppercase tracking-wider">Activity Log</div>
-                <div class="bg-[#141414] text-[#a9b7c6] font-mono text-[8px] p-1.5 rounded flex-1 min-h-[40px] overflow-hidden flex flex-col justify-end" id="pvLogBox">
+                <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Activity Log</div>
+                <div class="bg-[#141414] text-[#a9b7c6] font-mono text-[10px] p-2 rounded-lg flex-1 min-h-[64px] overflow-hidden flex flex-col justify-end" id="pvLogBox">
                     <div class="truncate"><span class="text-[#4e9a06]">✓ OK:</span> 55. Hàm thống kê - SUM.mp4</div>
                     <div class="text-white truncate" id="pvLogRunning">>> RUNNING: 56. Hàm thống kê - COUNT.mp4...</div>
                 </div>
