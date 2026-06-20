@@ -1,215 +1,212 @@
 <!DOCTYPE html>
-<!-- SwiftCopy.Drive v8 — Tailwind UI + real Firebase/Drive backend -->
 <html lang="vi">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>SwiftCopy.Drive — Sao chép Google Drive</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
-<link rel="icon" href="favicon.ico"/>
-<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        fontFamily: {
-          sans: ["Nunito Sans", "Nunito", "sans-serif"],
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftCopy.Drive — Sao chép Google Drive</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+    <link rel="icon" href="favicon.ico"/>
+    <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes smoothPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.6); }
+            50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(255, 193, 7, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
         }
-      }
-    }
-  }
-</script>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<style>
-*, *::before, *::after { font-family: 'Nunito Sans', 'Nunito', sans-serif; }
-:root {
-  --text:#212529; --text2:#495057; --text3:#868e96; --surface2:#f8f9fa;
-  --green:#099268; --red:#fa5252; --orange:#d97706; --orangel:#fffbea; --orangeb:#f0d060;
-}
-@keyframes smoothPulse {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.6); }
-    50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(255, 193, 7, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
-}
-.animate-pulse-shadow { animation: smoothPulse 2s infinite ease-in-out; }
+        .animate-pulse-shadow {
+            animation: smoothPulse 2s infinite ease-in-out;
+        }
 
-@media (min-width: 1024px) { html, body { min-height: 100vh; } }
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            padding: 1rem;
+        }
 
-.modal-overlay {
-    position: fixed; inset: 0; background-color: rgba(0,0,0,.5); backdrop-filter: blur(4px);
-    display: flex; align-items: center; justify-content: center; z-index: 100;
-    opacity: 0; pointer-events: none; transition: all .3s ease; padding: 1rem;
-}
-.modal-overlay.active { opacity: 1; pointer-events: auto; }
-.modal-wrapper {
-    background-color: #fff; border-radius: 1rem; padding: 1.5rem; width: 100%; max-width: 500px;
-    box-shadow: 0 20px 25px -5px rgba(0,0,0,.1), 0 10px 10px -5px rgba(0,0,0,.04);
-    transform: scale(.95); transition: all .3s ease;
-}
-.modal-overlay.active .modal-wrapper { transform: scale(1); }
-.modal-title { font-size: 1.125rem; font-weight: 800; color: #111827; margin-bottom: 1rem; }
-.modal-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.25rem; }
-.btn-modal { padding: .6rem 1.25rem; border-radius: .6rem; font-weight: 700; font-size: .8125rem; cursor: pointer; border: none; font-family: inherit; transition: opacity .15s, background .15s, transform .12s; }
-.btn-cancel { background: #f1f3f5; color: #495057; }
-.btn-cancel:hover { background: #e9ecef; }
-.btn-cancel:active { background: #dee2e6; transform: scale(.97); }
-.btn-submit { background: #ffc107; color: #111110; }
-.btn-submit:hover { background: #e6ac00; opacity: 1; }
-.btn-submit:active { background: #d4a800; transform: scale(.97); }
-.earn-info-box { font-size: .8125rem; color: #495057; line-height: 1.6; }
-.form-label { color: #495057; }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
 
-.star-rating-box span { font-size: 1.75rem; cursor: pointer; color: #dee2e6; transition: color .2s, transform .12s; display: inline-block; margin-right: .25rem; }
-.star-rating-box span.selected, .star-rating-box span:hover { color: #ffc107; transform: scale(1.15); }
-.star-rating-box span:active { transform: scale(0.95); }
+        .modal-wrapper {
+            background-color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: scale(0.95);
+            transition: all 0.3s ease;
+        }
 
-.custom-scroll::-webkit-scrollbar { width: 4px; }
-.custom-scroll::-webkit-scrollbar-track { background: transparent; }
-.custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .modal-overlay.active .modal-wrapper {
+            transform: scale(1);
+        }
 
-/* ---- App-specific styles ported from the original working app ---- */
-.spin { width: 30px; height: 30px; border: 3px solid #e9ecef; border-top-color: #212529; border-radius: 50%; animation: spin .7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+        .star-rating-box span {
+            font-size: 1.75rem;
+            cursor: pointer;
+            color: #dee2e6;
+            transition: color 0.2s;
+            margin-right: 0.25rem;
+        }
+        .star-rating-box span.selected, .star-rating-box span:hover {
+            color: #ffc107;
+        }
 
-.fi { width:100%; padding:9px 12px; border:1.5px solid #dee2e6; border-radius:10px; font-size:13px; font-family:inherit; color:#212529; background:#f8f9fa; outline:none; transition:.15s; }
-.fi:focus { border-color:#212529; background:#fff; }
+        /* ---- Real app dashboard styles (Firebase/Drive backend) ---- */
+        .spin { width: 30px; height: 30px; border: 3px solid #e9ecef; border-top-color: #212529; border-radius: 50%; animation: spin .7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-.folder-preview { margin-top:5px; min-height:20px; display:flex; align-items:center; gap:5px; font-size:12px; font-weight:600; color:#099268; transition:.2s; }
-.folder-preview.loading { color:#868e96; }
-.folder-preview.error { color:#fa5252; }
+        .fi { width:100%; padding:9px 12px; border:1.5px solid #dee2e6; border-radius:10px; font-size:13px; color:#212529; background:#f8f9fa; outline:none; transition:.15s; }
+        .fi:focus { border-color:#212529; background:#fff; }
 
-.checklist-wrap { margin-top:14px; border:1.5px solid #e9ecef; border-radius:14px; overflow:hidden; }
-.checklist-toolbar { padding:10px 14px; background:#f8f9fa; border-bottom:1.5px solid #e9ecef; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
-.checklist-info { font-size:12px; color:#868e96; font-weight:600; }
-.checklist-info b { color:#212529; font-weight:700; }
-.checklist-toolbar-btns { display:flex; gap:6px; }
-.btn-ghost { background:none; border:none; color:#868e96; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; padding:4px 8px; border-radius:6px; transition:.15s; }
-.btn-ghost:hover { background:#fff8e1; color:#a87c00; }
-.btn-ghost:active { background:#ffecb3; transform:scale(.95); }
-.checklist-body { max-height:420px; overflow-y:auto; background:#fff; user-select:none; }
-.checklist-body::-webkit-scrollbar { width:6px; }
-.checklist-body::-webkit-scrollbar-thumb { background:#ccc; border-radius:3px; }
+        .folder-preview { margin-top:5px; min-height:20px; display:flex; align-items:center; gap:5px; font-size:12px; font-weight:600; color:#099268; transition:.2s; }
+        .folder-preview.loading { color:#868e96; }
+        .folder-preview.error { color:#fa5252; }
 
-.cl-row { display:flex; align-items:center; gap:8px; padding:8px 14px; border-bottom:1px solid #f1f3f5; cursor:pointer; transition:background .15s; }
-.cl-row:last-child { border-bottom:none; }
-.cl-row:hover { background:#fffbea; }
-.cl-row:active { background:#fff3c4; }
-.cl-cb { width:16px; height:16px; border:2px solid #dee2e6; border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:.15s; background:#fff; }
-.cl-row.checked .cl-cb { background:#ffc107; border-color:#e6ac00; }
-.cl-row.indeterminate .cl-cb { background:#868e96; border-color:#868e96; }
-.cl-cb-tick, .cl-cb-dash { display:none; color:#111110; font-size:10px; font-weight:900; line-height:1; }
-.cl-row.indeterminate .cl-cb-dash { color:#fff; }
-.cl-row.checked .cl-cb-tick { display:block; }
-.cl-row.indeterminate .cl-cb-dash { display:block; }
-.cl-expand { width:18px; height:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:4px; color:#868e96; transition:background .15s, color .15s; }
-.cl-expand:hover { background:#ffecb3; color:#a87c00; }
-.cl-expand:active { background:#ffe082; transform:scale(.9); }
-.cl-expand.no-children { opacity:0; pointer-events:none; }
-.cl-icon { font-size:14px; flex-shrink:0; line-height:1; }
-.cl-name { flex:1; font-size:13px; color:#212529; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
-.cl-row.is-folder .cl-name { font-weight:700; }
-.cl-meta { font-size:10px; color:#868e96; flex-shrink:0; }
-.cl-loading { padding:28px; text-align:center; color:#868e96; font-size:13px; display:flex; flex-direction:column; align-items:center; gap:10px; }
-.cl-empty { padding:28px; text-align:center; color:#868e96; font-size:13px; }
+        .checklist-wrap { margin-top:14px; border:1.5px solid #e9ecef; border-radius:14px; overflow:hidden; }
+        .checklist-toolbar { padding:10px 14px; background:#f8f9fa; border-bottom:1.5px solid #e9ecef; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+        .checklist-info { font-size:12px; color:#868e96; font-weight:600; }
+        .checklist-info b { color:#212529; font-weight:700; }
+        .checklist-toolbar-btns { display:flex; gap:6px; }
+        .btn-ghost { background:none; border:none; color:#868e96; font-size:12px; font-weight:600; cursor:pointer; padding:4px 8px; border-radius:6px; transition:.15s; }
+        .btn-ghost:hover { background:#fff8e1; color:#a87c00; }
+        .btn-ghost:active { background:#ffecb3; transform:scale(.95); }
+        .checklist-body { max-height:420px; overflow-y:auto; background:#fff; user-select:none; }
+        .checklist-body::-webkit-scrollbar { width:6px; }
+        .checklist-body::-webkit-scrollbar-thumb { background:#ccc; border-radius:3px; }
 
-.prog-track { height:8px; background:#f1f3f5; border-radius:999px; overflow:hidden; border:1px solid #e9ecef; position:relative; }
-.prog-fill { height:100%; border-radius:999px; background:#212529; transition:width .3s; width:0; }
-.prog-fill.done { background:#1a9950; width:100% !important; animation:none !important; }
-.prog-fill.paused { background:#d97706; width:60% !important; animation:none !important; }
-.prog-track.indeterminate { position:relative; overflow:hidden; }
-.prog-track.indeterminate .prog-fill { position:absolute; top:0; left:0; height:100%; width:35% !important; border-radius:999px; }
-.prog-fill.scanning { background:#7c3aed; animation:sweep 1.1s ease-in-out infinite; }
-.prog-fill.running { background:#212529; animation:sweep 1.1s ease-in-out infinite; }
-@keyframes sweep { 0%{left:-35%} 50%{left:55%} 100%{left:100%} }
-.status-lbl { font-size:11px; color:#868e96; margin-top:5px; min-height:16px; font-family:monospace; }
+        .cl-row { display:flex; align-items:center; gap:8px; padding:8px 14px; border-bottom:1px solid #f1f3f5; cursor:pointer; transition:background .15s; }
+        .cl-row:last-child { border-bottom:none; }
+        .cl-row:hover { background:#fffbea; }
+        .cl-row:active { background:#fff3c4; }
+        .cl-cb { width:16px; height:16px; border:2px solid #dee2e6; border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:.15s; background:#fff; }
+        .cl-row.checked .cl-cb { background:#ffc107; border-color:#e6ac00; }
+        .cl-row.indeterminate .cl-cb { background:#868e96; border-color:#868e96; }
+        .cl-cb-tick, .cl-cb-dash { display:none; color:#111110; font-size:10px; font-weight:900; line-height:1; }
+        .cl-row.indeterminate .cl-cb-dash { color:#fff; }
+        .cl-row.checked .cl-cb-tick { display:block; }
+        .cl-row.indeterminate .cl-cb-dash { display:block; }
+        .cl-expand { width:18px; height:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:4px; color:#868e96; transition:background .15s, color .15s; }
+        .cl-expand:hover { background:#ffecb3; color:#a87c00; }
+        .cl-expand:active { background:#ffe082; transform:scale(.9); }
+        .cl-expand.no-children { opacity:0; pointer-events:none; }
+        .cl-icon { font-size:14px; flex-shrink:0; line-height:1; }
+        .cl-name { flex:1; font-size:13px; color:#212529; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
+        .cl-row.is-folder .cl-name { font-weight:700; }
+        .cl-meta { font-size:10px; color:#868e96; flex-shrink:0; }
+        .cl-loading { padding:28px; text-align:center; color:#868e96; font-size:13px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+        .cl-empty { padding:28px; text-align:center; color:#868e96; font-size:13px; }
 
-.log-box { height:240px; overflow-y:auto; background:#111110; border-radius:10px; padding:10px 12px; font-family:'Courier New',monospace; }
-.log-box::-webkit-scrollbar { width:8px; }
-.log-box::-webkit-scrollbar-thumb { background:#777; border-radius:4px; border:2px solid #333; }
-.ll { display:flex; gap:7px; padding:1.5px 0; font-size:11px; line-height:1.6; }
-.ll-ts { color:#555; flex-shrink:0; font-size:10px; }
-.ll-ic { flex-shrink:0; width:14px; }
-.ll-msg { color:#ccc; word-break:break-all; }
+        .prog-track { height:8px; background:#f1f3f5; border-radius:999px; overflow:hidden; border:1px solid #e9ecef; position:relative; }
+        .prog-fill { height:100%; border-radius:999px; background:#212529; transition:width .3s; width:0; }
+        .prog-fill.done { background:#1a9950; width:100% !important; animation:none !important; }
+        .prog-fill.paused { background:#d97706; width:60% !important; animation:none !important; }
+        .prog-track.indeterminate { position:relative; overflow:hidden; }
+        .prog-track.indeterminate .prog-fill { position:absolute; top:0; left:0; height:100%; width:35% !important; border-radius:999px; }
+        .prog-fill.scanning { background:#7c3aed; animation:sweep 1.1s ease-in-out infinite; }
+        .prog-fill.running { background:#212529; animation:sweep 1.1s ease-in-out infinite; }
+        @keyframes sweep { 0%{left:-35%} 50%{left:55%} 100%{left:100%} }
+        .status-lbl { font-size:11px; color:#868e96; margin-top:5px; min-height:16px; font-family:'Courier New',monospace; }
 
-.tree-wrap { border:1.5px solid #e9ecef; border-radius:14px; overflow:hidden; margin-top:12px; }
-.tree-head { padding:10px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #e9ecef; }
-.tree-head.ok-head { background:#e6fcf5; border-color:#c3fae8; }
-.tree-head.err-head { background:#fff5f5; border-color:#ffe3e3; }
-.tree-body { background:#fff; }
-.tree-note { padding:9px 16px; background:#f8f9fa; border-top:1px solid #e9ecef; font-size:12px; color:#495057; }
-.tr { display:flex; align-items:center; gap:7px; border-bottom:1px solid #f1f3f5; font-size:12px; min-width:0; }
-.tr:last-child { border-bottom:none; }
-.tr.tf { background:#f8f9fa; cursor:pointer; font-weight:700; }
-.tr.tf:hover { background:#e9ecef; }
-.tr.tf.has-err { background:#fffbea; }
-.tr.tf.all-ok { background:#e6fcf5; }
-.tr.tfile { color:#495057; }
-.tr.tfile.ferr { background:#fff8f8; color:#fa5252; }
-.tr-name { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.tr-reason { font-size:10px; background:#fff5f5; color:#fa5252; padding:2px 8px; border-radius:999px; flex-shrink:0; font-weight:600; border:1px solid #ffe3e3; white-space:nowrap; }
-.tr-badge { font-size:10px; padding:2px 7px; border-radius:999px; flex-shrink:0; border:1px solid; white-space:nowrap; }
-.si-ok { color:#099268; } .si-err { color:#fa5252; } .si-warn { color:#d97706; }
+        .log-box { height:240px; overflow-y:auto; background:#111110; border-radius:10px; padding:10px 12px; font-family:'Courier New',monospace; }
+        .log-box::-webkit-scrollbar { width:8px; }
+        .log-box::-webkit-scrollbar-thumb { background:#777; border-radius:4px; border:2px solid #333; }
+        .ll { display:flex; gap:7px; padding:1.5px 0; font-size:11px; line-height:1.6; }
+        .ll-ts { color:#555; flex-shrink:0; font-size:10px; }
+        .ll-ic { flex-shrink:0; width:14px; }
+        .ll-msg { color:#ccc; word-break:break-all; }
 
-.compl-ov { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:350; align-items:center; justify-content:center; padding:16px; }
-.compl-ov.on { display:flex; }
-.compl-card { background:#fff; border-radius:14px; width:100%; max-width:480px; box-shadow:0 24px 70px rgba(0,0,0,.25); border:1.5px solid #e9ecef; overflow:hidden; }
-.compl-head { padding:28px 28px 18px; text-align:center; }
-.compl-icon { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
-.compl-icon.ok { background:#e6fcf5; color:#099268; }
-.compl-title { font-size:19px; font-weight:800; margin-bottom:4px; }
-.compl-sub { font-size:12px; color:#868e96; }
-.compl-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:0 24px 20px; }
-.compl-stat { background:#f8f9fa; border:1.5px solid #e9ecef; border-radius:10px; padding:12px 6px; text-align:center; }
-.compl-stat .n { font-size:18px; font-weight:800; line-height:1; margin-bottom:3px; }
-.compl-stat .l { font-size:9px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#868e96; }
-.compl-stat.gr .n { color:#099268; }
-.compl-stat.re .n { color:#fa5252; }
-.compl-video { margin:0 24px 20px; background:#fffbea; border:1.5px solid #f0d060; border-radius:14px; padding:14px 16px; }
-.compl-video-h { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:#d97706; margin-bottom:8px; }
-.compl-video ul { list-style:none; display:flex; flex-direction:column; gap:6px; }
-.compl-video li { font-size:12px; color:#7a5a00; line-height:1.6; display:flex; gap:7px; align-items:flex-start; }
-.compl-foot { padding:0 24px 24px; }
-.compl-btn { width:100%; padding:12px; border-radius:10px; font-size:14px; font-weight:800; font-family:inherit; cursor:pointer; border:none; background:#212529; color:#fff; transition:background .15s, transform .12s; }
-.compl-btn:active { transform:scale(.98); }
-.compl-btn:hover { background:#000; }
+        .tree-wrap { border:1.5px solid #e9ecef; border-radius:14px; overflow:hidden; margin-top:12px; }
+        .tree-head { padding:10px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #e9ecef; }
+        .tree-head.ok-head { background:#e6fcf5; border-color:#c3fae8; }
+        .tree-head.err-head { background:#fff5f5; border-color:#ffe3e3; }
+        .tree-body { background:#fff; }
+        .tree-note { padding:9px 16px; background:#f8f9fa; border-top:1px solid #e9ecef; font-size:12px; color:#495057; }
+        .tr { display:flex; align-items:center; gap:7px; border-bottom:1px solid #f1f3f5; font-size:12px; min-width:0; }
+        .tr:last-child { border-bottom:none; }
+        .tr.tf { background:#f8f9fa; cursor:pointer; font-weight:700; }
+        .tr.tf:hover { background:#e9ecef; }
+        .tr.tf.has-err { background:#fffbea; }
+        .tr.tf.all-ok { background:#e6fcf5; }
+        .tr.tfile { color:#495057; }
+        .tr.tfile.ferr { background:#fff8f8; color:#fa5252; }
+        .tr-name { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .tr-reason { font-size:10px; background:#fff5f5; color:#fa5252; padding:2px 8px; border-radius:999px; flex-shrink:0; font-weight:600; border:1px solid #ffe3e3; white-space:nowrap; }
+        .tr-badge { font-size:10px; padding:2px 7px; border-radius:999px; flex-shrink:0; border:1px solid; white-space:nowrap; }
+        .si-ok { color:#099268; } .si-err { color:#fa5252; } .si-warn { color:#d97706; }
 
-.vidwarn-body { padding:20px 24px; }
-.vidwarn-body p { font-size:13px; color:#495057; line-height:1.7; margin-bottom:10px; }
-.vidwarn-list { background:#f8f9fa; border:1.5px solid #e9ecef; border-radius:10px; padding:12px 14px; margin:12px 0; display:flex; flex-direction:column; gap:7px; }
-.vidwarn-list li { list-style:none; font-size:12px; color:#495057; display:flex; gap:8px; align-items:flex-start; line-height:1.6; }
-.vidwarn-check { display:flex; align-items:center; gap:8px; font-size:12px; color:#495057; font-weight:600; margin-top:14px; cursor:pointer; user-select:none; }
-.vidwarn-check input { width:15px; height:15px; accent-color:#212529; cursor:pointer; }
-.vidwarn-foot { padding:0 24px 24px; display:flex; gap:8px; }
+        .compl-ov { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:350; align-items:center; justify-content:center; padding:16px; }
+        .compl-ov.on { display:flex; }
+        .compl-card { background:#fff; border-radius:14px; width:100%; max-width:480px; box-shadow:0 24px 70px rgba(0,0,0,.25); border:1.5px solid #e9ecef; overflow:hidden; }
+        .compl-head { padding:28px 28px 18px; text-align:center; }
+        .compl-icon { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+        .compl-icon.ok { background:#e6fcf5; color:#099268; }
+        .compl-title { font-size:19px; font-weight:800; margin-bottom:4px; }
+        .compl-sub { font-size:12px; color:#868e96; }
+        .compl-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:0 24px 20px; }
+        .compl-stat { background:#f8f9fa; border:1.5px solid #e9ecef; border-radius:10px; padding:12px 6px; text-align:center; }
+        .compl-stat .n { font-size:18px; font-weight:800; line-height:1; margin-bottom:3px; }
+        .compl-stat .l { font-size:9px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#868e96; }
+        .compl-stat.gr .n { color:#099268; }
+        .compl-stat.re .n { color:#fa5252; }
+        .compl-video { margin:0 24px 20px; background:#fffbea; border:1.5px solid #f0d060; border-radius:14px; padding:14px 16px; }
+        .compl-video-h { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:#d97706; margin-bottom:8px; }
+        .compl-video ul { list-style:none; display:flex; flex-direction:column; gap:6px; }
+        .compl-video li { font-size:12px; color:#7a5a00; line-height:1.6; display:flex; gap:7px; align-items:flex-start; }
+        .compl-foot { padding:0 24px 24px; }
+        .compl-btn { width:100%; padding:12px; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer; border:none; background:#212529; color:#fff; transition:background .15s, transform .12s; }
+        .compl-btn:hover { background:#000; }
+        .compl-btn:active { transform:scale(.98); }
 
-.overlay-backdrop { display:none; position:fixed; inset:0; z-index:498; background:rgba(0,0,0,.75); backdrop-filter:blur(3px); }
-.overlay-backdrop.show { display:block; }
-.overlay-panel { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:499; width:90%; max-width:460px; }
-.overlay-panel.show { display:block; }
-.no-auth-card { background:linear-gradient(145deg,#1a0a08,#2d0f0a); border:1px solid rgba(255,80,60,.3); border-radius:20px; padding:36px 32px; text-align:center; box-shadow:0 32px 80px rgba(0,0,0,.5); }
-.no-auth-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(232,41,28,.2); border:1px solid rgba(232,41,28,.4); color:#ff8070; font-size:11px; font-weight:700; padding:5px 14px; border-radius:999px; margin-bottom:20px; }
-.no-auth-title { font-size:22px; font-weight:800; color:#fff; margin-bottom:10px; }
-.no-auth-msg { font-size:14px; color:rgba(255,255,255,.65); line-height:1.7; margin-bottom:24px; }
+        .vidwarn-body { padding:20px 24px; }
+        .vidwarn-body p { font-size:13px; color:#495057; line-height:1.7; margin-bottom:10px; }
+        .vidwarn-list { background:#f8f9fa; border:1.5px solid #e9ecef; border-radius:10px; padding:12px 14px; margin:12px 0; display:flex; flex-direction:column; gap:7px; }
+        .vidwarn-list li { list-style:none; font-size:12px; color:#495057; display:flex; gap:8px; align-items:flex-start; line-height:1.6; }
+        .vidwarn-check { display:flex; align-items:center; gap:8px; font-size:12px; color:#495057; font-weight:600; margin-top:14px; cursor:pointer; user-select:none; }
+        .vidwarn-check input { width:15px; height:15px; accent-color:#212529; cursor:pointer; }
+        .vidwarn-foot { padding:0 24px 24px; display:flex; gap:8px; }
 
-.success-toast { display:none; position:fixed; top:72px; left:50%; transform:translateX(-50%); z-index:499; }
-.success-toast.show { display:block; }
-.success-toast-inner { background:linear-gradient(135deg,#0d5c2e,#1a9950); border:1px solid rgba(52,211,153,.3); border-radius:14px; padding:14px 22px; display:flex; align-items:center; gap:12px; box-shadow:0 8px 32px rgba(26,153,80,.35); }
+        .overlay-backdrop { display:none; position:fixed; inset:0; z-index:498; background:rgba(0,0,0,.75); backdrop-filter:blur(3px); }
+        .overlay-backdrop.show { display:block; }
+        .overlay-panel { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:499; width:90%; max-width:460px; }
+        .overlay-panel.show { display:block; }
+        .no-auth-card { background:linear-gradient(145deg,#1a0a08,#2d0f0a); border:1px solid rgba(255,80,60,.3); border-radius:20px; padding:36px 32px; text-align:center; box-shadow:0 32px 80px rgba(0,0,0,.5); }
+        .no-auth-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(232,41,28,.2); border:1px solid rgba(232,41,28,.4); color:#ff8070; font-size:11px; font-weight:700; padding:5px 14px; border-radius:999px; margin-bottom:20px; }
+        .no-auth-title { font-size:22px; font-weight:800; color:#fff; margin-bottom:10px; }
+        .no-auth-msg { font-size:14px; color:rgba(255,255,255,.65); line-height:1.7; margin-bottom:24px; }
 
-.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(16px); background:#212529; color:#fff; font-size:12px; font-weight:700; padding:9px 18px; border-radius:10px; opacity:0; transition:.25s; pointer-events:none; z-index:400; }
-.toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
-.toast.warn { background:#d4a800; color:#212529; }
-.toast.err { background:#e8291c; }
-.toast.ok { background:#1a9950; }
+        .success-toast { display:none; position:fixed; top:72px; left:50%; transform:translateX(-50%); z-index:499; }
+        .success-toast.show { display:block; }
+        .success-toast-inner { background:linear-gradient(135deg,#0d5c2e,#1a9950); border:1px solid rgba(52,211,153,.3); border-radius:14px; padding:14px 22px; display:flex; align-items:center; gap:12px; box-shadow:0 8px 32px rgba(26,153,80,.35); }
 
-.resume-banner { background:#fffbea; border:1.5px solid #f0d060; border-radius:10px; padding:12px 16px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(16px); background:#212529; color:#fff; font-size:12px; font-weight:700; padding:9px 18px; border-radius:10px; opacity:0; transition:.25s; pointer-events:none; z-index:400; }
+        .toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
+        .toast.warn { background:#d4a800; color:#212529; }
+        .toast.err { background:#e8291c; }
+        .toast.ok { background:#1a9950; }
 
-#s-land, #s-check, #s-pend, #s-app { display:none; }
-svg.ic { width:14px; height:14px; display:inline-block; vertical-align:middle; flex-shrink:0; }
-svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle; flex-shrink:0; }
-</style>
+        .resume-banner { background:#fffbea; border:1.5px solid #f0d060; border-radius:10px; padding:12px 16px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+
+        svg.ic { width:14px; height:14px; display:inline-block; vertical-align:middle; flex-shrink:0; }
+        svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle; flex-shrink:0; }
+
+        #s-land, #s-check, #s-pend, #s-app { display:none; }
+    </style>
 </head>
-<body class="bg-[#fafafa] text-[#212529] min-h-screen flex flex-col antialiased m-0 p-0" style="font-family:'Nunito Sans',sans-serif">
+<body class="bg-[#fafafa] text-[#212529] font-sans min-h-screen flex flex-col antialiased">
 
 <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
   <symbol id="ic-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3"/></symbol>
@@ -237,7 +234,6 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
   <symbol id="ic-film" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></symbol>
 </svg>
 
-<!-- NO AUTH OVERLAY -->
 <div id="noAuthBackdrop" class="overlay-backdrop" onclick="closeNoAuth()"></div>
 <div id="noAuthPanel" class="overlay-panel">
   <div class="no-auth-card">
@@ -252,7 +248,6 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
   </div>
 </div>
 
-<!-- AUTH SUCCESS -->
 <div id="authSuccessToast" class="success-toast">
   <div class="success-toast-inner">
     <div class="w-9 h-9 bg-white/15 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4" style="color:#fff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-check"/></svg></div>
@@ -260,212 +255,221 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
   </div>
 </div>
 
-<header class="bg-white px-6 md:px-10 py-4 flex justify-between items-center sticky top-0 z-40 border-b border-[#f1f3f5] shadow-sm flex-shrink-0">
-    <div class="flex items-center gap-3">
-        <svg class="w-10 h-10 rounded-xl flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-          <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
-          <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
-          <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div class="font-extrabold text-2xl text-black tracking-[-0.8px] whitespace-nowrap" style="font-family:'Nunito',sans-serif">
-            SwiftCopy<span class="text-[#dc3545]">.</span><span>Drive</span>
-        </div>
-    </div>
-
-    <!-- Logged-out: notifications / help / earn / language -->
-    <div class="flex items-center gap-3 relative" id="navGuest">
-        <div class="relative w-9 h-9 flex items-center justify-center rounded-full cursor-pointer transition-colors duration-150 hover:bg-[#fff8e1] active:bg-[#ffecb3] active:scale-95" id="bellIcon" title="Thông báo">
-            <svg class="w-[20px] h-[20px] stroke-[#495057] fill-none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+    <header class="bg-white px-6 md:px-10 py-4 flex justify-between items-center sticky top-0 z-40 border-b border-[#f1f3f5] shadow-sm">
+        <div class="flex items-center gap-3">
+            <svg class="w-10 h-10 rounded-xl flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
+              <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
+              <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <div class="absolute top-[42px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-72 hidden z-50 py-2" id="bellPopover">
-                <div class="px-4 py-1.5 pb-2 font-bold text-[13px] border-b border-[#f1f3f5] text-black tracking-wide">THÔNG BÁO HỆ THỐNG</div>
-                <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">⚡ <b>Cập nhật v0.2:</b> Tối ưu hóa thêm 40% tốc độ copy thư mục chứa trên 10,000 files.</div>
-                <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">📘 <b>Hướng dẫn mới:</b> Cách cấu hình tài khoản phụ để bypass giới hạn API.</div>
-                <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">🛠️ <b>Bảo trì định kỳ:</b> Hệ thống nâng cấp máy chủ vào 23:00 tối mai.</div>
+            <div class="font-bold text-2xl text-black tracking-[-0.8px] whitespace-nowrap">
+                SwiftCopy<span class="text-[#dc3545]">.</span><span>Drive</span>
             </div>
         </div>
 
-        <div class="relative w-9 h-9 flex items-center justify-center rounded-full cursor-pointer transition-colors duration-150 hover:bg-[#fff8e1] active:bg-[#ffecb3] active:scale-95" id="helpIcon" title="Trợ giúp">
-            <svg class="w-[20px] h-[20px] stroke-[#495057] fill-none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-            <div class="absolute top-[42px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-60 hidden z-50 py-1.5" id="helpPopover">
-                <div class="px-4 py-1.5 pb-2 font-bold text-[13px] border-b border-[#f1f3f5] text-black tracking-wide">TRỢ GIÚP NHANH</div>
-                <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#fff8e1] hover:text-[#dc3545] active:bg-[#ffecb3] cursor-pointer transition-colors" onclick="openZaloHelp()">📞 Thông tin hỗ trợ & Zalo</div>
-                <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#fff8e1] hover:text-[#dc3545] active:bg-[#ffecb3] cursor-pointer transition-colors" onclick="triggerFaqModal()">❓ Câu hỏi thường gặp (FAQ)</div>
+        <div class="flex items-center gap-6 relative" id="navGuest">
+            <div class="relative cursor-pointer py-1" id="bellIcon" title="Thông báo">
+                <svg class="w-[22px] h-[22px] stroke-[#343a40] fill-none stroke-[1.8]" viewBox="0 0 24 24">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <div class="absolute top-[38px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-72 hidden z-50 py-2" id="bellPopover">
+                    <div class="px-4 py-1.5 pb-2 font-bold text-[13px] border-b border-[#f1f3f5] text-black tracking-wide">THÔNG BÁO HỆ THỐNG</div>
+                    <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">⚡ <b>Cập nhật v0.2:</b> Tối ưu hóa thêm 40% tốc độ copy thư mục chứa trên 10,000 files.</div>
+                    <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">📘 <b>Hướng dẫn mới:</b> Cách cấu hình tài khoản phụ để bypass giới hạn API.</div>
+                    <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">🛠️ <b>Bảo trì định kỳ:</b> Hệ thống nâng cấp máy chủ vào 23:00 tối mai.</div>
+                </div>
+            </div>
+
+            <div class="relative cursor-pointer py-1" id="helpIcon" title="Trợ giúp">
+                <svg class="w-[22px] h-[22px] stroke-[#343a40] fill-none stroke-[1.8]" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <div class="absolute top-[38px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-60 hidden z-50 py-1.5" id="helpPopover">
+                    <div class="px-4 py-1.5 pb-2 font-bold text-[13px] border-b border-[#f1f3f5] text-black tracking-wide">TRỢ GIÚP NHANH</div>
+                    <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545]" onclick="openZaloHelp()">📞 Thông tin hỗ trợ & Zalo</div>
+                    <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545]" onclick="triggerFaqModal()">❓ Câu hỏi thường gặp (FAQ)</div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 px-3.5 py-1.5 border border-[#ffc107] rounded-full bg-white cursor-pointer transition-all duration-200 hover:bg-[#fffdf0] hover:-translate-y-[1px]" onclick="openEarnModal()">
+                <div class="w-[19px] h-[19px] bg-[#ffe662] rounded-full flex items-center justify-center relative shadow-[inset_-2px_-1px_0px_0px_#dca10d] after:content-['$'] after:font-sans after:text-[13px] after:font-bold after:text-[#212529] after:z-10 after:relative after:top-[-0.5px]"></div>
+                <div class="text-sm font-bold text-[#212529]">Kiếm tiền</div>
+            </div>
+
+            <div class="text-base flex items-center gap-2 select-none">
+                <span class="text-[#ffc107] font-bold">VI</span>
+                <span class="text-[#adc2d1]">|</span>
+                <span class="text-[#6c757d]">EN</span>
             </div>
         </div>
 
-        <div class="flex items-center gap-2 px-3.5 py-1.5 border border-[#ffc107] rounded-full bg-white cursor-pointer transition-all duration-150 hover:bg-[#fffbea] hover:border-[#e6ac00] hover:-translate-y-[1px] active:translate-y-0 active:scale-95" onclick="openEarnModal()">
-            <div class="w-[19px] h-[19px] bg-[#ffe662] rounded-full flex items-center justify-center relative shadow-[inset_-2px_-1px_0px_0px_#dca10d] after:content-['$'] after:font-sans after:text-[13px] after:font-bold after:text-[#212529] after:z-10 after:relative after:top-[-0.5px]"></div>
-            <div class="text-sm font-bold text-[#212529]">Kiếm tiền</div>
+        <div class="flex items-center gap-3" id="navRight" style="display:none">
+            <img id="navAv" class="w-8 h-8 rounded-full border-2 border-[#e9ecef] object-cover" src="" alt=""/>
+            <div class="text-left"><div id="navName" class="text-xs font-bold leading-tight"></div><div id="navEmail" class="text-[10px] text-[#868e96] leading-tight"></div></div>
+            <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition" onclick="reAuth()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> Cấp quyền Drive</button>
+            <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#fffbea] hover:border-[#ffc107] active:scale-95 transition" onclick="doLogout()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-out"/></svg> Đăng xuất</button>
         </div>
-
-        <div class="text-base flex items-center gap-2 select-none">
-            <span class="text-[#ffc107] font-bold">VI</span>
-            <span class="text-[#adc2d1]">|</span>
-            <span class="text-[#6c757d]">EN</span>
-        </div>
-    </div>
-
-    <!-- Logged-in: user info + drive permission + logout -->
-    <div class="flex items-center gap-3" id="navRight" style="display:none">
-        <img id="navAv" class="w-8 h-8 rounded-full border-2 border-[#e9ecef] object-cover" src="" alt=""/>
-        <div class="text-left"><div id="navName" class="text-xs font-bold leading-tight"></div><div id="navEmail" class="text-[10px] text-[#868e96] leading-tight"></div></div>
-        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition" onclick="reAuth()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> Cấp quyền Drive</button>
-        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#fffbea] hover:border-[#ffc107] active:scale-95 transition" onclick="doLogout()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-out"/></svg> Đăng xuất</button>
-    </div>
-</header>
+    </header>
 
 <!-- ══════════════ LANDING (not logged in) ══════════════ -->
 <div id="s-land">
-<main class="flex-1 flex flex-col items-center justify-center px-4 py-5 md:py-6 min-h-0">
-    <div class="text-center max-w-[750px] mb-4 flex-shrink-0">
-        <div class="bg-[#ffc107] inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-black font-bold text-xs mb-4 shadow-sm">
-            ⚡ Công cụ sao chép Drive #1
-        </div>
-        <h1 class="text-4xl md:text-5xl font-bold text-black mb-3 tracking-tight">
-            SwiftCopy<span class="text-[#dc3545]">.</span>Drive
-        </h1>
-        <p class="text-base md:text-lg text-[#6c757d] mb-6 leading-relaxed">
-            Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn,<br class="hidden md:block">chạy thẳng trên trình duyệt.
-        </p>
-        <div class="flex gap-4 justify-center">
-            <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] hover:opacity-95 active:scale-95 transition-all" onclick="doLogin()">Đăng ký dùng thử</button>
-            <button class="bg-white hover:bg-[#fffbea] hover:border-[#ffc107] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer active:scale-95 active:bg-[#fff3c4] transition-all" onclick="doLogin()">Đăng nhập</button>
-        </div>
-        <p class="text-sm text-[#868e96] mt-3">Mua một lần, sử dụng trọn đời</p>
-    </div>
-
-    <!-- PREVIEW DASHBOARD (fake demo, mirrors the real app layout) -->
-    <div class="w-full max-w-5xl bg-[#f1f3f5] rounded-2xl p-3 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group mt-5">
-
-        <div class="absolute inset-0 bg-white/5 backdrop-blur-[1.5px] rounded-2xl z-30 pointer-events-none flex items-center justify-center border border-white/10">
-            <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Preview Dashboard</span>
+    <main class="flex-1 flex flex-col items-center px-4 py-10">
+        <div class="text-center max-w-[750px] mb-10">
+            <div class="bg-[#ffc107] inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-black font-bold text-xs mb-6 shadow-sm">
+                ⚡ Công cụ sao chép Drive #1
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-black mb-4 tracking-tight">
+                SwiftCopy<span class="text-[#dc3545]">.</span><span>Drive</span>
+            </h1>
+            <p class="text-base md:text-lg text-[#6c757d] mb-8 leading-relaxed">
+                Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn,<br class="hidden md:block">chạy thẳng trên trình duyệt.
+            </p>
+            <div class="flex gap-4 justify-center">
+                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] hover:opacity-95 active:scale-95 transition-all" onclick="doLogin()">Đăng ký dùng thử</button>
+                <button class="bg-white hover:bg-[#fffbea] hover:border-[#ffc107] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer active:scale-95 transition-all" onclick="doLogin()">Đăng nhập</button>
+            </div>
+            <p class="text-sm text-[#868e96] mt-4">Mua một lần, sử dụng trọn đời</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-20">
+        <!-- TỐI ƯU DASHBOARD: Mở rộng chiều ngang (max-w-7xl), nén padding, thu gọn chiều cao log -->
+        <div class="w-full max-w-7xl bg-[#f1f3f5] rounded-2xl p-3 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group">
 
-            <!-- mini config card, mirrors real CONFIG CARD -->
-            <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col">
-                <div class="text-xs font-bold text-[#495057] mb-2 pb-1.5 border-b border-[#f1f3f5]">📁 Cấu hình nguồn &amp; đích</div>
-
-                <div class="space-y-1.5 mb-2">
-                    <div class="text-[9px] font-bold text-[#868e96] uppercase tracking-wider">Drive Nguồn (Shared Drive)</div>
-                    <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/19TIcajH26y2uh5bV...</div>
-                </div>
-                <div class="space-y-1.5 mb-2">
-                    <div class="text-[9px] font-bold text-[#868e96] uppercase tracking-wider">Drive Bạn Tải Về</div>
-                    <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/11yngY7qmJLYAgAr1...</div>
-                </div>
-
-                <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Thư mục chọn lọc (2/13)</div>
-                <div class="space-y-1 mb-2">
-                    <div class="flex items-center justify-between px-2 py-1.5 bg-[#f8f9fa]/60 rounded border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow1">
-                        <span class="font-medium truncate">📁 12. Thiết lập tiến độ với MS PROJECT</span>
-                    </div>
-                    <div class="flex items-center justify-between px-2 py-1.5 bg-[#f8f9fa]/60 rounded border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow2">
-                        <span class="font-medium truncate">📁 13. Làm việc hiệu quả với Spreadsheet</span>
-                    </div>
-                </div>
-
-                <div class="flex gap-1.5 mt-auto border-t border-[#f1f3f5] pt-2">
-                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] cursor-pointer transition-colors duration-300" id="pvBtnScan">Kiểm tra trước</div>
-                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg bg-[#ffc107] text-black cursor-pointer transition-colors duration-300" id="pvBtnStart">Bắt đầu sao chép</div>
-                    <div class="px-2.5 text-center py-1.5 text-[10px] font-bold rounded-lg bg-[#212529] text-white cursor-pointer transition-colors duration-300" id="pvBtnCopy">Reset</div>
-                </div>
+            <div class="absolute inset-0 bg-white/5 backdrop-blur-[1.5px] rounded-2xl z-30 pointer-events-none flex items-center justify-center border border-white/10">
+                <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Preview Dashboard</span>
             </div>
 
-            <!-- mini progress card, mirrors real PROGRESS CARD -->
-            <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col">
-                <div class="text-xs font-bold text-[#495057] mb-2 pb-1.5 border-b border-[#f1f3f5]">⚡ Tiến trình đồng bộ</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-20">
 
-                <div class="mb-2">
-                    <div class="flex justify-between text-[10px] font-bold text-[#6c757d] mb-1">
-                        <span class="truncate" id="pvStatusText">Đang xử lý: 56. Hàm thống kê - COUNT.mp4</span>
-                        <span class="text-black flex-shrink-0 ml-1" id="pvPercentText">73%</span>
+                <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-2 pb-1 border-b border-[#f1f3f5]">
+                            📁 Cấu hình nguồn & đích
+                        </div>
+
+                        <div class="space-y-2 mb-3">
+                            <div>
+                                <div class="text-[9px] font-bold text-[#868e96] mb-0.5 uppercase tracking-wider">Drive Nguồn (Shared Drive)</div>
+                                <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded-lg text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/19TIcajH26y2uh5bV...</div>
+                            </div>
+                            <div>
+                                <div class="text-[9px] font-bold text-[#868e96] mb-0.5 uppercase tracking-wider">Drive Bạn Tải Về</div>
+                                <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded-lg text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/11yngY7qmJLYAgAr1...</div>
+                            </div>
+                        </div>
+
+                        <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Thư mục chọn lọc sao chép</div>
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow1">
+                                <span class="font-medium truncate">📁 12. Thiết lập tiến độ với MS PROJECT</span>
+                                <span class="text-[9px] font-bold text-[#099268] bg-[#e6fcf5] px-1.5 py-0.5 rounded flex-shrink-0">Folder</span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow2">
+                                <span class="font-medium truncate">📁 13. Làm việc hiệu quả với Spreadsheet</span>
+                                <span class="text-[9px] font-bold text-[#099268] bg-[#e6fcf5] px-1.5 py-0.5 rounded flex-shrink-0">Folder</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="h-1.5 bg-[#e9ecef] rounded-full overflow-hidden">
-                        <div class="h-full bg-[#212529] transition-[width] duration-300 ease-linear" id="pvProgBar" style="width:73%"></div>
+
+                    <div class="flex gap-2 mt-2 border-t border-[#f1f3f5] pt-2">
+                        <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] cursor-pointer transition-colors duration-300" id="pvBtnScan">Kiểm tra</div>
+                        <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg bg-[#212529] text-white cursor-pointer transition-colors duration-300" id="pvBtnCopy">Dừng copy</div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-2 mb-2">
-                    <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-lg p-1.5 text-center flex flex-col justify-center h-[52px]">
-                        <span class="text-lg font-bold text-[#099268] block leading-none" id="pvStatOk">70</span>
-                        <span class="text-[8px] uppercase font-bold text-[#20c997] tracking-tight leading-tight mt-1">Thành công</span>
+                <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between gap-2">
+                    <div>
+                        <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-2 pb-1 border-b border-[#f1f3f5]">
+                            ⚡ Tiến trình đồng bộ
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="flex justify-between text-[10px] font-bold text-[#6c757d] mb-1">
+                                <span class="truncate" id="pvStatusText">Đang xử lý: 56. Hàm thống kê - COUNT.mp4</span>
+                                <span class="text-black" id="pvPercentText">73%</span>
+                            </div>
+                            <div class="h-1.5 bg-[#e9ecef] rounded-full overflow-hidden">
+                                <div class="h-full bg-[#212529] transition-[width] duration-300 ease-linear" id="pvProgBar" style="width:73%"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-lg p-1.5 text-center">
+                                <span class="text-sm font-bold text-[#099268] block" id="pvStatOk">70</span>
+                                <span class="text-[9px] uppercase font-bold text-[#20c997] tracking-tight">Thành công</span>
+                            </div>
+                            <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-lg p-1.5 text-center">
+                                <span class="text-sm font-bold text-[#fa5252] block" id="pvStatErr">139</span>
+                                <span class="text-[9px] uppercase font-bold text-[#f03e3e] tracking-tight">Lỗi Drive</span>
+                            </div>
+                            <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-lg p-1.5 text-center">
+                                <span class="text-sm font-bold text-[#495057] block" id="pvStatFold">25</span>
+                                <span class="text-[9px] uppercase font-bold text-[#868e96] tracking-tight">Thư mục</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-lg p-1.5 text-center flex flex-col justify-center h-[52px]">
-                        <span class="text-lg font-bold text-[#fa5252] block leading-none" id="pvStatErr">139</span>
-                        <span class="text-[8px] uppercase font-bold text-[#f03e3e] tracking-tight leading-tight mt-1">Lỗi Drive</span>
-                    </div>
-                    <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-lg p-1.5 text-center flex flex-col justify-center h-[52px]">
-                        <span class="text-lg font-bold text-[#495057] block leading-none" id="pvStatFold">25</span>
-                        <span class="text-[8px] uppercase font-bold text-[#868e96] tracking-tight leading-tight mt-1">Thư mục</span>
+
+                    <div>
+                        <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Activity Log</div>
+                        <div class="bg-[#141414] text-[#a9b7c6] font-mono text-[10px] p-2 rounded-lg h-[60px] overflow-hidden flex flex-col justify-end" id="pvLogBox">
+                            <div class="truncate"><span class="text-[#4e9a06]">✓ OK:</span> 55. Hàm thống kê - SUM.mp4</div>
+                            <div class="text-white truncate" id="pvLogRunning">>> RUNNING: 56. Hàm thống kê - COUNT.mp4...</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Activity Log</div>
-                <div class="bg-[#141414] text-[#a9b7c6] font-mono text-[10px] p-2 rounded-lg flex-1 min-h-[64px] overflow-hidden flex flex-col justify-end" id="pvLogBox">
-                    <div class="truncate"><span class="text-[#4e9a06]">✓ OK:</span> 55. Hàm thống kê - SUM.mp4</div>
-                    <div class="text-white truncate" id="pvLogRunning">>> RUNNING: 56. Hàm thống kê - COUNT.mp4...</div>
-                </div>
             </div>
-
         </div>
-    </div>
-</main>
+    </main>
 
-<section class="bg-white px-6 md:px-20 py-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 border-t border-[#f1f3f5] flex-shrink-0 box-border items-start" style="font-family:'Nunito Sans',sans-serif">
-    <div>
-        <h3 class="mb-4 tracking-tight text-[15px] font-extrabold" style="font-family:'Nunito',sans-serif">SwiftCopy<span class="text-[#dc3545]">.</span>Drive</h3>
-        <p class="text-base text-black leading-relaxed">Tối ưu hóa thời gian xử lý dữ liệu sao chép trên nền tảng Google Drive cho cá nhân và doanh nghiệp sản xuất nội dung số.</p>
-    </div>
-    <div>
-        <h3 class="font-extrabold text-[#dc3545] text-[15px] mb-4 tracking-tight uppercase" style="font-family:'Nunito',sans-serif">TÍNH NĂNG VƯỢT TRỘI</h3>
-        <ul class="text-base text-[#6c757d] space-y-3">
-            <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Sao chép tốc độ cực nhanh</li>
-            <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Kiểm tra Drive lỗi trước</li>
-            <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Chọn lọc mục muốn copy</li>
-            <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Theo dõi hành trình sao chép</li>
-            <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Tự động sao chép tiếp nếu mất mạng</li>
-        </ul>
-    </div>
-    <div>
-        <h3 class="font-extrabold text-black text-[15px] mb-4 tracking-tight uppercase" style="font-family:'Nunito',sans-serif">HỖ TRỢ KỸ THUẬT</h3>
-        <ul class="text-base text-[#6c757d] space-y-2">
-            <li class="flex items-center gap-2">
-                <svg class="w-4 h-4 stroke-[#868e96] fill-none stroke-2 flex-shrink-0" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                hgntran.contact@gmail.com
-            </li>
-        </ul>
-        <span class="font-extrabold text-black text-[15px] block mt-5 mb-2" style="font-family:'Nunito',sans-serif">ZALO</span>
-        <div class="border border-[#dee2e6] rounded-md p-1.5 bg-white grid grid-cols-4 grid-rows-4 gap-1 w-[108px] h-[108px] box-border">
-            <div class="border-[3px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black"></div>
-            <div class="border-[3px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black" style="grid-column: 4; grid-row: 1;"></div>
-            <div class="border-[3px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black" style="grid-column: 1; grid-row: 4;"></div>
-            <div style="grid-column: 2 / 5; grid-row: 2 / 5; background-image: linear-gradient(45deg, #000 25%, transparent 25%), linear-gradient(-45deg, #000 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #000 75%), linear-gradient(-45deg, transparent 75%, #000 75%); background-size: 7px 7px; background-position: 0 0, 0 4px, 4px -4px, -4px 0px;"></div>
+    <section class="bg-white px-6 md:px-20 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 border-t border-[#f1f3f5]">
+        <div>
+            <h3 class="font-bold text-black mb-4 uppercase tracking-tight">SwiftCopy.Drive</h3>
+            <p class="text-xs text-[#868e96] leading-relaxed">Tối ưu hóa thời gian xử lý dữ liệu sao chép trên nền tảng Google Drive cho cá nhân và doanh nghiệp sản xuất nội dung số.</p>
         </div>
-    </div>
-    <div>
-        <h3 class="font-extrabold text-black text-[15px] mb-4 tracking-tight uppercase" style="font-family:'Nunito',sans-serif">ĐÁNH GIÁ HỆ THỐNG</h3>
-        <span class="block text-base text-[#212529] mb-3 hover:text-[#dc3545] hover:underline active:opacity-70 cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
-        <span class="block text-base text-[#212529] mb-3 hover:text-[#dc3545] hover:underline active:opacity-70 cursor-pointer transition-colors" onclick="openReviewListModal()">Xem thử đánh giá</span>
-        <button class="inline-flex items-center bg-gradient-to-r from-[#ffc107] to-[#ff8f00] text-black px-5 py-2.5 rounded-full text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all" id="reviewBtn">
-            <span class="text-[#fff500] text-sm mr-1.5 drop-shadow">★</span>
-            <span>Đánh giá SwiftCopy<span class="text-[#dc3545]">.</span>Drive</span>
-        </button>
-    </div>
-</section>
+        <div>
+            <h3 class="font-bold text-[#dc3545] text-[14px] mb-4 tracking-tight uppercase">TÍNH NĂNG VƯỢT TRỘI</h3>
+            <ul class="text-xs text-[#6c757d] space-y-3">
+                <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Sao chép tốc độ cực nhanh</li>
+                <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Kiểm tra Drive lỗi trước</li>
+                <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Chọn lọc mục muốn copy</li>
+                <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Theo dõi hành trình sao chép</li>
+                <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Tự động sao chép tiếp nếu mất mạng</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-bold text-black text-[14px] mb-4 tracking-tight uppercase">HỖ TRỢ KỸ THUẬT</h3>
+            <ul class="text-xs text-[#6c757d] space-y-2">
+                <li class="flex items-center gap-2">
+                    <svg class="w-4 h-4 stroke-[#868e96] fill-none stroke-2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    hgntran.contact@gmail.com
+                </li>
+            </ul>
+            <span class="font-bold text-black text-sm block mt-5 mb-2">ZALO</span>
+            <div class="border border-[#dee2e6] rounded-md p-1.5 bg-white grid grid-cols-4 grid-rows-4 gap-1 w-[108px] h-[108px] box-border">
+                <div class="border-[3px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black"></div>
+                <div class="border-[3px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black" style="grid-column: 4; grid-row: 1;"></div>
+                <div class="border-[3px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black" style="grid-column: 1; grid-row: 4;"></div>
+                <div style="grid-column: 2 / 5; grid-row: 2 / 5; background-image: linear-gradient(45deg, #000 25%, transparent 25%), linear-gradient(-45deg, #000 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #000 75%), linear-gradient(-45deg, transparent 75%, #000 75%); background-size: 7px 7px; background-position: 0 0, 0 4px, 4px -4px, -4px 0px;"></div>
+            </div>
+        </div>
+        <div>
+            <h3 class="font-bold text-black text-[14px] mb-4 tracking-tight uppercase">ĐÁNH GIÁ HỆ THỐNG</h3>
+            <span class="block text-sm text-[#212529] mb-3 hover:underline hover:text-[#dc3545] active:opacity-70 cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
+            <span class="block text-sm text-[#212529] mb-3 hover:underline hover:text-[#dc3545] active:opacity-70 cursor-pointer transition-colors" onclick="openReviewListModal()">Xem thử đánh giá</span>
+            <button class="inline-flex items-center bg-[#ffc107] text-black px-5 py-2.5 rounded-full text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all" id="reviewBtn">
+                <span class="text-black text-sm mr-1.5">★</span>
+                <span>Đánh giá SwiftCopy<span class="text-[#dc3545]">.</span>Drive</span>
+            </button>
+        </div>
+    </section>
 
-<footer class="bg-[#f8f9fa] px-6 md:px-20 py-3 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-[#e9ecef] flex-shrink-0 box-border">
-    <div class="bg-white px-6 py-3 rounded border border-[#f1f3f5] text-sm text-[#868e96] w-full sm:w-auto text-center">© 2026 SwiftCopy<span class="text-[#dc3545]">.</span>Drive. All rights reserved.</div>
-    <div class="bg-white px-6 py-3 rounded border border-[#f1f3f5] text-sm text-black font-bold w-full sm:w-auto text-center">Mua 1 lần sử dụng trọn đời</div>
-</footer>
+    <footer class="bg-[#f8f9fa] px-6 md:px-20 py-5 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-[#e9ecef]">
+        <div class="bg-white px-6 py-3 rounded border border-[#f1f3f5] text-sm text-[#868e96] w-full sm:w-auto text-center">© 2026 SwiftCopy<span class="text-[#dc3545]">.</span>Drive. All rights reserved.</div>
+        <div class="bg-white px-6 py-3 rounded border border-[#f1f3f5] text-sm text-black font-bold w-full sm:w-auto text-center">Mua 1 lần sử dụng trọn đời</div>
+    </footer>
 </div>
 
 <!-- ══════════════ CHECKING ══════════════ -->
@@ -486,13 +490,11 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
       <div class="inline-flex items-center gap-1.5 bg-[#ffc107] text-black text-[11px] font-extrabold px-3.5 py-1.5 rounded-full my-3.5">Đang chờ duyệt</div>
       <p class="text-[11px] text-[#868e96] mt-3">Đã thanh toán nhưng chưa được kích hoạt sau 24h? Liên hệ admin.</p>
       <br/>
-      <button class="inline-flex items-center gap-1.5 mx-auto px-4 py-2 rounded-lg border border-[#dee2e6] bg-white text-[#495057] text-xs font-bold hover:bg-[#f8f9fa] hover:border-[#ffc107] active:scale-95 transition" onclick="location.reload()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-reset"/></svg> Kiểm tra lại</button>
+      <button class="inline-flex items-center gap-1.5 mx-auto px-4 py-2 rounded-lg border border-[#dee2e6] bg-white text-[#495057] text-xs font-bold hover:bg-[#fffbea] hover:border-[#ffc107] active:scale-95 transition" onclick="location.reload()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-reset"/></svg> Kiểm tra lại</button>
     </div>
   </div>
 </div>
 
-
-<!-- ══════════════ APP (logged in & approved) — real Drive copy dashboard ══════════════ -->
 <div id="s-app">
   <main class="flex-1 px-4 py-6 md:py-8">
     <div class="max-w-6xl mx-auto">
@@ -1997,7 +1999,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
     folder1: document.getElementById('pvFolderRow1'),
     folder2: document.getElementById('pvFolderRow2'),
     btnScan: document.getElementById('pvBtnScan'),
-    btnCopy: document.getElementById('pvBtnStart')
+    btnCopy: document.getElementById('pvBtnCopy')
   };
   if (!els.bar) return; // not on the landing page
 
@@ -2081,6 +2083,5 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
   setTimeout(tick, 600);
 })();
 </script>
-
 </body>
 </html>
