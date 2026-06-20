@@ -38,16 +38,19 @@
 .modal-overlay.active .modal-wrapper { transform: scale(1); }
 .modal-title { font-size: 1.125rem; font-weight: 800; color: #111827; margin-bottom: 1rem; }
 .modal-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.25rem; }
-.btn-modal { padding: .6rem 1.25rem; border-radius: .6rem; font-weight: 700; font-size: .8125rem; cursor: pointer; border: none; font-family: inherit; transition: opacity .15s, background .15s; }
+.btn-modal { padding: .6rem 1.25rem; border-radius: .6rem; font-weight: 700; font-size: .8125rem; cursor: pointer; border: none; font-family: inherit; transition: opacity .15s, background .15s, transform .12s; }
 .btn-cancel { background: #f1f3f5; color: #495057; }
 .btn-cancel:hover { background: #e9ecef; }
-.btn-submit { background: #212529; color: #fff; }
-.btn-submit:hover { opacity: .88; }
+.btn-cancel:active { background: #dee2e6; transform: scale(.97); }
+.btn-submit { background: #ffc107; color: #111110; }
+.btn-submit:hover { background: #e6ac00; opacity: 1; }
+.btn-submit:active { background: #d4a800; transform: scale(.97); }
 .earn-info-box { font-size: .8125rem; color: #495057; line-height: 1.6; }
 .form-label { color: #495057; }
 
-.star-rating-box span { font-size: 1.75rem; cursor: pointer; color: #dee2e6; transition: color .2s; margin-right: .25rem; }
-.star-rating-box span.selected, .star-rating-box span:hover { color: #ffc107; }
+.star-rating-box span { font-size: 1.75rem; cursor: pointer; color: #dee2e6; transition: color .2s, transform .12s; display: inline-block; margin-right: .25rem; }
+.star-rating-box span.selected, .star-rating-box span:hover { color: #ffc107; transform: scale(1.15); }
+.star-rating-box span:active { transform: scale(0.95); }
 
 .custom-scroll::-webkit-scrollbar { width: 4px; }
 .custom-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -70,22 +73,26 @@
 .checklist-info b { color:#212529; font-weight:700; }
 .checklist-toolbar-btns { display:flex; gap:6px; }
 .btn-ghost { background:none; border:none; color:#868e96; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; padding:4px 8px; border-radius:6px; transition:.15s; }
-.btn-ghost:hover { background:#e9ecef; color:#495057; }
+.btn-ghost:hover { background:#fff8e1; color:#a87c00; }
+.btn-ghost:active { background:#ffecb3; transform:scale(.95); }
 .checklist-body { max-height:280px; overflow-y:auto; background:#fff; user-select:none; }
 .checklist-body::-webkit-scrollbar { width:6px; }
 .checklist-body::-webkit-scrollbar-thumb { background:#ccc; border-radius:3px; }
 
-.cl-row { display:flex; align-items:center; gap:8px; padding:8px 14px; border-bottom:1px solid #f1f3f5; cursor:pointer; transition:.1s; }
+.cl-row { display:flex; align-items:center; gap:8px; padding:8px 14px; border-bottom:1px solid #f1f3f5; cursor:pointer; transition:background .15s; }
 .cl-row:last-child { border-bottom:none; }
-.cl-row:hover { background:#f8f9fa; }
+.cl-row:hover { background:#fffbea; }
+.cl-row:active { background:#fff3c4; }
 .cl-cb { width:16px; height:16px; border:2px solid #dee2e6; border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:.15s; background:#fff; }
-.cl-row.checked .cl-cb { background:#212529; border-color:#212529; }
+.cl-row.checked .cl-cb { background:#ffc107; border-color:#e6ac00; }
 .cl-row.indeterminate .cl-cb { background:#868e96; border-color:#868e96; }
-.cl-cb-tick, .cl-cb-dash { display:none; color:#fff; font-size:10px; font-weight:900; line-height:1; }
+.cl-cb-tick, .cl-cb-dash { display:none; color:#111110; font-size:10px; font-weight:900; line-height:1; }
+.cl-row.indeterminate .cl-cb-dash { color:#fff; }
 .cl-row.checked .cl-cb-tick { display:block; }
 .cl-row.indeterminate .cl-cb-dash { display:block; }
-.cl-expand { width:18px; height:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:4px; color:#868e96; transition:.15s; }
-.cl-expand:hover { background:#e9ecef; }
+.cl-expand { width:18px; height:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:4px; color:#868e96; transition:background .15s, color .15s; }
+.cl-expand:hover { background:#ffecb3; color:#a87c00; }
+.cl-expand:active { background:#ffe082; transform:scale(.9); }
 .cl-expand.no-children { opacity:0; pointer-events:none; }
 .cl-icon { font-size:14px; flex-shrink:0; line-height:1; }
 .cl-name { flex:1; font-size:13px; color:#212529; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
@@ -151,7 +158,8 @@
 .compl-video ul { list-style:none; display:flex; flex-direction:column; gap:6px; }
 .compl-video li { font-size:12px; color:#7a5a00; line-height:1.6; display:flex; gap:7px; align-items:flex-start; }
 .compl-foot { padding:0 24px 24px; }
-.compl-btn { width:100%; padding:12px; border-radius:10px; font-size:14px; font-weight:800; font-family:inherit; cursor:pointer; border:none; background:#212529; color:#fff; transition:.15s; }
+.compl-btn { width:100%; padding:12px; border-radius:10px; font-size:14px; font-weight:800; font-family:inherit; cursor:pointer; border:none; background:#212529; color:#fff; transition:background .15s, transform .12s; }
+.compl-btn:active { transform:scale(.98); }
 .compl-btn:hover { background:#000; }
 
 .vidwarn-body { padding:20px 24px; }
@@ -225,8 +233,8 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
     <div class="no-auth-title" id="noAuthTitle">Chưa cấp quyền Drive</div>
     <div class="no-auth-msg" id="noAuthMsg">Bạn cần cấp quyền truy cập Google Drive trước khi thực hiện thao tác này.</div>
     <div class="flex gap-2.5 justify-center flex-wrap">
-      <button class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] transition" onclick="reAuthFromOverlay()"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> Cấp quyền Drive ngay</button>
-      <button class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold bg-transparent text-white/50 border border-white/15 hover:bg-white/10 hover:text-white/80 transition" onclick="closeNoAuth()">Đóng lại</button>
+      <button class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition" onclick="reAuthFromOverlay()"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> Cấp quyền Drive ngay</button>
+      <button class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold bg-transparent text-white/50 border border-white/15 hover:bg-white/10 hover:text-white/80 active:scale-95 transition" onclick="closeNoAuth()">Đóng lại</button>
     </div>
   </div>
 </div>
@@ -241,22 +249,24 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
 
 <header class="bg-white px-6 md:px-10 py-4 flex justify-between items-center relative z-40 border-b border-[#f1f3f5] shadow-sm flex-shrink-0">
     <div class="flex items-center gap-3">
-        <div class="flex justify-center items-center w-10 h-10 bg-[#ffc107] rounded-xl font-bold text-black text-2xl relative after:content-['➔'] after:absolute after:text-[10px] after:text-[#dc3545] after:top-1 after:right-1">
-            S
-        </div>
+        <svg class="w-10 h-10 rounded-xl flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
+          <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
+          <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
         <div class="font-bold text-2xl text-black tracking-[-0.8px] whitespace-nowrap">
             SwiftCopy<span class="text-[#dc3545]">.</span><span>Drive</span>
         </div>
     </div>
 
     <!-- Logged-out: notifications / help / earn / language -->
-    <div class="flex items-center gap-6 relative" id="navGuest">
-        <div class="relative cursor-pointer py-1" id="bellIcon" title="Thông báo">
-            <svg class="w-[22px] h-[22px] stroke-[#343a40] fill-none stroke-[1.8]" viewBox="0 0 24 24">
+    <div class="flex items-center gap-3 relative" id="navGuest">
+        <div class="relative w-9 h-9 flex items-center justify-center rounded-full cursor-pointer transition-colors duration-150 hover:bg-[#fff8e1] active:bg-[#ffecb3] active:scale-95" id="bellIcon" title="Thông báo">
+            <svg class="w-[20px] h-[20px] stroke-[#495057] fill-none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
-            <div class="absolute top-[38px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-72 hidden z-50 py-2" id="bellPopover">
+            <div class="absolute top-[42px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-72 hidden z-50 py-2" id="bellPopover">
                 <div class="px-4 py-1.5 pb-2 font-bold text-[13px] border-b border-[#f1f3f5] text-black tracking-wide">THÔNG BÁO HỆ THỐNG</div>
                 <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">⚡ <b>Cập nhật v0.2:</b> Tối ưu hóa thêm 40% tốc độ copy thư mục chứa trên 10,000 files.</div>
                 <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">📘 <b>Hướng dẫn mới:</b> Cách cấu hình tài khoản phụ để bypass giới hạn API.</div>
@@ -264,20 +274,20 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
             </div>
         </div>
 
-        <div class="relative cursor-pointer py-1" id="helpIcon" title="Trợ giúp">
-            <svg class="w-[22px] h-[22px] stroke-[#343a40] fill-none stroke-[1.8]" viewBox="0 0 24 24">
+        <div class="relative w-9 h-9 flex items-center justify-center rounded-full cursor-pointer transition-colors duration-150 hover:bg-[#fff8e1] active:bg-[#ffecb3] active:scale-95" id="helpIcon" title="Trợ giúp">
+            <svg class="w-[20px] h-[20px] stroke-[#495057] fill-none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
-            <div class="absolute top-[38px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-60 hidden z-50 py-1.5" id="helpPopover">
+            <div class="absolute top-[42px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-60 hidden z-50 py-1.5" id="helpPopover">
                 <div class="px-4 py-1.5 pb-2 font-bold text-[13px] border-b border-[#f1f3f5] text-black tracking-wide">TRỢ GIÚP NHANH</div>
-                <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545]" onclick="openZaloHelp()">📞 Thông tin hỗ trợ & Zalo</div>
-                <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545]" onclick="triggerFaqModal()">❓ Câu hỏi thường gặp (FAQ)</div>
+                <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#fff8e1] hover:text-[#dc3545] active:bg-[#ffecb3] cursor-pointer transition-colors" onclick="openZaloHelp()">📞 Thông tin hỗ trợ & Zalo</div>
+                <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#fff8e1] hover:text-[#dc3545] active:bg-[#ffecb3] cursor-pointer transition-colors" onclick="triggerFaqModal()">❓ Câu hỏi thường gặp (FAQ)</div>
             </div>
         </div>
 
-        <div class="flex items-center gap-2 px-3.5 py-1.5 border border-[#ffc107] rounded-full bg-white cursor-pointer transition-all duration-200 hover:bg-[#fffdf0] hover:-translate-y-[1px]" onclick="openEarnModal()">
+        <div class="flex items-center gap-2 px-3.5 py-1.5 border border-[#ffc107] rounded-full bg-white cursor-pointer transition-all duration-150 hover:bg-[#fffbea] hover:border-[#e6ac00] hover:-translate-y-[1px] active:translate-y-0 active:scale-95" onclick="openEarnModal()">
             <div class="w-[19px] h-[19px] bg-[#ffe662] rounded-full flex items-center justify-center relative shadow-[inset_-2px_-1px_0px_0px_#dca10d] after:content-['$'] after:font-sans after:text-[13px] after:font-bold after:text-[#212529] after:z-10 after:relative after:top-[-0.5px]"></div>
             <div class="text-sm font-bold text-[#212529]">Kiếm tiền</div>
         </div>
@@ -293,33 +303,32 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
     <div class="flex items-center gap-3" id="navRight" style="display:none">
         <img id="navAv" class="w-8 h-8 rounded-full border-2 border-[#e9ecef] object-cover" src="" alt=""/>
         <div class="text-left"><div id="navName" class="text-xs font-bold leading-tight"></div><div id="navEmail" class="text-[10px] text-[#868e96] leading-tight"></div></div>
-        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] transition" onclick="reAuth()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> Cấp quyền Drive</button>
-        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#f8f9fa] transition" onclick="doLogout()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-out"/></svg> Đăng xuất</button>
+        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition" onclick="reAuth()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> Cấp quyền Drive</button>
+        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#f8f9fa] hover:border-[#ffc107] active:scale-95 transition" onclick="doLogout()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-out"/></svg> Đăng xuất</button>
     </div>
 </header>
 
 <!-- ══════════════ LANDING (not logged in) ══════════════ -->
 <div id="s-land">
-<main class="flex-1 flex flex-col items-center justify-center px-4 py-6 md:py-8 min-h-0">
-    <div class="text-center max-w-[750px] mb-6 flex-shrink-0">
-        <div class="bg-[#ffc107] inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-black font-bold text-xs mb-4 shadow-sm">
+<main class="flex-1 flex flex-col items-center justify-center px-4 py-5 md:py-6 min-h-0">
+    <div class="text-center max-w-[750px] mb-4 flex-shrink-0">
+        <div class="bg-[#ffc107] inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-black font-bold text-xs mb-3 shadow-sm">
             ⚡ Công cụ sao chép Drive #1
         </div>
-        <h1 class="text-4xl md:text-5xl font-bold text-black mb-3 tracking-tight">
+        <h1 class="text-3xl md:text-4xl font-bold text-black mb-2 tracking-tight">
             SwiftCopy<span class="text-[#dc3545]">.</span>Drive
         </h1>
-        <p class="text-base md:text-lg text-[#6c757d] mb-6 leading-relaxed">
+        <p class="text-sm md:text-base text-[#6c757d] mb-5 leading-relaxed">
             Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn,<br class="hidden md:block">chạy thẳng trên trình duyệt.
         </p>
         <div class="flex gap-4 justify-center">
-            <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:opacity-95 transition-all" onclick="doLogin()">Đăng ký dùng thử</button>
-            <button class="bg-white hover:bg-[#f8f9fa] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer transition-all" onclick="doLogin()">Đăng nhập</button>
+            <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] hover:opacity-95 active:scale-95 transition-all" onclick="doLogin()">Đăng ký dùng thử</button>
+            <button class="bg-white hover:bg-[#f8f9fa] hover:border-[#ffc107] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer active:scale-95 transition-all" onclick="doLogin()">Đăng nhập</button>
         </div>
-        <p class="text-xs text-[#868e96] mt-4">Mua 1 lần · Dùng vĩnh viễn · <b>Liên hệ admin sau khi thanh toán</b></p>
     </div>
 
     <!-- PREVIEW DASHBOARD (fake demo, shown to logged-out visitors) -->
-    <div class="w-full max-w-7xl bg-[#f1f3f5] rounded-2xl p-3 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group">
+    <div class="w-full max-w-3xl bg-[#f1f3f5] rounded-2xl p-2.5 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group mt-5">
 
         <div class="absolute inset-0 bg-white/5 backdrop-blur-[1.5px] rounded-2xl z-30 pointer-events-none flex items-center justify-center border border-white/10">
             <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Preview Dashboard</span>
@@ -346,11 +355,11 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
 
                     <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Thư mục chọn lọc sao chép</div>
                     <div class="space-y-1">
-                        <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40]">
+                        <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow1">
                             <span class="font-medium truncate">📁 12. Thiết lập tiến độ với MS PROJECT</span>
                             <span class="text-[9px] font-bold text-[#099268] bg-[#e6fcf5] px-1.5 py-0.5 rounded flex-shrink-0">Folder</span>
                         </div>
-                        <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40]">
+                        <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow2">
                             <span class="font-medium truncate">📁 13. Làm việc hiệu quả với Spreadsheet</span>
                             <span class="text-[9px] font-bold text-[#099268] bg-[#e6fcf5] px-1.5 py-0.5 rounded flex-shrink-0">Folder</span>
                         </div>
@@ -358,8 +367,8 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
                 </div>
 
                 <div class="flex gap-2 mt-2 border-t border-[#f1f3f5] pt-2">
-                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] cursor-pointer">Kiểm tra</div>
-                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg bg-[#212529] text-white cursor-pointer">Dừng copy</div>
+                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] cursor-pointer transition-colors duration-300" id="pvBtnScan">Kiểm tra</div>
+                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg bg-[#212529] text-white cursor-pointer transition-colors duration-300" id="pvBtnCopy">Dừng copy</div>
                 </div>
             </div>
 
@@ -371,25 +380,25 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
 
                     <div class="mb-3">
                         <div class="flex justify-between text-[10px] font-bold text-[#6c757d] mb-1">
-                            <span class="truncate">Đang xử lý: 56. Hàm thống kê - COUNT.mp4</span>
-                            <span class="text-black">73%</span>
+                            <span class="truncate" id="pvStatusText">Đang xử lý: 56. Hàm thống kê - COUNT.mp4</span>
+                            <span class="text-black" id="pvPercentText">73%</span>
                         </div>
                         <div class="h-1.5 bg-[#e9ecef] rounded-full overflow-hidden">
-                            <div class="w-[73%] h-full bg-[#212529]"></div>
+                            <div class="h-full bg-[#212529] transition-[width] duration-300 ease-linear" id="pvProgBar" style="width:73%"></div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-3 gap-2">
                         <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-lg p-1.5 text-center">
-                            <span class="text-sm font-bold text-[#099268] block">70</span>
+                            <span class="text-sm font-bold text-[#099268] block" id="pvStatOk">70</span>
                             <span class="text-[9px] uppercase font-bold text-[#20c997] tracking-tight">Thành công</span>
                         </div>
                         <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-lg p-1.5 text-center">
-                            <span class="text-sm font-bold text-[#fa5252] block">139</span>
+                            <span class="text-sm font-bold text-[#fa5252] block" id="pvStatErr">139</span>
                             <span class="text-[9px] uppercase font-bold text-[#f03e3e] tracking-tight">Lỗi Drive</span>
                         </div>
                         <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-lg p-1.5 text-center">
-                            <span class="text-sm font-bold text-[#495057] block">25</span>
+                            <span class="text-sm font-bold text-[#495057] block" id="pvStatFold">25</span>
                             <span class="text-[9px] uppercase font-bold text-[#868e96] tracking-tight">Thư mục</span>
                         </div>
                     </div>
@@ -397,9 +406,9 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
 
                 <div>
                     <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Activity Log</div>
-                    <div class="bg-[#141414] text-[#a9b7c6] font-mono text-[10px] p-2 rounded-lg h-[60px] overflow-hidden">
+                    <div class="bg-[#141414] text-[#a9b7c6] font-mono text-[10px] p-2 rounded-lg h-[60px] overflow-hidden flex flex-col justify-end" id="pvLogBox">
                         <div class="truncate"><span class="text-[#4e9a06]">✓ OK:</span> 55. Hàm thống kê - SUM.mp4</div>
-                        <div class="text-white animate-pulse truncate">>> RUNNING: 56. Hàm thống kê - COUNT.mp4...</div>
+                        <div class="text-white truncate" id="pvLogRunning">>> RUNNING: 56. Hàm thống kê - COUNT.mp4...</div>
                     </div>
                 </div>
             </div>
@@ -408,7 +417,7 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
     </div>
 </main>
 
-<section class="bg-white px-6 md:px-20 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 border-t border-[#f1f3f5] flex-shrink-0 box-border">
+<section class="bg-white px-6 md:px-20 py-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 border-t border-[#f1f3f5] flex-shrink-0 box-border">
     <div>
         <h3 class="font-bold text-black mb-4 uppercase tracking-tight">SwiftCopy.Drive</h3>
         <p class="text-xs text-[#868e96] leading-relaxed">Tối ưu hóa thời gian xử lý dữ liệu sao chép trên nền tảng Google Drive cho cá nhân và doanh nghiệp sản xuất nội dung số.</p>
@@ -441,8 +450,8 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
     </div>
     <div>
         <h3 class="font-bold text-black text-[14px] mb-4 tracking-tight uppercase">ĐÁNH GIÁ HỆ THỐNG</h3>
-        <span class="block text-sm text-[#212529] mb-3 hover:underline cursor-pointer" onclick="openFaqModal()">Câu hỏi thường gặp</span>
-        <span class="block text-sm text-[#212529] mb-3 hover:underline cursor-pointer" onclick="openReviewListModal()">Xem thử đánh giá</span>
+        <span class="block text-sm text-[#212529] mb-3 hover:text-[#dc3545] hover:underline active:opacity-70 cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
+        <span class="block text-sm text-[#212529] mb-3 hover:text-[#dc3545] hover:underline active:opacity-70 cursor-pointer transition-colors" onclick="openReviewListModal()">Xem thử đánh giá</span>
         <button class="inline-flex items-center bg-gradient-to-r from-[#ffc107] to-[#ff8f00] text-black px-5 py-2.5 rounded-full text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all" id="reviewBtn">
             <span class="text-[#fff500] text-sm mr-1.5 drop-shadow">★</span>
             <span>Đánh giá SwiftCopy<span class="text-[#dc3545]">.</span>Drive</span>
@@ -450,7 +459,7 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
     </div>
 </section>
 
-<footer class="bg-[#f8f9fa] px-6 md:px-20 py-5 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-[#e9ecef] flex-shrink-0 box-border">
+<footer class="bg-[#f8f9fa] px-6 md:px-20 py-3 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-[#e9ecef] flex-shrink-0 box-border">
     <div class="bg-white px-6 py-3 rounded border border-[#f1f3f5] text-sm text-[#868e96] w-full sm:w-auto text-center">© 2026 SwiftCopy<span class="text-[#dc3545]">.</span>Drive. All rights reserved.</div>
     <div class="bg-white px-6 py-3 rounded border border-[#f1f3f5] text-sm text-black font-bold w-full sm:w-auto text-center">Mua 1 lần sử dụng trọn đời</div>
 </footer>
@@ -474,7 +483,7 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
       <div class="inline-flex items-center gap-1.5 bg-[#ffc107] text-black text-[11px] font-extrabold px-3.5 py-1.5 rounded-full my-3.5">Đang chờ duyệt</div>
       <p class="text-[11px] text-[#868e96] mt-3">Đã thanh toán nhưng chưa được kích hoạt sau 24h? Liên hệ admin.</p>
       <br/>
-      <button class="inline-flex items-center gap-1.5 mx-auto px-4 py-2 rounded-lg border border-[#dee2e6] bg-white text-[#495057] text-xs font-bold hover:bg-[#f8f9fa] transition" onclick="location.reload()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-reset"/></svg> Kiểm tra lại</button>
+      <button class="inline-flex items-center gap-1.5 mx-auto px-4 py-2 rounded-lg border border-[#dee2e6] bg-white text-[#495057] text-xs font-bold hover:bg-[#f8f9fa] hover:border-[#ffc107] active:scale-95 transition" onclick="location.reload()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-reset"/></svg> Kiểm tra lại</button>
     </div>
   </div>
 </div>
@@ -489,8 +498,8 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
       <div id="resumeBanner" class="resume-banner" style="display:none">
         <div class="flex items-center gap-2 text-[13px] text-[#7a5a00] font-semibold"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-clock"/></svg> Phát hiện phiên sao chép chưa hoàn tất. Tiếp tục?</div>
         <div class="flex gap-2">
-          <button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] transition" onclick="resumeSession()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-play"/></svg> Tiếp tục</button>
-          <button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#f8f9fa] transition" onclick="clearSession()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-reset"/></svg> Bỏ qua</button>
+          <button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition" onclick="resumeSession()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-play"/></svg> Tiếp tục</button>
+          <button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#f8f9fa] active:scale-95 transition" onclick="clearSession()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-reset"/></svg> Bỏ qua</button>
         </div>
       </div>
 
@@ -540,9 +549,9 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
             <button id="btnStart" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg bg-[#ffc107] text-black hover:bg-[#e6ac00] transition select-none cursor-pointer" onclick="handleStartBtn()">
               <span id="btnStartTxt">Bắt đầu sao chép</span>
             </button>
-            <button id="btnPause" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg border border-[#ffe066] text-[#f59f00] bg-[#fff9db] hover:bg-[#f59f00] hover:text-white transition select-none cursor-pointer" onclick="doPause()" style="display:none">Tạm dừng</button>
-            <button id="btnResume" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg border border-[#c3fae8] text-[#099268] bg-[#e6fcf5] hover:bg-[#099268] hover:text-white transition select-none cursor-pointer" onclick="doResume()" style="display:none">Tiếp tục</button>
-            <button id="btnReset" class="px-3 text-center py-2 text-[11px] font-bold rounded-lg bg-[#212529] text-white hover:bg-black transition select-none cursor-pointer" onclick="doReset()">Reset</button>
+            <button id="btnPause" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg border border-[#ffe066] text-[#f59f00] bg-[#fff9db] hover:bg-[#f59f00] hover:text-white active:scale-95 transition select-none cursor-pointer" onclick="doPause()" style="display:none">Tạm dừng</button>
+            <button id="btnResume" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg border border-[#c3fae8] text-[#099268] bg-[#e6fcf5] hover:bg-[#099268] hover:text-white active:scale-95 transition select-none cursor-pointer" onclick="doResume()" style="display:none">Tiếp tục</button>
+            <button id="btnReset" class="px-3 text-center py-2 text-[11px] font-bold rounded-lg bg-[#212529] text-white hover:bg-black active:scale-95 transition select-none cursor-pointer" onclick="doReset()">Reset</button>
           </div>
           <div class="mt-2 text-right"><span id="actionStatus" class="text-[10px] text-[#868e96] font-mono"></span></div>
         </div>
@@ -560,15 +569,15 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
             </div>
 
             <div id="statsRow" class="grid grid-cols-3 gap-2.5 mb-4 flex-shrink-0" style="display:none">
-              <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-lg p-2 text-center cursor-pointer hover:shadow-md transition" onclick="openModal('result')">
+              <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-lg p-2 text-center cursor-pointer hover:shadow-md hover:border-[#099268] active:scale-95 transition" onclick="openModal('result')">
                 <span id="sCopied" class="text-lg md:text-xl font-bold text-[#099268] block">0</span>
                 <span class="text-[9px] uppercase font-bold text-[#20c997] tracking-tight">Kết quả</span>
               </div>
-              <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-lg p-2 text-center cursor-pointer hover:shadow-md transition" onclick="openModal('failed')">
+              <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-lg p-2 text-center cursor-pointer hover:shadow-md hover:border-[#fa5252] active:scale-95 transition" onclick="openModal('failed')">
                 <span id="sFailed" class="text-lg md:text-xl font-bold text-[#fa5252] block">0</span>
                 <span class="text-[9px] uppercase font-bold text-[#f03e3e] tracking-tight">Lỗi</span>
               </div>
-              <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-lg p-2 text-center cursor-pointer hover:shadow-md transition" onclick="openModal('folders')">
+              <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-lg p-2 text-center cursor-pointer hover:shadow-md hover:border-[#ffc107] active:scale-95 transition" onclick="openModal('folders')">
                 <span id="sFolders" class="text-lg md:text-xl font-bold text-[#495057] block">0</span>
                 <span class="text-[9px] uppercase font-bold text-[#868e96] tracking-tight">Thư mục</span>
               </div>
@@ -595,7 +604,7 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
   <div class="modal-wrapper" style="max-width:640px;max-height:88vh;display:flex;flex-direction:column;padding:0">
     <div class="flex items-center justify-between px-5 py-3.5 border-b border-[#f1f3f5] bg-[#f8f9fa] flex-shrink-0">
       <h3 id="modalTitle" class="text-[15px] font-extrabold flex items-center gap-2">Chi tiết</h3>
-      <button class="border border-[#dee2e6] text-[#495057] text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-white transition" onclick="closeModal()">Đóng</button>
+      <button class="border border-[#dee2e6] text-[#495057] text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-[#f8f9fa] hover:border-[#ffc107] active:scale-95 transition" onclick="closeModal()">Đóng</button>
     </div>
     <div id="modalBody" class="overflow-y-auto flex-1"></div>
   </div>
@@ -621,7 +630,7 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
     </div>
     <div class="vidwarn-foot">
       <button class="btn-modal btn-cancel flex-1" onclick="closeVidWarn()">Huỷ</button>
-      <button class="px-5 py-2.5 rounded-xl font-extrabold text-[13px] bg-[#ffc107] text-black hover:bg-[#e6ac00] transition flex-[2]" onclick="confirmVidWarn()">Đã hiểu, bắt đầu sao chép</button>
+      <button class="px-5 py-2.5 rounded-xl font-extrabold text-[13px] bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition flex-[2]" onclick="confirmVidWarn()">Đã hiểu, bắt đầu sao chép</button>
     </div>
   </div>
 </div>
@@ -1802,8 +1811,8 @@ function setNavUser(u){
   document.getElementById('navEmail').textContent=u.email;
 }
 const BTN_BASE = {
-  scan:  'flex-1 text-center py-2 text-[11px] font-bold rounded-lg transition select-none cursor-pointer',
-  start: 'flex-1 text-center py-2 text-[11px] font-bold rounded-lg transition select-none cursor-pointer'
+  scan:  'flex-1 text-center py-2 text-[11px] font-bold rounded-lg transition select-none cursor-pointer active:scale-95',
+  start: 'flex-1 text-center py-2 text-[11px] font-bold rounded-lg transition select-none cursor-pointer active:scale-95'
 };
 const BTN_STYLE = {
   scanIdle:  'border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] hover:bg-[#fa5252] hover:text-white',
@@ -1944,7 +1953,7 @@ function anonymizeUserEmail(email) {
 function openFaqModal() {
     const faqContainer = document.getElementById('faqContentContainer'); faqContainer.innerHTML = "";
     adminFaqData.forEach((item, index) => {
-        faqContainer.innerHTML += `<div class="border border-[#e9ecef] rounded-xl mb-2.5 overflow-hidden" id="faqItem-${index}"><div class="bg-[#f8f9fa] px-4 py-3 font-bold text-xs md:text-sm flex justify-between cursor-pointer select-none hover:bg-[#f1f3f5]" onclick="toggleFaqAccordion(${index})"><span>${item.q}</span><span class="transition-transform duration-200">▼</span></div><div class="p-4 text-xs text-[#6c757d] leading-relaxed hidden bg-white border-t border-[#e9ecef]">${item.a}</div></div>`;
+        faqContainer.innerHTML += `<div class="border border-[#e9ecef] rounded-xl mb-2.5 overflow-hidden" id="faqItem-${index}"><div class="bg-[#f8f9fa] px-4 py-3 font-bold text-xs md:text-sm flex justify-between cursor-pointer select-none hover:bg-[#fffbea] active:bg-[#fff3c4] transition-colors" onclick="toggleFaqAccordion(${index})"><span>${item.q}</span><span class="transition-transform duration-200">▼</span></div><div class="p-4 text-xs text-[#6c757d] leading-relaxed hidden bg-white border-t border-[#e9ecef]">${item.a}</div></div>`;
     });
     document.getElementById('faqModal').classList.add('active');
 }
@@ -1967,6 +1976,107 @@ function toggleFaqAccordion(index) {
 
 function closeAllModals() { document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active')); }
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeAllModals(); });
+
+/* ══════════════ PREVIEW DASHBOARD DEMO ANIMATION ══════════════
+   Auto-looping "product demo" animation for the logged-out landing page.
+   Purely cosmetic — gives visitors an instant feel for how the real
+   dashboard behaves without needing to sign in or install anything. */
+(function(){
+  const els = {
+    bar:    document.getElementById('pvProgBar'),
+    pct:    document.getElementById('pvPercentText'),
+    status: document.getElementById('pvStatusText'),
+    ok:     document.getElementById('pvStatOk'),
+    err:    document.getElementById('pvStatErr'),
+    fold:   document.getElementById('pvStatFold'),
+    logRunning: document.getElementById('pvLogRunning'),
+    logBox: document.getElementById('pvLogBox'),
+    folder1: document.getElementById('pvFolderRow1'),
+    folder2: document.getElementById('pvFolderRow2'),
+    btnScan: document.getElementById('pvBtnScan'),
+    btnCopy: document.getElementById('pvBtnCopy')
+  };
+  if (!els.bar) return; // not on the landing page
+
+  const FILES = [
+    '55. Hàm thống kê - SUM.mp4',
+    '56. Hàm thống kê - COUNT.mp4',
+    '58. Hàm thống kê - MIN.mp4',
+    '60. Hàm thống kê - RANK.mp4',
+    'Bill of lading.pdf',
+    'Hợp đồng thương mại.docx'
+  ];
+  const TARGET_PCT = 73, TARGET_OK = 70, TARGET_ERR = 139, TARGET_FOLD = 25;
+  const DURATION_MS = 3600;     // time to animate 0 -> target
+  const HOLD_MS = 1400;         // pause at "complete" before resetting
+  const STEP_MS = 90;
+
+  function setHighlight(el, on){
+    if(!el) return;
+    el.style.background = on ? '#fffbea' : '';
+    el.style.borderColor = on ? '#f0d060' : '';
+  }
+
+  function lerp(t){ return t<0.5 ? 2*t*t : -1+(4-2*t)*t; } // easeInOutQuad
+
+  let frame = 0;
+  const totalFrames = Math.round(DURATION_MS / STEP_MS);
+
+  function tick(){
+    frame++;
+    const t = Math.min(1, frame / totalFrames);
+    const eased = lerp(t);
+
+    const pct = Math.round(eased * TARGET_PCT);
+    els.bar.style.width = pct + '%';
+    els.pct.textContent = pct + '%';
+    els.ok.textContent = Math.round(eased * TARGET_OK);
+    els.err.textContent = Math.round(eased * TARGET_ERR);
+    els.fold.textContent = Math.round(eased * TARGET_FOLD);
+
+    const fileIdx = Math.min(FILES.length-1, Math.floor(eased * FILES.length));
+    els.status.textContent = 'Đang xử lý: ' + FILES[fileIdx];
+    els.logRunning.textContent = '>> RUNNING: ' + FILES[fileIdx] + '...';
+
+    // Highlight folder rows roughly in sync with progress
+    setHighlight(els.folder1, pct > 15 && pct < 45);
+    setHighlight(els.folder2, pct >= 45 && pct < 73);
+
+    if (t < 1){
+      setTimeout(tick, STEP_MS);
+    } else {
+      onComplete();
+    }
+  }
+
+  function onComplete(){
+    // Brief "done" state
+    els.status.textContent = 'Hoàn thành — đã sao chép xong';
+    els.btnCopy.textContent = 'Đã xong ✓';
+    els.btnCopy.style.background = '#1a9950';
+    setHighlight(els.folder1, false);
+    setHighlight(els.folder2, false);
+
+    setTimeout(resetAndLoop, HOLD_MS);
+  }
+
+  function resetAndLoop(){
+    frame = 0;
+    els.bar.style.width = '0%';
+    els.pct.textContent = '0%';
+    els.ok.textContent = '0';
+    els.err.textContent = '0';
+    els.fold.textContent = '0';
+    els.status.textContent = 'Đang chuẩn bị...';
+    els.logRunning.textContent = '>> Đang khởi động lại bản mô phỏng...';
+    els.btnCopy.textContent = 'Dừng copy';
+    els.btnCopy.style.background = '#212529';
+    setTimeout(tick, 500);
+  }
+
+  // Start the loop once the page is idle
+  setTimeout(tick, 600);
+})();
 </script>
 
 </body>
