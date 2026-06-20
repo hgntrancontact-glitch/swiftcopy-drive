@@ -75,7 +75,7 @@
 .btn-ghost { background:none; border:none; color:#868e96; font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; padding:4px 8px; border-radius:6px; transition:.15s; }
 .btn-ghost:hover { background:#fff8e1; color:#a87c00; }
 .btn-ghost:active { background:#ffecb3; transform:scale(.95); }
-.checklist-body { max-height:280px; overflow-y:auto; background:#fff; user-select:none; }
+.checklist-body { max-height:420px; overflow-y:auto; background:#fff; user-select:none; }
 .checklist-body::-webkit-scrollbar { width:6px; }
 .checklist-body::-webkit-scrollbar-thumb { background:#ccc; border-radius:3px; }
 
@@ -112,7 +112,7 @@
 @keyframes sweep { 0%{left:-35%} 50%{left:55%} 100%{left:100%} }
 .status-lbl { font-size:11px; color:#868e96; margin-top:5px; min-height:16px; font-family:monospace; }
 
-.log-box { height:160px; overflow-y:auto; background:#111110; border-radius:10px; padding:10px 12px; font-family:'Courier New',monospace; }
+.log-box { height:240px; overflow-y:auto; background:#111110; border-radius:10px; padding:10px 12px; font-family:'Courier New',monospace; }
 .log-box::-webkit-scrollbar { width:8px; }
 .log-box::-webkit-scrollbar-thumb { background:#777; border-radius:4px; border:2px solid #333; }
 .ll { display:flex; gap:7px; padding:1.5px 0; font-size:11px; line-height:1.6; }
@@ -304,7 +304,7 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
         <img id="navAv" class="w-8 h-8 rounded-full border-2 border-[#e9ecef] object-cover" src="" alt=""/>
         <div class="text-left"><div id="navName" class="text-xs font-bold leading-tight"></div><div id="navEmail" class="text-[10px] text-[#868e96] leading-tight"></div></div>
         <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition" onclick="reAuth()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> Cấp quyền Drive</button>
-        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#f8f9fa] hover:border-[#ffc107] active:scale-95 transition" onclick="doLogout()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-out"/></svg> Đăng xuất</button>
+        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#fffbea] hover:border-[#ffc107] active:scale-95 transition" onclick="doLogout()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-out"/></svg> Đăng xuất</button>
     </div>
 </header>
 
@@ -312,37 +312,37 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
 <div id="s-land">
 <main class="flex-1 flex flex-col items-center justify-center px-4 py-5 md:py-6 min-h-0">
     <div class="text-center max-w-[750px] mb-4 flex-shrink-0">
-        <div class="bg-[#ffc107] inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-black font-bold text-xs mb-3 shadow-sm">
+        <div class="bg-[#ffc107] inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-black font-bold text-xs mb-4 shadow-sm">
             ⚡ Công cụ sao chép Drive #1
         </div>
-        <h1 class="text-3xl md:text-4xl font-bold text-black mb-2 tracking-tight">
+        <h1 class="text-4xl md:text-5xl font-bold text-black mb-3 tracking-tight">
             SwiftCopy<span class="text-[#dc3545]">.</span>Drive
         </h1>
-        <p class="text-sm md:text-base text-[#6c757d] mb-5 leading-relaxed">
+        <p class="text-base md:text-lg text-[#6c757d] mb-6 leading-relaxed">
             Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn,<br class="hidden md:block">chạy thẳng trên trình duyệt.
         </p>
         <div class="flex gap-4 justify-center">
             <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] hover:opacity-95 active:scale-95 transition-all" onclick="doLogin()">Đăng ký dùng thử</button>
-            <button class="bg-white hover:bg-[#f8f9fa] hover:border-[#ffc107] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer active:scale-95 transition-all" onclick="doLogin()">Đăng nhập</button>
+            <button class="bg-white hover:bg-[#fffbea] hover:border-[#ffc107] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer active:scale-95 active:bg-[#fff3c4] transition-all" onclick="doLogin()">Đăng nhập</button>
         </div>
     </div>
 
     <!-- PREVIEW DASHBOARD (fake demo, shown to logged-out visitors) -->
-    <div class="w-full max-w-3xl bg-[#f1f3f5] rounded-2xl p-2.5 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group mt-5">
+    <div class="w-full max-w-5xl bg-[#f1f3f5] rounded-2xl p-2 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group mt-4">
 
         <div class="absolute inset-0 bg-white/5 backdrop-blur-[1.5px] rounded-2xl z-30 pointer-events-none flex items-center justify-center border border-white/10">
             <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Preview Dashboard</span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-20">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 relative z-20">
 
-            <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between">
+            <div class="bg-white rounded-xl p-2.5 border border-[#e9ecef] flex flex-col justify-between">
                 <div>
-                    <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-2 pb-1 border-b border-[#f1f3f5]">
+                    <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-1.5 pb-1 border-b border-[#f1f3f5]">
                         📁 Cấu hình nguồn &amp; đích
                     </div>
 
-                    <div class="space-y-2 mb-3">
+                    <div class="space-y-1.5 mb-2">
                         <div>
                             <div class="text-[9px] font-bold text-[#868e96] mb-0.5 uppercase tracking-wider">Drive Nguồn (Shared Drive)</div>
                             <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded-lg text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/19TIcajH26y2uh5bV...</div>
@@ -355,30 +355,30 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
 
                     <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Thư mục chọn lọc sao chép</div>
                     <div class="space-y-1">
-                        <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow1">
+                        <div class="flex items-center justify-between p-1.5 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow1">
                             <span class="font-medium truncate">📁 12. Thiết lập tiến độ với MS PROJECT</span>
                             <span class="text-[9px] font-bold text-[#099268] bg-[#e6fcf5] px-1.5 py-0.5 rounded flex-shrink-0">Folder</span>
                         </div>
-                        <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow2">
+                        <div class="flex items-center justify-between p-1.5 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow2">
                             <span class="font-medium truncate">📁 13. Làm việc hiệu quả với Spreadsheet</span>
                             <span class="text-[9px] font-bold text-[#099268] bg-[#e6fcf5] px-1.5 py-0.5 rounded flex-shrink-0">Folder</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex gap-2 mt-2 border-t border-[#f1f3f5] pt-2">
-                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] cursor-pointer transition-colors duration-300" id="pvBtnScan">Kiểm tra</div>
-                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg bg-[#212529] text-white cursor-pointer transition-colors duration-300" id="pvBtnCopy">Dừng copy</div>
+                <div class="flex gap-2 mt-1.5 border-t border-[#f1f3f5] pt-1.5">
+                    <div class="flex-1 text-center py-1 text-[10px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] cursor-pointer transition-colors duration-300" id="pvBtnScan">Kiểm tra</div>
+                    <div class="flex-1 text-center py-1 text-[10px] font-bold rounded-lg bg-[#212529] text-white cursor-pointer transition-colors duration-300" id="pvBtnCopy">Dừng copy</div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between gap-2">
+            <div class="bg-white rounded-xl p-2.5 border border-[#e9ecef] flex flex-col justify-between gap-1.5">
                 <div>
-                    <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-2 pb-1 border-b border-[#f1f3f5]">
+                    <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-1.5 pb-1 border-b border-[#f1f3f5]">
                         ⚡ Tiến trình đồng bộ
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-2">
                         <div class="flex justify-between text-[10px] font-bold text-[#6c757d] mb-1">
                             <span class="truncate" id="pvStatusText">Đang xử lý: 56. Hàm thống kê - COUNT.mp4</span>
                             <span class="text-black" id="pvPercentText">73%</span>
@@ -406,7 +406,7 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
 
                 <div>
                     <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Activity Log</div>
-                    <div class="bg-[#141414] text-[#a9b7c6] font-mono text-[10px] p-2 rounded-lg h-[60px] overflow-hidden flex flex-col justify-end" id="pvLogBox">
+                    <div class="bg-[#141414] text-[#a9b7c6] font-mono text-[10px] p-2 rounded-lg h-[48px] overflow-hidden flex flex-col justify-end" id="pvLogBox">
                         <div class="truncate"><span class="text-[#4e9a06]">✓ OK:</span> 55. Hàm thống kê - SUM.mp4</div>
                         <div class="text-white truncate" id="pvLogRunning">>> RUNNING: 56. Hàm thống kê - COUNT.mp4...</div>
                     </div>
@@ -492,7 +492,7 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
 <!-- ══════════════ APP (logged in & approved) — real Drive copy dashboard ══════════════ -->
 <div id="s-app">
   <main class="flex-1 px-4 py-6 md:py-8">
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-6xl mx-auto">
 
       <!-- RESUME BANNER -->
       <div id="resumeBanner" class="resume-banner" style="display:none">
