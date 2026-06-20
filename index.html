@@ -317,6 +317,95 @@ svg.ic16 { width:16px; height:16px; display:inline-block; vertical-align:middle;
         </div>
         <p class="text-xs text-[#868e96] mt-4">Mua 1 lần · Dùng vĩnh viễn · <b>Liên hệ admin sau khi thanh toán</b></p>
     </div>
+
+    <!-- PREVIEW DASHBOARD (fake demo, shown to logged-out visitors) -->
+    <div class="w-full max-w-7xl bg-[#f1f3f5] rounded-2xl p-3 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group">
+
+        <div class="absolute inset-0 bg-white/5 backdrop-blur-[1.5px] rounded-2xl z-30 pointer-events-none flex items-center justify-center border border-white/10">
+            <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Preview Dashboard</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-20">
+
+            <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-2 pb-1 border-b border-[#f1f3f5]">
+                        📁 Cấu hình nguồn &amp; đích
+                    </div>
+
+                    <div class="space-y-2 mb-3">
+                        <div>
+                            <div class="text-[9px] font-bold text-[#868e96] mb-0.5 uppercase tracking-wider">Drive Nguồn (Shared Drive)</div>
+                            <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded-lg text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/19TIcajH26y2uh5bV...</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] font-bold text-[#868e96] mb-0.5 uppercase tracking-wider">Drive Bạn Tải Về</div>
+                            <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded-lg text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/11yngY7qmJLYAgAr1...</div>
+                        </div>
+                    </div>
+
+                    <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Thư mục chọn lọc sao chép</div>
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40]">
+                            <span class="font-medium truncate">📁 12. Thiết lập tiến độ với MS PROJECT</span>
+                            <span class="text-[9px] font-bold text-[#099268] bg-[#e6fcf5] px-1.5 py-0.5 rounded flex-shrink-0">Folder</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40]">
+                            <span class="font-medium truncate">📁 13. Làm việc hiệu quả với Spreadsheet</span>
+                            <span class="text-[9px] font-bold text-[#099268] bg-[#e6fcf5] px-1.5 py-0.5 rounded flex-shrink-0">Folder</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-2 border-t border-[#f1f3f5] pt-2">
+                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] cursor-pointer">Kiểm tra</div>
+                    <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg bg-[#212529] text-white cursor-pointer">Dừng copy</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between gap-2">
+                <div>
+                    <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-2 pb-1 border-b border-[#f1f3f5]">
+                        ⚡ Tiến trình đồng bộ
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="flex justify-between text-[10px] font-bold text-[#6c757d] mb-1">
+                            <span class="truncate">Đang xử lý: 56. Hàm thống kê - COUNT.mp4</span>
+                            <span class="text-black">73%</span>
+                        </div>
+                        <div class="h-1.5 bg-[#e9ecef] rounded-full overflow-hidden">
+                            <div class="w-[73%] h-full bg-[#212529]"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-lg p-1.5 text-center">
+                            <span class="text-sm font-bold text-[#099268] block">70</span>
+                            <span class="text-[9px] uppercase font-bold text-[#20c997] tracking-tight">Thành công</span>
+                        </div>
+                        <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-lg p-1.5 text-center">
+                            <span class="text-sm font-bold text-[#fa5252] block">139</span>
+                            <span class="text-[9px] uppercase font-bold text-[#f03e3e] tracking-tight">Lỗi Drive</span>
+                        </div>
+                        <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-lg p-1.5 text-center">
+                            <span class="text-sm font-bold text-[#495057] block">25</span>
+                            <span class="text-[9px] uppercase font-bold text-[#868e96] tracking-tight">Thư mục</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Activity Log</div>
+                    <div class="bg-[#141414] text-[#a9b7c6] font-mono text-[10px] p-2 rounded-lg h-[60px] overflow-hidden">
+                        <div class="truncate"><span class="text-[#4e9a06]">✓ OK:</span> 55. Hàm thống kê - SUM.mp4</div>
+                        <div class="text-white animate-pulse truncate">>> RUNNING: 56. Hàm thống kê - COUNT.mp4...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </main>
 
 <section class="bg-white px-6 md:px-20 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 border-t border-[#f1f3f5] flex-shrink-0 box-border">
