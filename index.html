@@ -54,6 +54,53 @@
             transform: scale(1);
         }
 
+        .pv-fullscreen-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 110;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .pv-fullscreen-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .pv-fullscreen-slot {
+            width: 100%;
+            max-width: 1400px;
+            max-height: 90vh;
+            overflow: auto;
+        }
+
+        .pv-fullscreen-close {
+            position: absolute;
+            top: 1.25rem;
+            right: 1.25rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 9999px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .pv-fullscreen-close:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
         .star-rating-box span {
             font-size: 1.75rem;
             cursor: pointer;
@@ -237,6 +284,7 @@
   <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
   <symbol id="ic-check-c" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
   <symbol id="ic-x-c" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></symbol>
+  <symbol id="ic-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></symbol>
   <symbol id="ic-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.29 3.86-8.8 15.24a1 1 0 0 0 .88 1.5h17.24a1 1 0 0 0 .88-1.5L11.71 3.86a1 1 0 0 0-1.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
   <symbol id="ic-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
   <symbol id="ic-folder-o" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
@@ -351,7 +399,11 @@
         </div>
 
         <!-- TỐI ƯU DASHBOARD: Mở rộng chiều ngang (max-w-7xl), nén padding, thu gọn chiều cao log -->
-        <div class="w-full max-w-7xl bg-[#f1f3f5] rounded-2xl p-3 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group">
+        <div id="pvCard" class="w-full max-w-7xl bg-[#f1f3f5] rounded-2xl p-3 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group">
+
+            <button onclick="openPvFullscreen()" aria-label="Phóng to bản xem trước" class="absolute top-3 right-3 z-40 w-8 h-8 rounded-lg bg-black/70 hover:bg-black/85 text-white flex items-center justify-center transition-colors" style="pointer-events:auto">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-expand"/></svg>
+            </button>
 
             <div class="absolute inset-0 bg-white/5 backdrop-blur-[1.5px] rounded-2xl z-30 pointer-events-none flex items-center justify-center border border-white/10">
                 <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Preview Dashboard</span>
@@ -753,6 +805,13 @@
             <button class="btn-modal btn-cancel" onclick="closeAllModals()">Đóng</button>
         </div>
     </div>
+</div>
+
+<div id="pvFullscreenOverlay" class="pv-fullscreen-overlay">
+    <button onclick="closePvFullscreen()" aria-label="Đóng bản xem trước" class="pv-fullscreen-close">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-x-c"/></svg>
+    </button>
+    <div id="pvFullscreenSlot" class="pv-fullscreen-slot"></div>
 </div>
 
 <script type="module">
@@ -2010,6 +2069,41 @@ function toggleFaqAccordion(index) {
 
 function closeAllModals() { document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active')); }
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeAllModals(); });
+
+/* ══════════════ PREVIEW DASHBOARD — FULLSCREEN TOGGLE ══════════════
+   Moves the actual #pvCard node (not a clone) into a fullscreen overlay
+   so the existing animation loop keeps running untouched — same DOM
+   nodes, same id references, just a different parent in the tree. */
+let _pvOriginalParent = null, _pvOriginalNextSibling = null;
+
+function openPvFullscreen() {
+  const card = document.getElementById('pvCard');
+  const slot = document.getElementById('pvFullscreenSlot');
+  const overlay = document.getElementById('pvFullscreenOverlay');
+  if (!card || !slot || !overlay) return;
+  _pvOriginalParent = card.parentNode;
+  _pvOriginalNextSibling = card.nextSibling;
+  slot.appendChild(card);
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePvFullscreen() {
+  const card = document.getElementById('pvCard');
+  const overlay = document.getElementById('pvFullscreenOverlay');
+  if (!card || !overlay || !_pvOriginalParent) return;
+  _pvOriginalParent.insertBefore(card, _pvOriginalNextSibling);
+  overlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('pvCard')?.addEventListener('dblclick', openPvFullscreen);
+document.getElementById('pvFullscreenOverlay')?.addEventListener('click', function(e) {
+  if (e.target === e.currentTarget) closePvFullscreen();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closePvFullscreen();
+});
 
 /* ══════════════ PREVIEW DASHBOARD DEMO ANIMATION ══════════════
    Auto-looping "product demo" animation for the logged-out landing page.
