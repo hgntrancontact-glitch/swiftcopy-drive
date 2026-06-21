@@ -2011,10 +2011,10 @@ let initialReviews = [
 const adminFaqData = [
     { q: `Sử dụng Copy Drive trên Web có an toàn và bảo mật dữ liệu không? Nó hoạt động như thế nào?`, a: `Cơ chế Copy Drive khi dùng SwiftCopy.Drive luôn an toàn vì công cụ chạy ngay trên trình duyệt, chúng tôi sử dụng Google Drive API chính thống. Còn việc sao chép nội dung file diễn ra hoàn toàn trên hạ tầng của Google, không tải về hay đi qua máy tính/trình duyệt của bạn, cũng không qua bất kỳ máy chủ trung gian nào của SwiftCopy.Drive. Vì vậy không ai, kể cả đội ngũ vận hành web cũng không thể xem hoặc lưu lại được nội dung file của bạn. File gốc không bị xoá hay chỉnh sửa trong suốt quá trình sao chép. Bạn có thể thu hồi quyền truy cập bất cứ lúc nào trong chính tài khoản Google của mình.` },
     { q: `Mua một lần dùng được bao lâu?`, a: `Trọn đời — thanh toán 1 lần duy nhất, không phí gia hạn, không giới hạn thời gian sử dụng.` },
-    { q: `Có giới hạn số thư mục/dung lượng (GB) không?`, a: `Bản thân công cụ không giới hạn số thư mục hay dung lượng GB khi thực hiện copy Drive. Giới hạn duy nhất đến từ dung lượng GB hiện có trong Google Drive của bạn. Hãy kiểm tra trước dung lượng GB của Drive bạn, và đối chiếu với dung lượng GB của Drive nguồn (tức Drive bạn sẽ tải về) — bạn có thể kiểm tra trực tiếp trên SwiftCopy.Drive. Nếu không đủ, bạn có thể chọn trước những thư mục quan trọng để copy trước. Đây là giải pháp nhanh mà SwiftCopy.Drive làm được để bạn vẫn có thể sao chép trước các thư mục cần thiết.` },
-    { q: `Tôi có thể chọn lẻ thư mục/file để copy không?`, a: `Có. Bạn không cần copy toàn bộ Drive — có thể chọn đúng những thư mục hoặc file cụ thể mình cần thông qua danh sách chọn lọc của SwiftCopy.Drive trước khi nhấn sao chép.` },
-    { q: `Tại sao nên dùng SwiftCopy.Drive để sao chép Drive thay vì cách thông thường?`, a: `Giúp bạn sao chép thẳng thư mục được người khác chia sẻ vào Drive do bạn quản lý một cách nhanh chóng — không cần tải về máy rồi tải ngược lên Drive như cách cũ vốn tốn rất nhiều thời gian. Có sẵn bước "Kiểm tra trước" khi sao chép, để biết Drive nguồn có copy được hay đang bị khoá quyền, giúp bạn xử lý trước khi sao chép. Hệ thống còn đếm GB trước khi bạn sao chép, giúp tránh tình trạng kẹt do vượt giới hạn dung lượng Drive của bạn — dù bạn đã mua thêm GB từ Google hay chưa, hệ thống đều cho bạn biết trước.` },
-    { q: `Đang sao chép nếu mất mạng thì sao?`, a: `Tiến trình tự động lưu lại. Khi có mạng (hoặc mở lại trình duyệt) trở lại, hệ thống phát hiện phiên sao chép dang dở và cho tiếp tục đúng chỗ đã dừng — những mục đã copy rồi sẽ tự động được bỏ qua, bạn chỉ cần nhấn tiếp tục, không cần chạy lại từ đầu.` },
+    { q: `Có giới hạn số thư mục/dung lượng (GB) không?`, a: `Bản thân công cụ không giới hạn số thư mục hay dung lượng GB khi thực hiện copy Drive. Giới hạn duy nhất đến từ dung lượng GB hiện có trong Google Drive của bạn. Hãy kiểm tra trước dung lượng GB của Drive bạn, và đối chiếu với dung lượng GB của Drive nguồn (tức Drive gốc) — bạn có thể kiểm tra trực tiếp trên SwiftCopy.Drive. Nếu không đủ, bạn có thể chọn trước những thư mục quan trọng để copy trước. Đây là giải pháp nhanh mà SwiftCopy.Drive làm được để bạn vẫn có thể sao chép trước các thư mục cần thiết.` },
+    { q: `Tôi có thể chọn lẻ thư mục/file để copy không?`, a: `Có. Bạn không cần copy toàn bộ Drive — có thể chọn đúng những thư mục hoặc file cụ thể thông qua danh sách chọn lọc của SwiftCopy.Drive trước khi nhấn sao chép.` },
+    { q: `Tại sao nên dùng SwiftCopy.Drive để sao chép Drive thay vì cách thông thường?`, a: `Giúp bạn sao chép thẳng thư mục được người khác chia sẻ vào Drive do bạn quản lý một cách nhanh chóng — không cần tải về máy rồi tải ngược lên Drive như cách cũ vốn tốn rất nhiều thời gian. Có sẵn bước "Kiểm tra trước" khi sao chép, để biết Drive nguồn có copy được hay đang bị khoá quyền, giúp bạn xử lý trước khi sao chép. Hệ thống còn đếm dung lượng GB của Drive nguồn trước khi bạn sao chép, giúp tránh tình trạng kẹt do vượt giới hạn dung lượng Drive của bạn (nếu) — dù bạn đã mua thêm dung lượng GB từ Google rồi hoặc chưa, hệ thống cũng đều cho bạn biết trước.` },
+    { q: `Đang sao chép nếu mất mạng thì sao?`, a: `Tiến trình tự động lưu lại. Khi có mạng (hoặc mở trình duyệt) trở lại, hệ thống sẽ phát hiện được phiên sao chép dang dở và cho tiếp tục đúng chỗ đã dừng — những mục đã sao chép rồi sẽ tự động được bỏ qua, bạn chỉ cần nhấn tiếp tục, không cần chạy lại từ đầu.` },
     { q: `Tốc độ sao chép nhanh cỡ nào?`, a: `Ví dụ minh hoạ: một thư mục Drive nặng 50GB với khoảng 5.000 file.<br><br>Cách thủ công (tải về máy rồi tải lên lại): tải về mất khoảng 40–50 phút, tải lên lại thường chậm hơn nhiều nên mất thêm 2–3 giờ — tổng khoảng 3–4 giờ, chưa kể công sắp xếp lại thủ công.<br><br>Dùng SwiftCopy.Drive: vì copy diễn ra trực tiếp giữa Google với Google (không qua đường truyền mạng của bạn), cùng khối lượng này thường chỉ mất khoảng 10–15 phút và các thư mục Drive nguồn không bị lẫn lộn.<br><br>→ Tiết kiệm gần như toàn bộ thời gian so với cách làm thủ công.<br><br>(Đây là ví dụ minh hoạ để tham khảo dựa trên cơ chế hoạt động thực tế, thời gian thật có thể thay đổi tuỳ số lượng/kích thước file.)` }
 ];
 
@@ -2067,7 +2067,8 @@ function openReviewListModal() {
     });
     if (initialReviews.length > 6) {
         const sixthItem = container.children[5];
-        container.style.maxHeight = (sixthItem.offsetTop + sixthItem.offsetHeight) + 'px';
+        const h = sixthItem.getBoundingClientRect().bottom - container.getBoundingClientRect().top;
+        container.style.maxHeight = h + 'px';
     } else {
         container.style.maxHeight = '';
     }
@@ -2087,7 +2088,8 @@ function openFaqModal() {
     });
     if (adminFaqData.length > 5) {
         const fifthItem = faqContainer.children[4];
-        faqContainer.style.maxHeight = (fifthItem.offsetTop + fifthItem.offsetHeight) + 'px';
+        const h = fifthItem.getBoundingClientRect().bottom - faqContainer.getBoundingClientRect().top;
+        faqContainer.style.maxHeight = h + 'px';
     } else {
         faqContainer.style.maxHeight = '';
     }
