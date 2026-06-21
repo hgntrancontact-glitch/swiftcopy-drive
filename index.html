@@ -364,9 +364,9 @@
             </div>
 
             <div class="text-base flex items-center gap-2 select-none">
-                <span class="text-[#ffc107] font-bold cursor-pointer hover:text-[#e6ac00] transition-colors">VI</span>
+                <span class="text-[#ffc107] font-bold cursor-pointer hover:text-[#e6ac00] transition-colors" onclick="openLangModal()">VI</span>
                 <span class="text-[#adc2d1]">|</span>
-                <span class="text-[#6c757d] cursor-pointer hover:text-[#ffc107] transition-colors">EN</span>
+                <span class="text-[#6c757d] cursor-pointer hover:text-[#ffc107] transition-colors" onclick="openLangModal()">EN</span>
             </div>
         </div>
 
@@ -405,8 +405,8 @@
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-expand"/></svg>
             </button>
 
-            <div class="absolute inset-0 bg-white/5 backdrop-blur-[1.5px] rounded-2xl z-30 pointer-events-none flex items-center justify-center border border-white/10">
-                <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Preview Dashboard</span>
+            <div id="pvBlurBadge" class="absolute inset-0 bg-white/5 backdrop-blur-[1.5px] rounded-2xl z-30 pointer-events-none flex items-center justify-center border border-white/10">
+                <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Nhấp để xem</span>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-20 min-w-0">
@@ -492,23 +492,23 @@
         </div>
     </main>
 
-    <section class="bg-white px-6 md:px-20 pt-12 pb-8 border-t border-[#f1f3f5]">
+    <section class="bg-white px-6 md:px-20 pt-8 pb-5 border-t border-[#f1f3f5]">
         <div class="max-w-7xl mx-auto">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 items-start mb-10">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start mb-6">
             <div>
-                <div class="flex items-center gap-3 mb-4">
+                <div class="flex items-center gap-3 mb-3">
                     <svg class="w-9 h-9 rounded-lg flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
                       <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
                       <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
                       <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <h3 class="font-bold text-black tracking-tight">SwiftCopy<span class="text-[#dc3545]">.</span>Drive</h3>
+                    <h3 class="font-bold text-black tracking-tight text-xl">SwiftCopy<span class="text-[#dc3545]">.</span>Drive</h3>
                 </div>
-                <p class="text-xs text-[#868e96] leading-relaxed">Tối ưu hóa thời gian xử lý dữ liệu sao chép trên nền tảng Google Drive cho cá nhân và doanh nghiệp sản xuất nội dung số.</p>
+                <p class="text-lg text-[#868e96] leading-snug">Tối ưu hóa thời gian xử lý dữ liệu sao chép trên nền tảng Google Drive cho cá nhân và doanh nghiệp sản xuất nội dung số.</p>
             </div>
             <div>
-                <h3 class="font-bold text-black text-[14px] mb-4 tracking-tight">Tính năng</h3>
-                <ul class="text-xs text-[#6c757d] space-y-3">
+                <h3 class="font-bold text-black text-[21px] mb-3 tracking-tight">Tính năng</h3>
+                <ul class="text-lg text-[#6c757d] space-y-2">
                     <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Sao chép tốc độ cực nhanh</li>
                     <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Kiểm tra Drive lỗi trước</li>
                     <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Chọn lọc mục muốn copy</li>
@@ -517,14 +517,14 @@
                 </ul>
             </div>
             <div>
-                <h3 class="font-bold text-black text-[14px] mb-4 tracking-tight">Liên hệ</h3>
-                <ul class="text-xs text-[#6c757d] space-y-3">
+                <h3 class="font-bold text-black text-[21px] mb-3 tracking-tight">Liên hệ</h3>
+                <ul class="text-lg text-[#6c757d] space-y-2">
                     <li class="flex items-center gap-2">
                         <svg class="w-4 h-4 stroke-[#868e96] fill-none stroke-2 flex-shrink-0" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                         hgntran.contact@gmail.com
                     </li>
                 </ul>
-                <span class="font-bold text-black text-xs block mt-5 mb-2">ZALO</span>
+                <span class="font-bold text-black text-lg block mt-3 mb-1.5">ZALO</span>
                 <div class="border border-[#dee2e6] rounded-md p-1.5 bg-white grid grid-cols-4 grid-rows-4 gap-1 w-[88px] h-[88px] box-border">
                     <div class="border-[2.5px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black"></div>
                     <div class="border-[2.5px] border-black bg-white flex items-center justify-center after:content-[''] after:w-1 after:h-1 after:bg-black" style="grid-column: 4; grid-row: 1;"></div>
@@ -533,20 +533,20 @@
                 </div>
             </div>
             <div>
-                <h3 class="font-bold text-black text-[14px] mb-4 tracking-tight">Hỗ trợ</h3>
-                <div class="flex flex-col items-start gap-2.5 mb-5">
-                    <span class="text-xs text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
-                    <span class="text-xs text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openReviewListModal()">Xem thử đánh giá</span>
+                <h3 class="font-bold text-black text-[21px] mb-3 tracking-tight">Hỗ trợ</h3>
+                <div class="flex flex-col items-start gap-2 mb-3">
+                    <span class="text-lg text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
+                    <span class="text-lg text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openReviewListModal()">Xem thử đánh giá</span>
                 </div>
-                <button class="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#ffc107] to-[#ff8f00] text-black px-4 py-2 rounded-full text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all whitespace-nowrap" id="reviewBtn">
-                    <span class="text-black text-xs">★</span>
+                <button class="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#ffc107] to-[#ff8f00] text-black px-4 py-2 rounded-full text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all whitespace-nowrap" id="reviewBtn">
+                    <span class="text-black text-sm">★</span>
                     <span>Đánh giá SwiftCopy<span class="text-[#dc3545]">.</span>Drive</span>
                 </button>
             </div>
         </div>
-        <div class="border-t border-[#f1f3f5] pt-5 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-[#868e96]">
+        <div class="border-t border-[#f1f3f5] pt-3 flex flex-col sm:flex-row justify-between items-center gap-2 text-lg text-[#868e96]">
             <div>© 2026 SwiftCopy<span class="text-[#dc3545]">.</span>Drive. All rights reserved.</div>
-            <div class="font-bold text-black">Mua 1 lần sử dụng trọn đời</div>
+            <div class="font-bold text-black bg-[#fafafa] border border-[#e9ecef] rounded-full px-4 py-1.5">Mua 1 lần sử dụng trọn đời</div>
         </div>
         </div>
     </section>
@@ -752,20 +752,45 @@
 <div id="toast" class="toast"></div>
 
 <!-- ══════════════ DEMO MODALS (static placeholder data, ported from the original mockup) ══════════════ -->
+<div class="modal-overlay" id="langModal">
+    <div class="modal-wrapper" style="text-align:center;">
+        <div class="modal-title">Thông báo</div>
+        <p class="text-sm text-[#6c757d]">Tính năng chưa được hỗ trợ. Vui lòng sử dụng Google Translate tạm thời trong khi chờ bản cập nhật sắp tới.</p>
+        <div class="modal-actions">
+            <button class="btn-modal btn-cancel" onclick="closeAllModals()" style="width:100%;">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="supportModal">
+    <div class="modal-wrapper" style="max-width:380px;text-align:center;">
+        <div class="modal-title">Thông tin hỗ trợ kỹ thuật</div>
+        <p class="text-sm text-[#6c757d] mb-4">Liên hệ qua Email hoặc quét mã QR Zalo bên dưới để được hỗ trợ nhanh nhất.</p>
+        <div class="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-[#212529]">
+            <svg class="w-4 h-4 stroke-[#868e96] fill-none stroke-2 flex-shrink-0" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            hgntran.contact@gmail.com
+        </div>
+        <img src="zalo-qr.png" alt="Mã QR Zalo hỗ trợ" class="mx-auto rounded-xl border border-[#dee2e6]" style="width:180px;height:180px;object-fit:contain;"/>
+        <div class="modal-actions" style="margin-top:1.25rem;">
+            <button class="btn-modal btn-cancel" onclick="closeAllModals()" style="width:100%;">Đóng</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="earnModal">
     <div class="modal-wrapper">
-        <div class="modal-title">Chương trình Đối tác Affiliate 2026</div>
+        <div class="modal-title">Chương trình Đối tác Affiliate</div>
         <div class="earn-info-box">
             <p>Chia sẻ liên kết giới thiệu <strong>SwiftCopy.Drive</strong> để nhận ngay hoa hồng hấp dẫn:</p>
             <ul class="list-disc pl-5 my-2 text-[#6c757d]">
-                <li>Chiết khấu <strong>30%</strong> cho mỗi đơn hàng phát sinh thành công.</li>
-                <li>Rút tiền nhanh chóng qua cổng mạng quốc tế khi đạt hạn mức tối thiểu.</li>
-                <li>Cung cấp dashboard chi tiết để theo dõi lượt click và tiến độ.</li>
+                <li>Chiết khấu <strong>50%</strong> cho mỗi đơn hàng phát sinh thành công từ liên kết của bạn, và người dùng áp mã giới thiệu của bạn sẽ được giảm <strong>5%</strong>.</li>
+                <li>Rút tiền hoa hồng về tài khoản ngân hàng nhanh chóng, hỗ trợ thanh toán <strong>cuối ngày</strong> hoặc <strong>chủ nhật hàng tuần</strong>.</li>
+                <li><strong>Hiện chương trình chưa mở đăng ký</strong>; khi nào mở cổng cho Cộng tác viên, chúng tôi sẽ có thông báo chính thức!</li>
             </ul>
         </div>
         <div class="modal-actions">
             <button class="btn-modal btn-cancel" onclick="closeAllModals()">Đóng lại</button>
-            <button class="btn-modal btn-submit animate-pulse" onclick="alert('Đang ghi nhận đăng ký đối tác!')">Đăng ký ngay</button>
+            <button class="btn-modal btn-submit" onclick="toast('Chương trình (Sắp ra mắt) hiện tại chưa hỗ trợ !','warn')">Đăng ký ngay</button>
         </div>
     </div>
 </div>
@@ -910,7 +935,7 @@ function doStopCopy()  { stopFlag=true; pauseFlag=false; if(_resumeResolve){_res
 window.doReset = () => {
   stopFlag=true; pauseFlag=false;
   if(_resumeResolve){_resumeResolve();_resumeResolve=null;}
-  stats=ns(); clItems=[]; clLoaded=false;
+  stats=ns(); updStats(); clItems=[]; clLoaded=false;
   document.getElementById('srcInput').value  = '';
   document.getElementById('destInput').value = '';
   document.getElementById('srcPreview').style.display  = 'none';
@@ -1315,6 +1340,7 @@ async function startScan() {
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
   stopFlag=false; pauseFlag=false; runMode='scan'; _authExpiredHandled=false;
+  stats=ns(); updStats();
   document.getElementById('scanResult').style.display='none';
   document.getElementById('logBox').innerHTML='';
   setBtnMode('scan');
@@ -1983,9 +2009,13 @@ let initialReviews = [
 ];
 
 const adminFaqData = [
-    { q: "Hệ thống có giới hạn dung lượng copy mỗi ngày không?", a: "Hoàn toàn không giới hạn dung lượng băng thông. Bạn mua một lần là sử dụng thoải mái lâu dài không lo giới hạn." },
-    { q: "Tôi có cần treo máy máy tính khi hệ thống đang chạy copy không?", a: "Không cần treo máy. Tiến trình xử lý chạy ngầm 100% trên hệ thống server cloud, bạn có thể tắt trình duyệt đi ngủ bình thường." },
-    { q: "Nếu gặp lỗi phân quyền Drive thì phải giải quyết thế nào?", a: "Hệ thống tích hợp sẵn tính năng kiểm tra lỗi trước khi chạy, cảnh báo ngay tài khoản nào chưa mở liên kết chia sẻ." }
+    { q: `Sử dụng Copy Drive trên Web có an toàn và bảo mật dữ liệu không? Nó hoạt động như thế nào?`, a: `Cơ chế Copy Drive khi dùng SwiftCopy.Drive luôn an toàn vì công cụ chạy ngay trên trình duyệt, chúng tôi sử dụng Google Drive API chính thống. Còn việc sao chép nội dung file diễn ra hoàn toàn trên hạ tầng của Google, không tải về hay đi qua máy tính/trình duyệt của bạn, cũng không qua bất kỳ máy chủ trung gian nào của SwiftCopy.Drive. Vì vậy không ai, kể cả đội ngũ vận hành web cũng không thể xem hoặc lưu lại được nội dung file của bạn. File gốc không bị xoá hay chỉnh sửa trong suốt quá trình sao chép. Bạn có thể thu hồi quyền truy cập bất cứ lúc nào trong chính tài khoản Google của mình.` },
+    { q: `Mua một lần dùng được bao lâu?`, a: `Trọn đời — thanh toán 1 lần duy nhất, không phí gia hạn, không giới hạn thời gian sử dụng.` },
+    { q: `Có giới hạn số thư mục/dung lượng (GB) không?`, a: `Bản thân công cụ không giới hạn số thư mục hay dung lượng GB khi thực hiện copy Drive. Giới hạn duy nhất đến từ dung lượng GB hiện có trong Google Drive của bạn. Hãy kiểm tra trước GB của Drive đích, và đối chiếu với dung lượng GB của Drive bạn — nếu không đủ, bạn có thể chọn trước những thư mục quan trọng để copy trước. Đây là giải pháp nhanh mà SwiftCopy.Drive làm được để bạn vẫn có thể sao chép trước các thư mục cần thiết.` },
+    { q: `Tôi có thể chọn lẻ thư mục/file để copy không?`, a: `Có. Bạn không cần copy toàn bộ Drive — có thể chọn đúng những thư mục hoặc file cụ thể mình cần thông qua danh sách chọn lọc của SwiftCopy.Drive trước khi nhấn sao chép.` },
+    { q: `Tại sao nên dùng SwiftCopy.Drive để sao chép Drive thay vì cách thông thường?`, a: `Giúp bạn sao chép thẳng thư mục được người khác chia sẻ vào Drive do bạn quản lý một cách nhanh chóng — không cần tải về máy rồi tải ngược lên Drive như cách cũ vốn tốn rất nhiều thời gian. Có sẵn bước "Kiểm tra trước" khi sao chép, để biết Drive nguồn có copy được hay đang bị khoá quyền, giúp bạn xử lý trước khi sao chép. Hệ thống còn đếm GB trước khi bạn sao chép, giúp tránh tình trạng kẹt do vượt giới hạn dung lượng Drive của bạn — dù bạn đã mua thêm GB từ Google hay chưa, hệ thống đều cho bạn biết trước.` },
+    { q: `Đang sao chép nếu mất mạng thì sao?`, a: `Tiến trình tự động lưu lại. Khi có mạng (hoặc mở lại trình duyệt) trở lại, hệ thống phát hiện phiên sao chép dang dở và cho tiếp tục đúng chỗ đã dừng — những mục đã copy rồi sẽ tự động được bỏ qua, bạn chỉ cần nhấn tiếp tục, không cần chạy lại từ đầu.` },
+    { q: `Tốc độ sao chép nhanh cỡ nào?`, a: `Ví dụ minh hoạ: một thư mục Drive nặng 50GB với khoảng 5.000 file.<br><br>Cách thủ công (tải về máy rồi tải lên lại): tải về mất khoảng 40–50 phút, tải lên lại thường chậm hơn nhiều nên mất thêm 2–3 giờ — tổng khoảng 3–4 giờ, chưa kể công sắp xếp lại thủ công.<br><br>Dùng SwiftCopy.Drive: vì copy diễn ra trực tiếp giữa Google với Google (không qua đường truyền mạng của bạn), cùng khối lượng này thường chỉ mất khoảng 10–15 phút và các thư mục Drive nguồn không bị lẫn lộn.<br><br>→ Tiết kiệm gần như toàn bộ thời gian so với cách làm thủ công.<br><br>(Đây là ví dụ minh hoạ để tham khảo dựa trên cơ chế hoạt động thực tế, thời gian thật có thể thay đổi tuỳ số lượng/kích thước file.)` }
 ];
 
 let selectedStars = 0;
@@ -2004,7 +2034,8 @@ function togglePopover(id) {
     current.style.display = current.style.display === 'block' ? 'none' : 'block';
 }
 
-function openZaloHelp() { alert("Thông tin hỗ trợ kỹ thuật:\nEmail: hgntran.contact@gmail.com\nZalo Admin: 0909 821 702."); }
+function openZaloHelp() { document.getElementById('supportModal').classList.add('active'); }
+function openLangModal() { document.getElementById('langModal').classList.add('active'); }
 function triggerFaqModal() { document.getElementById('helpPopover').style.display = 'none'; openFaqModal(); }
 function openEarnModal() { document.getElementById('earnModal').classList.add('active'); }
 
@@ -2048,6 +2079,12 @@ function openFaqModal() {
     adminFaqData.forEach((item, index) => {
         faqContainer.innerHTML += `<div class="border border-[#e9ecef] rounded-xl mb-2.5 overflow-hidden" id="faqItem-${index}"><div class="bg-[#f8f9fa] px-4 py-3 font-bold text-xs md:text-sm flex justify-between cursor-pointer select-none hover:bg-[#fffbea] active:bg-[#fff3c4] transition-colors" onclick="toggleFaqAccordion(${index})"><span>${item.q}</span><span class="transition-transform duration-200">▼</span></div><div class="p-4 text-xs text-[#6c757d] leading-relaxed hidden bg-white border-t border-[#e9ecef]">${item.a}</div></div>`;
     });
+    if (adminFaqData.length > 5) {
+        const fifthItem = faqContainer.children[4];
+        faqContainer.style.maxHeight = (fifthItem.offsetTop + fifthItem.offsetHeight) + 'px';
+    } else {
+        faqContainer.style.maxHeight = '';
+    }
     document.getElementById('faqModal').classList.add('active');
 }
 function toggleFaqAccordion(index) {
@@ -2080,21 +2117,25 @@ function openPvFullscreen() {
   const card = document.getElementById('pvCard');
   const slot = document.getElementById('pvFullscreenSlot');
   const overlay = document.getElementById('pvFullscreenOverlay');
+  const blur = document.getElementById('pvBlurBadge');
   if (!card || !slot || !overlay) return;
   _pvOriginalParent = card.parentNode;
   _pvOriginalNextSibling = card.nextSibling;
   slot.appendChild(card);
   overlay.classList.add('active');
   document.body.style.overflow = 'hidden';
+  if (blur) blur.style.display = 'none';
 }
 
 function closePvFullscreen() {
   const card = document.getElementById('pvCard');
   const overlay = document.getElementById('pvFullscreenOverlay');
+  const blur = document.getElementById('pvBlurBadge');
   if (!card || !overlay || !_pvOriginalParent) return;
   _pvOriginalParent.insertBefore(card, _pvOriginalNextSibling);
   overlay.classList.remove('active');
   document.body.style.overflow = '';
+  if (blur) blur.style.display = '';
 }
 
 document.getElementById('pvCard')?.addEventListener('dblclick', openPvFullscreen);
