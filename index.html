@@ -810,7 +810,7 @@
 <div class="modal-overlay" id="reviewListModal">
     <div class="modal-wrapper">
         <div class="modal-title">Đánh giá hệ thống công khai</div>
-        <div class="max-h-60 overflow-y-auto pr-1 space-y-2" id="reviewListContent"></div>
+        <div class="max-h-60 overflow-y-auto pr-1 space-y-2 relative" id="reviewListContent"></div>
         <div class="modal-actions">
             <button class="btn-modal btn-cancel" onclick="closeAllModals()">Đóng</button>
         </div>
@@ -820,7 +820,7 @@
 <div class="modal-overlay" id="faqModal">
     <div class="modal-wrapper">
         <div class="modal-title">Câu hỏi thường gặp</div>
-        <div class="max-h-80 overflow-y-auto pr-1" id="faqContentContainer"></div>
+        <div class="max-h-80 overflow-y-auto pr-1 relative" id="faqContentContainer"></div>
         <div class="modal-actions">
             <button class="btn-modal btn-cancel" onclick="closeAllModals()">Đóng</button>
         </div>
@@ -2067,7 +2067,7 @@ function openReviewListModal() {
     });
     if (initialReviews.length > 6) {
         const sixthItem = container.children[5];
-        const h = sixthItem.getBoundingClientRect().bottom - container.getBoundingClientRect().top;
+        const h = sixthItem.offsetTop + sixthItem.offsetHeight;
         container.style.maxHeight = h + 'px';
     } else {
         container.style.maxHeight = '';
@@ -2088,7 +2088,7 @@ function openFaqModal() {
     });
     if (adminFaqData.length > 5) {
         const fifthItem = faqContainer.children[4];
-        const h = fifthItem.getBoundingClientRect().bottom - faqContainer.getBoundingClientRect().top;
+        const h = fifthItem.offsetTop + fifthItem.offsetHeight;
         faqContainer.style.maxHeight = h + 'px';
     } else {
         faqContainer.style.maxHeight = '';
