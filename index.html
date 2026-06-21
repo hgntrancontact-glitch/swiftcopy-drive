@@ -222,7 +222,7 @@
         #s-land, #s-check, #s-pend, #s-app { display:none; }
     </style>
 </head>
-<body class="bg-[#fafafa] text-[#212529] font-sans min-h-screen flex flex-col antialiased">
+<body class="bg-[#fafafa] text-[#212529] font-sans min-h-screen flex flex-col antialiased overflow-x-hidden">
 
 <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
   <symbol id="ic-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3"/></symbol>
@@ -357,10 +357,10 @@
                 <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Preview Dashboard</span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-20">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-20 min-w-0">
 
-                <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between">
-                    <div>
+                <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between min-w-0">
+                    <div class="min-w-0">
                         <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-2 pb-1 border-b border-[#f1f3f5]">
                             📁 Cấu hình nguồn & đích
                         </div>
@@ -395,16 +395,16 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between gap-2">
-                    <div>
+                <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between gap-2 min-w-0">
+                    <div class="min-w-0">
                         <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-2 pb-1 border-b border-[#f1f3f5]">
                             ⚡ Tiến trình đồng bộ
                         </div>
 
                         <div class="mb-3">
-                            <div class="flex justify-between text-[10px] font-bold text-[#6c757d] mb-1">
-                                <span class="truncate" id="pvStatusText">Đang xử lý: 56. Hàm thống kê - COUNT.mp4</span>
-                                <span class="text-black" id="pvPercentText">73%</span>
+                            <div class="flex justify-between text-[10px] font-bold text-[#6c757d] mb-1 min-w-0">
+                                <span class="truncate min-w-0" id="pvStatusText">Đang xử lý: 56. Hàm thống kê - COUNT.mp4</span>
+                                <span class="text-black flex-shrink-0 ml-1" id="pvPercentText">73%</span>
                             </div>
                             <div class="h-1.5 bg-[#e9ecef] rounded-full overflow-hidden">
                                 <div class="h-full bg-[#212529] transition-[width] duration-300 ease-linear" id="pvProgBar" style="width:73%"></div>
