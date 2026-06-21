@@ -2043,7 +2043,12 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
   const TARGET_PCT = 73, TARGET_OK = 70, TARGET_ERR = 139, TARGET_FOLD = 25;
   const DURATION_MS = 3600;     // time to animate 0 -> target
   const HOLD_MS = 1400;         // pause at "complete" before resetting
-  const STEP_MS = 90;
+  const STEP_MS = 250;          // was 90ms — throttled to reduce main-thread contention while staying visually smooth
+
+  // Skip the heavy DOM-update work entirely whenever any demo modal (review/earn/FAQ...)
+  // is open, since the preview card is hidden behind the overlay anyway. This stops the
+  // animation from competing with the browser's main thread for clicks/typing inside modals.
+  function anyModalOpen(){ return !!document.querySelector('.modal-overlay.active'); }
 
   function setHighlight(el, on){
     if(!el) return;
@@ -2057,6 +2062,8 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
   const totalFrames = Math.round(DURATION_MS / STEP_MS);
 
   function tick(){
+    if (anyModalOpen()){ setTimeout(tick, STEP_MS); return; } // paused while a modal covers the preview
+
     frame++;
     const t = Math.min(1, frame / totalFrames);
     const eased = lerp(t);
