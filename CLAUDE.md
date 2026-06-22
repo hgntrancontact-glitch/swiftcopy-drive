@@ -22,7 +22,7 @@ Web app cho phép sao chép thư mục Google Drive (kể cả Shared Drive) san
 | File operations | Google Drive API v3, gọi thẳng bằng `fetch`, KHÔNG dùng SDK |
 | Email | EmailJS `@emailjs/browser` v3 (CDN) |
 | Font | Google Fonts — Nunito + Nunito Sans |
-| Deploy | GitHub Pages (static), sắp chuyển sang Vercel |
+| Deploy | Vercel (auto-deploy khi push lên GitHub), sắp mua domain .com |
 | Build tool | Không có — zero-build |
 
 ---
@@ -31,7 +31,10 @@ Web app cho phép sao chép thư mục Google Drive (kể cả Shared Drive) san
 
 ```
 SwiftCopy.Drive/
-├── index.html          ← App chính (~2280 dòng): landing + dashboard người dùng
+├── index.html          ← App chính (~585 dòng): landing + dashboard người dùng (HTML thuần)
+├── style.css           ← Toàn bộ CSS tùy biến (tách từ index.html)
+├── app.js              ← Firebase, Drive API, copy logic (ES module, ~1159 dòng)
+├── ui.js               ← Modal, FAQ, review, preview animation (~278 dòng)
 ├── admin.html          ← Trang quản trị (~515 dòng): duyệt user, kick, re-add
 ├── zalo-qr.png         ← Ảnh QR Zalo hỗ trợ (400×400px, đã crop sạch)
 ├── favicon.svg         ← Logo SVG gốc
@@ -45,16 +48,17 @@ SwiftCopy.Drive/
 
 ---
 
-## Cấu trúc bên trong index.html
+## Cấu trúc bên trong index.html (sau khi tách file)
 
-### HTML (dòng ~1–820)
-- `<head>`: Tailwind CDN, Google Fonts, favicon, toàn bộ `<style>` tùy biến
+### HTML (~585 dòng — chỉ còn HTML thuần)
+- `<head>`: Tailwind CDN, favicon, `<link rel="stylesheet" href="style.css">`
 - SVG sprite: icon dùng lại qua `<use href="#ic-...">`
 - 4 section: `#s-land` (landing), `#s-check` (đang kiểm tra auth), `#s-pend` (chờ duyệt), `#s-app` (dashboard thật)
 - Các modal overlay: `#modalOv`, `#vidWarnOv`, `#complOv`, `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal`, `#reviewListModal`, `#faqModal`, `#pvFullscreenOverlay`
 - Preview Dashboard: `id="pvCard"` — animation minh hoạ cho khách chưa đăng nhập
+- Cuối body: `<script type="module" src="app.js"></script>` + `<script src="ui.js"></script>`
 
-### JavaScript module (dòng ~820–1980)
+### app.js — ES module (~1159 dòng)
 Nhóm hàm chính:
 - **Firebase/Auth**: `onAuthStateChanged`, `ensureUser`, `checkApproval`, `doLogin`, `doLogout`, `reAuth`
 - **Drive API wrapper**: `dget`, `dpost`, `ddel`, `fid`, `fname`, `listItems`, `existNames`, `copyFileSingle`, `mkFolder` — có retry exponential backoff cho 429/500/503
@@ -64,12 +68,15 @@ Nhóm hàm chính:
 - **Copy**: `startCopy`, `_runCopyInternal`, `copyRecTree` — đa luồng (CONCUR=8 file, FOLDER_CONCUR=3)
 - **Progress**: `progStart`, `progInc`, `progFinish` — indeterminate mode, không pre-scan
 - **Session/resume**: `saveSession`, `checkResume`, `resumeSession` — lưu localStorage key `swiftcopy_session`
-- **UI helpers**: `sec`, `setBtnMode`, `setStatus`, `addLog`, `updStats`, `toast`
+- **UI helpers**: `sec`, `setBtnMode`, `setStatus`, `addLog`, `updStats`, `toast` (expose qua `window.toast`)
 
-### JavaScript thường (dòng ~1980–2280)
+### ui.js — script thường (~278 dòng)
 - Dữ liệu tĩnh: `initialReviews` (8 đánh giá mẫu), `adminFaqData` (7 câu FAQ)
-- Hàm demo UI: modal, FAQ accordion, đánh giá, preview animation
+- Hàm demo UI: modal, FAQ accordion, đánh giá, preview fullscreen
 - IIFE animation Preview Dashboard: chạy vô hạn, STEP_MS=250ms, tự pause khi modal mở
+
+### style.css (~257 dòng)
+- Toàn bộ CSS tùy biến: animation, modal, checklist, progress bar, log box, tree, toast, v.v.
 
 ---
 
@@ -115,8 +122,8 @@ const SESSION_TTL = 120 * 60 * 1000; // 120 phút, tự xóa nếu cũ hơn
 
 ## Trạng thái hiện tại (để tiếp tục đúng chỗ)
 
-- **Đang deploy**: GitHub Pages tại `https://hgntrancontact-glitch.github.io/swiftcopy-drive/`
-- **Sắp chuyển**: Vercel (từ repo private)
+- **Đang deploy**: Vercel — domain tạm thời là URL Vercel, sắp mua domain .com
+- **CI/CD**: Vercel tự động deploy khi push lên GitHub (repo vẫn giữ nguyên)
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
 - **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"
@@ -128,7 +135,7 @@ const SESSION_TTL = 120 * 60 * 1000; // 120 phút, tự xóa nếu cũ hơn
 ## Khi nhận task mới
 
 1. Đọc CLAUDE.md này trước (đã xong nếu bạn đang đọc đây).
-2. Đọc phần code liên quan trong `index.html` trước khi sửa.
+2. Đọc phần code liên quan (`index.html`, `app.js`, `ui.js`, `style.css`) trước khi sửa.
 3. Sau khi sửa: kiểm tra JS syntax, kiểm tra duplicate ID, kiểm tra tag balance `<div>`.
 4. Không giải trình dài dòng — làm xong báo cáo ngắn gọn những gì đã thay đổi và tại sao.
 5. Nếu task ảnh hưởng đến cả `admin.html`, nêu rõ và sửa cả hai file.

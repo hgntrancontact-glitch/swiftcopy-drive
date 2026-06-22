@@ -1077,11 +1077,25 @@ window.openModal=(type)=>{
 window.closeModal=()=>document.getElementById('modalOv').classList.remove('on');
 
 // ── UI HELPERS ───────────────────────────────────────────────
-function sec(name){
+function sec(name, _noPush){
   ['land','check','pend','app'].forEach(s=>{const el=document.getElementById('s-'+s);if(el)el.style.display=s===name?'block':'none';});
   const nr=document.getElementById('navRight');if(nr)nr.style.display=name==='app'?'flex':'none';
   const ng=document.getElementById('navGuest');if(ng)ng.style.display=name==='app'?'none':'flex';
+  if(!_noPush){
+    if(name==='app'&&location.pathname!=='/copydrive') history.pushState(null,'','/copydrive');
+    else if((name==='land'||name==='pend')&&location.pathname!=='/') history.pushState(null,'','/');
+  }
 }
+
+// ── CLIENT-SIDE ROUTING ──────────────────────────────────────
+window.addEventListener('popstate',()=>{
+  if(location.pathname==='/copydrive'){
+    if(gUser) sec('app',true);
+    else{ history.replaceState(null,'','/'); sec('land',true); }
+  } else {
+    sec('land',true);
+  }
+});
 function setNavUser(u){
   document.getElementById('navAv').src=u.photoURL||'';
   document.getElementById('navName').textContent=u.displayName||u.email;
