@@ -132,6 +132,10 @@ const SESSION_TTL = 120 * 60 * 1000; // 120 phút, tự xóa nếu cũ hơn
 6. **KHÔNG tự ý sửa Firestore Security Rules** — phải có yêu cầu rõ ràng từ owner.
 7. **Khi sửa CSS, ưu tiên inline style hoặc class Tailwind có sẵn** — tránh thêm class mới vào `<style>` trừ khi thật sự cần.
 8. **Khi render HTML động bằng JS** (FAQ, review...), dùng **inline style** cho các thuộc tính ảnh hưởng đến kích thước/vị trí — KHÔNG dùng Tailwind class động vì Tailwind CDN có thể compile chậm hơn JS chạy, gây đo sai chiều cao.
+9. **Quy tắc link bắt buộc — áp dụng cho mọi code mới:**
+   - **Route nội bộ có URL thật** (ví dụ `/copydrive`, `/admin`): dùng `<a href="/route">` — KHÔNG dùng `<span onclick>` hay `<div onclick>` để điều hướng.
+   - **Link ra ngoài** (Facebook, Gmail, domain khác): dùng `<a href="..." target="_blank" rel="noopener">`.
+   - **Mở modal popup** (FAQ, Đánh giá, Affiliate...): vẫn dùng `<button onclick>` hoặc `<span onclick>` — vì modal không có URL riêng, không cần `<a href>`.
 
 ---
 
