@@ -127,8 +127,6 @@ tbody tr:last-child td{border-bottom:none}
 
 @media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
-<!-- EmailJS -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -272,11 +270,9 @@ const firebaseConfig = {
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
 const ADMIN_EMAIL = "hgntran.contact@gmail.com";
-const EMAILJS_SERVICE  = "service_9x4l8p6";
-const EMAILJS_TEMPLATE = "template_z8q2r4w";
-const EMAILJS_KEY      = "user_KjH7Gf5D4s3a2P1oN";
-const SITE_NAME        = "SwiftCopy.Drive";
-const SITE_URL         = "https://hgntrancontact-glitch.github.io/swiftcopy-drive/";
+const GAS_URL     = 'PASTE_YOUR_GAS_URL_HERE'; // ← dán URL Google Apps Script sau khi deploy gas-email.js
+const SITE_NAME   = "SwiftCopy.Drive";
+const SITE_URL    = "https://hgntrancontact-glitch.github.io/swiftcopy-drive/";
 
 
 const app      = initializeApp(firebaseConfig);
@@ -290,43 +286,15 @@ let _kickUid = null, _kickEmail = '', _kickName = '';
 let _readdUid = null, _readdEmail = '', _readdName = '';
 
 
-let _ejsLoaded = false;
-function loadEmailJS(){
-  if(_ejsLoaded) return Promise.resolve();
-  return new Promise((res,rej)=>{
-    const tryInit = () => {
-      if(typeof emailjs !== 'undefined'){
-        emailjs.init(EMAILJS_KEY); _ejsLoaded=true; res();
-      } else {
-        setTimeout(tryInit, 100);
-      }
-    };
-    tryInit();
-  });
-}
-
-async function sendEmail(toEmail, subject, message){
-  if (!EMAILJS_KEY || EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY'){
-    console.warn('[SwiftCopy] EmailJS chua duoc cau hinh. Email gui den:', toEmail, '|', subject);
+async function callGAS(data){
+  if (!GAS_URL || GAS_URL === 'PASTE_YOUR_GAS_URL_HERE'){
+    console.warn('[SwiftCopy] GAS_URL chưa được cấu hình.', data);
     return;
   }
   try {
-    await loadEmailJS();
-    // EmailJS: template can dung bien {{to_email}}, {{subject}}, {{message}}
-    const result = await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
-      to_email:  toEmail,
-      to_name:   toEmail,
-      from_name: SITE_NAME,
-      subject:   subject,
-      message:   message,
-      site_name: SITE_NAME,
-      site_url:  SITE_URL,
-      reply_to:  ADMIN_EMAIL
-    });
-    console.log('[SwiftCopy] Email da gui den', toEmail, result.status);
+    await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
   } catch(e){
-    console.error('[SwiftCopy] Loi gui email:', e);
-    toast('Loi gui email: '+e.text, 'err');
+    console.error('[SwiftCopy] Lỗi gửi email qua GAS:', e);
   }
 }
 
@@ -437,10 +405,7 @@ window.approveUser = async (uid, email, name) => {
       approved:true, status:'approved', approvedAt:serverTimestamp()
     });
     toast('✓ Đã kích hoạt!','ok');
-    await sendEmail(email,
-      `[${SITE_NAME}] Tài khoản đã được kích hoạt`,
-      `Xin chào ${name},\n\nTài khoản của bạn trên ${SITE_NAME} đã được kích hoạt.\nTruy cập: ${SITE_URL}\n\nTrân trọng,\nĐội ngũ ${SITE_NAME}`
-    );
+    await callGAS({ type: 'approve', toEmail: email, userName: name, siteUrl: SITE_URL });
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi: '+e.message,'err'); btns.forEach(b=>b.disabled=false); }
 };
@@ -464,10 +429,7 @@ window.doKick = async () => {
       kickReason:reason, kickedAt:serverTimestamp()
     });
     toast('✓ Đã kick người dùng','ok');
-    await sendEmail(_kickEmail,
-      `[${SITE_NAME}] Tài khoản của bạn đã bị khoá`,
-      `Xin chào ${_kickName},\n\nTài khoản của bạn trên ${SITE_NAME} đã bị khoá.\n\nLý do: ${reason}\n\nNếu bạn có thắc mắc, vui lòng liên hệ chúng tôi.\n\nTrân trọng,\nĐội ngũ ${SITE_NAME}\n${SITE_URL}`
-    );
+    await callGAS({ type: 'kick', toEmail: _kickEmail, userName: _kickName, reason, siteUrl: SITE_URL });
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };
@@ -490,11 +452,7 @@ window.doReadd = async () => {
       readdedAt:serverTimestamp(), readdNote:note||''
     });
     toast('✓ Đã thêm lại người dùng','ok');
-    const noteText = note ? `\n\nGhi chú từ admin: ${note}` : '';
-    await sendEmail(_readdEmail,
-      `[${SITE_NAME}] Tài khoản của bạn đã được kích hoạt trở lại`,
-      `Xin chào ${_readdName},\n\nTài khoản của bạn trên ${SITE_NAME} đã được kích hoạt trở lại.${noteText}\n\nTruy cập ngay: ${SITE_URL}\n\nTrân trọng,\nĐội ngũ ${SITE_NAME}`
-    );
+    await callGAS({ type: 'readd', toEmail: _readdEmail, userName: _readdName, note, siteUrl: SITE_URL });
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };

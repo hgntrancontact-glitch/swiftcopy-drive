@@ -20,7 +20,7 @@ Web app cho phép sao chép thư mục Google Drive (kể cả Shared Drive) san
 | Auth | Firebase Authentication v10.12.0 (CDN ESM), Google OAuth |
 | Database | Firebase Firestore v10.12.0 |
 | File operations | Google Drive API v3, gọi thẳng bằng `fetch`, KHÔNG dùng SDK |
-| Email | EmailJS `@emailjs/browser` v3 (CDN) |
+| Email | Google Apps Script Web App — `gas-email.js` deploy lên script.google.com |
 | Font | Google Fonts — Nunito + Nunito Sans |
 | Deploy | Vercel (auto-deploy khi push lên GitHub), sắp mua domain .com |
 | Build tool | Không có — zero-build |
@@ -33,9 +33,10 @@ Web app cho phép sao chép thư mục Google Drive (kể cả Shared Drive) san
 SwiftCopy.Drive/
 ├── index.html          ← App chính (~585 dòng): landing + dashboard người dùng (HTML thuần)
 ├── style.css           ← Toàn bộ CSS tùy biến (tách từ index.html)
-├── app.js              ← Firebase, Drive API, copy logic (ES module, ~1159 dòng)
+├── app.js              ← Firebase, Drive API, copy logic (ES module, ~1157 dòng)
 ├── ui.js               ← Modal, FAQ, review, preview animation (~278 dòng)
-├── admin.html          ← Trang quản trị (~515 dòng): duyệt user, kick, re-add
+├── admin.html          ← Trang quản trị (~510 dòng): duyệt user, kick, re-add
+├── gas-email.js        ← Code Google Apps Script — deploy lên script.google.com để gửi email
 ├── zalo-qr.png         ← Ảnh QR Zalo hỗ trợ (400×400px, đã crop sạch)
 ├── favicon.svg         ← Logo SVG gốc
 ├── favicon-32.png      ← Favicon 32×32
@@ -77,6 +78,29 @@ Nhóm hàm chính:
 
 ### style.css (~257 dòng)
 - Toàn bộ CSS tùy biến: animation, modal, checklist, progress bar, log box, tree, toast, v.v.
+
+---
+
+## Email system — Google Apps Script
+
+Email được gửi qua GAS Web App (không còn dùng EmailJS). Endpoint là URL bí mật từ script.google.com.
+
+**File GAS:** `gas-email.js` — dán vào https://script.google.com → Deploy → New deployment → Web app (Execute as: Me, Who has access: Anyone).
+
+**Cập nhật GAS_URL khi đổi endpoint:**
+- Trong `app.js`: sửa `const GAS_URL = '...'` ở đầu file (dòng 17)
+- Trong `admin.html`: sửa `const GAS_URL = '...'` trong `<script type="module">` (khoảng dòng 275)
+- Hai file phải dùng cùng một GAS_URL
+- **KHÔNG commit GAS_URL lên GitHub** — URL là bí mật (hoạt động như API key)
+
+**5 loại email GAS xử lý:**
+| type | Người nhận | Khi nào |
+|---|---|---|
+| `new_user` | Admin | User lần đầu đăng ký |
+| `kick_alert` | Admin | User bị kick đang cố đăng nhập lại |
+| `approve` | User | Admin bấm "Kích hoạt" |
+| `kick` | User | Admin bấm "Kick" |
+| `readd` | User | Admin bấm "Thêm lại" |
 
 ---
 

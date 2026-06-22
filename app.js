@@ -14,9 +14,7 @@ const firebaseConfig = {
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
 const ADMIN_EMAIL = "hgntran.contact@gmail.com";
-const EMAILJS_SERVICE  = "service_9x4l8p6";
-const EMAILJS_TEMPLATE = "template_z8q2r4w";
-const EMAILJS_KEY      = "user_KjH7Gf5D4s3a2P1oN";
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr_OJrX-kvV085UeOBQLPmOVnaZjWfrfAv8jCS2P7rV0ND7z8X6N_OQXRpn9r37C6LYA/exec'; // ← dán URL Google Apps Script sau khi deploy gas-email.js
 
 const fbApp    = initializeApp(firebaseConfig);
 const auth     = getAuth(fbApp);
@@ -183,15 +181,13 @@ async function checkApproval(u){
   const d=snap.data(); return d.status!=='kicked'&&d.approved===true;
 }
 function sendRegEmail(u){
-  if (!EMAILJS_KEY||EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY') return;
-  loadEJS().then(()=>emailjs.send(EMAILJS_SERVICE,EMAILJS_TEMPLATE,{to_email:ADMIN_EMAIL,subject:'[SwiftCopy.Drive] Người dùng mới đăng ký',message:'Người dùng '+u.email+' vừa đăng ký tài khoản SwiftCopy.Drive.'}));
+  if (!GAS_URL||GAS_URL==='PASTE_YOUR_GAS_URL_HERE') return;
+  fetch(GAS_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'new_user',userEmail:u.email,userName:u.displayName||u.email})}).catch(()=>{});
 }
 function notifyAdminKicked(u,reason){
-  if (!EMAILJS_KEY||EMAILJS_KEY==='YOUR_EMAILJS_PUBLIC_KEY') return;
-  loadEJS().then(()=>emailjs.send(EMAILJS_SERVICE,EMAILJS_TEMPLATE,{to_email:ADMIN_EMAIL,subject:'[SwiftCopy.Drive] Cảnh báo: user bị kick đăng nhập lại',message:'User '+u.email+' đã bị kick (lý do: '+(reason||'?')+') nhưng đang cố đăng nhập lại.'}));
+  if (!GAS_URL||GAS_URL==='PASTE_YOUR_GAS_URL_HERE') return;
+  fetch(GAS_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'kick_alert',userEmail:u.email,userName:u.displayName||u.email,reason:reason||'?'})}).catch(()=>{});
 }
-let _ejsLoaded=false;
-function loadEJS(){ if(_ejsLoaded)return Promise.resolve(); return new Promise(r=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';s.onload=()=>{emailjs.init(EMAILJS_KEY);_ejsLoaded=true;r();};document.head.appendChild(s);}); }
 
 // ── DRIVE API ────────────────────────────────────────────────
 const BASE='https://www.googleapis.com/drive/v3';
