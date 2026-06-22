@@ -50,17 +50,148 @@
 <script>
 /* Nội dung nhúng thẳng từ legal/*.txt — không dùng fetch().
    Khi cần cập nhật: sửa file txt trong legal/ rồi nhờ Claude Code đọc lại và cập nhật 3 const TEXT_* bên dưới. */
-const TEXT_DIEU_KHOAN = `ĐIỀU KHOẢN SỬ DỤNG — SwiftCopy.Drive
+const TEXT_DIEU_KHOAN = `ĐIỀU KHOẢN SỬ DỤNG
+SwiftCopy.Drive | Cập nhật lần cuối: 22/06/2026
+1. Giới thiệu
+Chào mừng bạn đến với SwiftCopy.Drive (sau đây gọi là "Dịch vụ" hoặc "Công cụ"). Bằng cách truy cập hoặc sử dụng Dịch vụ, bạn đồng ý bị ràng buộc bởi các Điều khoản Sử dụng này. Nếu bạn không đồng ý với bất kỳ điều khoản nào, vui lòng ngừng sử dụng ngay lập tức.
 
-Nội dung sẽ được cập nhật sớm.`;
+2. Mô tả Dịch vụ
+SwiftCopy.Drive là công cụ web cho phép người dùng sao chép thư mục Google Drive từ tài khoản được chia sẻ sang tài khoản Google Drive cá nhân, chạy hoàn toàn trên trình duyệt mà không cần cài đặt phần mềm.
+Dịch vụ bao gồm các tính năng:
+    • Sao chép thư mục và file Google Drive với tốc độ cao
+    • Kiểm tra quyền truy cập trước khi sao chép
+    • Chọn lọc thư mục/file cụ thể cần sao chép
+    • Theo dõi tiến trình và tự động tiếp tục nếu mất kết nối
 
-const TEXT_BAO_MAT = `CHÍNH SÁCH BẢO MẬT — SwiftCopy.Drive
+3. Điều kiện sử dụng
+Để sử dụng Dịch vụ, bạn phải:
+    • Có tài khoản Google hợp lệ
+    • Được Quản trị viên phê duyệt sau khi thanh toán thành công
+    • Từ 18 tuổi trở lên hoặc có sự đồng ý của phụ huynh/người giám hộ
+    • Không sử dụng Dịch vụ cho các mục đích vi phạm pháp luật
 
-Nội dung sẽ được cập nhật sớm.`;
+4. Tài khoản và Thanh toán
+SwiftCopy.Drive áp dụng mô hình thanh toán một lần — bạn chỉ trả tiền một lần duy nhất và được sử dụng trọn đời mà không phát sinh thêm phí. Tài khoản được kích hoạt thủ công bởi Quản trị viên sau khi xác nhận thanh toán thành công.
+Bạn có trách nhiệm:
+    • Bảo mật thông tin tài khoản Google của mình
+    • Không chia sẻ quyền truy cập tài khoản SwiftCopy.Drive cho người khác
+    • Thông báo ngay cho chúng tôi nếu phát hiện sử dụng trái phép
 
-const TEXT_HOAN_TIEN = `CHÍNH SÁCH HOÀN TIỀN — SwiftCopy.Drive
+5. Quyền sở hữu trí tuệ
+Toàn bộ mã nguồn, giao diện, thiết kế và nội dung của SwiftCopy.Drive thuộc quyền sở hữu của chúng tôi. Bạn không được sao chép, phân phối, chỉnh sửa hoặc tạo sản phẩm phái sinh từ bất kỳ phần nào của Dịch vụ khi chưa được sự cho phép bằng văn bản.
 
-Nội dung sẽ được cập nhật sớm.`;
+6. Giới hạn trách nhiệm
+SwiftCopy.Drive cung cấp Dịch vụ "nguyên trạng" (as-is). Chúng tôi không chịu trách nhiệm đối với:
+    • Mất mát dữ liệu do lỗi từ phía Google Drive hoặc kết nối mạng
+    • Gián đoạn dịch vụ do bảo trì hoặc sự cố kỹ thuật ngoài tầm kiểm soát
+    • Thiệt hại gián tiếp phát sinh từ việc sử dụng hoặc không thể sử dụng Dịch vụ
+    • Thay đổi chính sách của Google ảnh hưởng đến hoạt động của Dịch vụ
+
+7. Chấm dứt tài khoản
+Chúng tôi có quyền đình chỉ hoặc chấm dứt tài khoản của bạn nếu:
+    • Bạn vi phạm bất kỳ điều khoản nào trong tài liệu này
+    • Phát hiện hành vi gian lận hoặc sử dụng trái phép
+    • Sử dụng Dịch vụ gây hại cho hệ thống hoặc người dùng khác
+
+8. Thay đổi Điều khoản
+Chúng tôi có quyền cập nhật Điều khoản Sử dụng bất cứ lúc nào. Thay đổi quan trọng sẽ được thông báo qua email hoặc thông báo trên trang web. Việc tiếp tục sử dụng Dịch vụ sau khi thay đổi có hiệu lực đồng nghĩa với việc bạn chấp nhận các điều khoản mới.
+
+9. Liên hệ
+Nếu có bất kỳ câu hỏi nào về Điều khoản Sử dụng này, vui lòng liên hệ:
+    • Email: hgntran.contact@gmail.com
+    • Website: swiftcopydrive.vercel.app`;
+
+const TEXT_BAO_MAT = `CHÍNH SÁCH BẢO MẬT
+SwiftCopy.Drive | Cập nhật lần cuối: 22/06/2026
+1. Cam kết bảo mật
+SwiftCopy.Drive cam kết bảo vệ quyền riêng tư của bạn. Chính sách này giải thích rõ cách chúng tôi thu thập, sử dụng và bảo vệ thông tin của bạn khi sử dụng Dịch vụ.
+
+2. Thông tin chúng tôi thu thập
+Khi bạn sử dụng Dịch vụ, chúng tôi thu thập các thông tin sau:
+    • Email và tên hiển thị từ tài khoản Google (thông qua Google OAuth)
+    • Ảnh đại diện Google (chỉ dùng để hiển thị trong giao diện)
+    • Lịch sử các lần sao chép thành công (tên thư mục, số file, thời gian)
+    • Thời điểm đăng ký và kích hoạt tài khoản
+Chúng tôi KHÔNG thu thập:
+    • Mật khẩu Google hoặc bất kỳ thông tin xác thực nào
+    • Nội dung file hoặc thư mục trong Google Drive của bạn
+    • Thông tin thanh toán (giao dịch thực hiện ngoài hệ thống)
+
+3. Cơ chế hoạt động và bảo mật
+SwiftCopy.Drive sử dụng Google Drive API chính thống thông qua xác thực OAuth của Google. Khi bạn thực hiện sao chép:
+    • Lệnh sao chép được gửi thẳng từ trình duyệt của bạn đến máy chủ Google
+    • Nội dung file di chuyển hoàn toàn trên hạ tầng Google, KHÔNG đi qua máy chủ của chúng tôi
+    • Chúng tôi không thể xem hoặc lưu trữ nội dung file của bạn
+    • Bạn có thể thu hồi quyền truy cập bất cứ lúc nào trong phần Cài đặt tài khoản Google
+
+4. Cách chúng tôi sử dụng thông tin
+Thông tin thu thập được sử dụng để:
+    • Xác thực danh tính và quản lý quyền truy cập tài khoản
+    • Gửi thông báo về trạng thái tài khoản (kích hoạt, thay đổi...)
+    • Cải thiện chất lượng Dịch vụ dựa trên thống kê sử dụng
+    • Hỗ trợ kỹ thuật khi bạn gặp sự cố
+Chúng tôi KHÔNG bao giờ:
+    • Bán hoặc chia sẻ thông tin của bạn cho bên thứ ba vì mục đích thương mại
+    • Sử dụng thông tin cho mục đích quảng cáo
+
+5. Lưu trữ dữ liệu
+Thông tin tài khoản được lưu trữ trên Firebase Firestore (dịch vụ của Google) với các biện pháp bảo mật theo tiêu chuẩn của Google. Dữ liệu được giữ trong suốt thời gian tài khoản còn hoạt động.
+
+6. Quyền của bạn
+Bạn có quyền:
+    • Yêu cầu xem thông tin cá nhân chúng tôi đang lưu trữ
+    • Yêu cầu chỉnh sửa thông tin không chính xác
+    • Yêu cầu xóa tài khoản và toàn bộ dữ liệu liên quan
+    • Thu hồi quyền truy cập Google Drive bất cứ lúc nào
+Để thực hiện các quyền trên, vui lòng liên hệ: hgntran.contact@gmail.com
+
+7. Cookie và bộ nhớ cục bộ
+Dịch vụ sử dụng localStorage của trình duyệt để lưu trạng thái phiên sao chép đang thực hiện. Dữ liệu này chỉ tồn tại trên thiết bị của bạn và tự động xóa sau khi hoàn tất. Chúng tôi không sử dụng cookie theo dõi hoặc cookie quảng cáo.
+
+8. Thay đổi Chính sách
+Chúng tôi có thể cập nhật Chính sách Bảo mật này theo thời gian. Mọi thay đổi quan trọng sẽ được thông báo qua email trước ít nhất 7 ngày.
+
+9. Liên hệ
+Nếu có câu hỏi hoặc lo ngại về quyền riêng tư, vui lòng liên hệ:
+    • Email: hgntran.contact@gmail.com
+    • Website: swiftcopydrive.vercel.app`;
+
+const TEXT_HOAN_TIEN = `CHÍNH SÁCH HOÀN TIỀN
+SwiftCopy.Drive | Cập nhật lần cuối: 22/06/2026
+1. Tổng quan
+SwiftCopy.Drive áp dụng mô hình thanh toán một lần, trọn đời. Chúng tôi cam kết hỗ trợ kỹ thuật tận tình và xem xét hoàn tiền trong các trường hợp hợp lý được quy định dưới đây.
+
+2. Các trường hợp được xem xét hoàn tiền
+Bạn có thể yêu cầu hoàn tiền trong các trường hợp sau:
+    • Lỗi kỹ thuật nghiêm trọng từ phía hệ thống khiến Dịch vụ không hoạt động và không thể khắc phục trong vòng 72 giờ kể từ khi báo cáo
+    • Tài khoản không được kích hoạt sau 24 giờ kể từ khi xác nhận thanh toán mà không có lý do hợp lệ
+    • Yêu cầu hoàn tiền được gửi trong vòng 7 ngày kể từ ngày thanh toán VÀ chưa sử dụng Dịch vụ thành công lần nào
+
+3. Các trường hợp KHÔNG được hoàn tiền
+Chúng tôi sẽ không hoàn tiền trong các trường hợp sau:
+    • Đã sử dụng Dịch vụ thành công ít nhất một lần (dù chỉ copy 1 file)
+    • Lỗi phát sinh do quyền truy cập Google Drive bị hạn chế bởi chủ Drive gốc (ngoài tầm kiểm soát của chúng tôi)
+    • Lỗi do tài khoản Google của bạn bị hạn chế hoặc bị Google tạm khóa
+    • Thay đổi ý định hoặc không còn nhu cầu sử dụng sau khi đã kích hoạt tài khoản
+    • Yêu cầu hoàn tiền sau 7 ngày kể từ ngày thanh toán
+    • Tài khoản bị đình chỉ do vi phạm Điều khoản Sử dụng
+
+4. Quy trình yêu cầu hoàn tiền
+Để yêu cầu hoàn tiền, vui lòng thực hiện theo các bước sau:
+    • Bước 1: Liên hệ qua email hgntran.contact@gmail.com với tiêu đề "[HOÀN TIỀN] - Email tài khoản của bạn" hoặc QR ZALO
+    • Bước 2: Mô tả rõ vấn đề gặp phải và lý do yêu cầu hoàn tiền
+    • Bước 3: Cung cấp bằng chứng (ảnh chụp màn hình lỗi nếu có)
+    • Bước 4: Chúng tôi phản hồi trong vòng 24-48 giờ làm việc
+    • Bước 5: Nếu được chấp thuận, hoàn tiền thực hiện trong vòng 3-5 ngày làm việc (hoặc sớm hơn) theo phương thức thanh toán ban đầu
+
+5. Hỗ trợ kỹ thuật trước khi hoàn tiền
+Chúng tôi khuyến khích bạn liên hệ hỗ trợ kỹ thuật trước khi yêu cầu hoàn tiền. Phần lớn vấn đề có thể được giải quyết nhanh chóng qua hỗ trợ trực tiếp. Đội ngũ hỗ trợ của SwiftCopy.Drive cam kết phản hồi trong vòng 24 giờ làm việc.
+
+6. Liên hệ
+Mọi thắc mắc về chính sách hoàn tiền, vui lòng liên hệ:
+    • Email: hgntran.contact@gmail.com
+    • Website: swiftcopydrive.com
+    • Zalo: Quét mã QR trên trang web để liên hệ trực tiếp`;
 
 const PAGES = {
     '/dieu-khoan': { title: 'Điều khoản sử dụng',  text: TEXT_DIEU_KHOAN },
