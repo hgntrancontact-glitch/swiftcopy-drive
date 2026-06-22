@@ -52,14 +52,12 @@ document.getElementById('reviewBtn').addEventListener('click', function() {
     selectedStars = 0; updateStarUI();
     document.getElementById('reviewTextArea').value = '';
     document.getElementById('feedbackField').classList.add('hidden');
-    document.getElementById('btnSubmitReview').style.display = 'none';
     renderReviewsInAddModal();
     document.getElementById('addReviewModal').classList.add('active');
 });
 function setReviewStars(num) {
     selectedStars = num; updateStarUI();
     document.getElementById('feedbackField').classList.remove('hidden');
-    document.getElementById('btnSubmitReview').style.display = '';
 }
 function updateStarUI() {
     const stars = document.querySelectorAll('#starRatingContainer span');
@@ -152,7 +150,6 @@ function switchToReviewModal() {
     selectedStars = 0; updateStarUI();
     document.getElementById('reviewTextArea').value = '';
     document.getElementById('feedbackField').classList.add('hidden');
-    document.getElementById('btnSubmitReview').style.display = 'none';
     renderReviewsInAddModal();
     document.getElementById('addReviewModal').classList.add('active');
 }

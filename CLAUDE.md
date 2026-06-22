@@ -87,9 +87,9 @@ Nhóm hàm chính:
 
 ### Trang chính sách — legal.html
 - 1 file duy nhất phục vụ 3 route: `/dieu-khoan`, `/bao-mat`, `/hoan-tien`
-- JS đọc `location.pathname`, map sang file tương ứng trong `legal/`, `fetch()` nội dung, render vào `#pageContent`
+- JS đọc `location.pathname`, map sang `const TEXT_*` được nhúng thẳng trong file, render vào `#pageContent` — **KHÔNG dùng fetch()**
 - Style độc lập với index.html (không dùng Tailwind CDN) — chỉ dùng Google Fonts Nunito + màu thương hiệu #ffc107, #dc3545
-- **Để cập nhật nội dung chính sách: chỉ sửa file `.txt` trong `legal/` — không đụng vào code legal.html**
+- **Để cập nhật nội dung chính sách:** sửa file `.txt` tương ứng trong `legal/`, sau đó nhờ Claude Code đọc lại file txt và cập nhật 3 const `TEXT_DIEU_KHOAN`, `TEXT_BAO_MAT`, `TEXT_HOAN_TIEN` trong `legal.html`
 
 **Cách link đến trang chính sách:**
 - Footer và `#policyAndReviewModal` trong index.html dùng `<a href="/dieu-khoan">` v.v. — điều hướng thật, không mở modal
