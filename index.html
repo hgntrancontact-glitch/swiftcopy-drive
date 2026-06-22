@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftCopy.Drive — Sao chép Google Drive</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+    <link rel="icon" href="favicon.ico"/>
+    <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-[#fafafa] text-[#212529] font-sans min-h-screen flex flex-col antialiased overflow-x-hidden">
+
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="ic-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3"/></symbol>
+  <symbol id="ic-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></symbol>
+  <symbol id="ic-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
+  <symbol id="ic-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></symbol>
+  <symbol id="ic-stop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></symbol>
+  <symbol id="ic-reset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="ic-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+  <symbol id="ic-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="ic-check-c" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+  <symbol id="ic-x-c" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></symbol>
+  <symbol id="ic-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></symbol>
+  <symbol id="ic-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.29 3.86-8.8 15.24a1 1 0 0 0 .88 1.5h17.24a1 1 0 0 0 .88-1.5L11.71 3.86a1 1 0 0 0-1.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="ic-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="ic-folder-o" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="ic-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
+  <symbol id="ic-chev-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></symbol>
+  <symbol id="ic-chev-d" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="ic-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
+  <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="ic-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+  <symbol id="ic-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+  <symbol id="ic-film" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></symbol>
+</svg>
+
+<div id="noAuthBackdrop" class="overlay-backdrop" onclick="closeNoAuth()"></div>
+<div id="noAuthPanel" class="overlay-panel">
+  <div class="no-auth-card">
+    <div class="no-auth-badge"><svg class="w-3.5 h-3.5" style="color:#ff8070" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-warn"/></svg> Cần xác thực</div>
+    <span style="font-size:52px;margin-bottom:16px;display:block">🔐</span>
+    <div class="no-auth-title" id="noAuthTitle">Chưa cấp quyền Drive</div>
+    <div class="no-auth-msg" id="noAuthMsg">Bạn cần cấp quyền truy cập Google Drive trước khi thực hiện thao tác này.</div>
+    <div class="flex gap-2.5 justify-center flex-wrap">
+      <button class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition" onclick="reAuthFromOverlay()"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> Cấp quyền Drive ngay</button>
+      <button class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold bg-transparent text-white/50 border border-white/15 hover:bg-white/10 hover:text-white/80 active:scale-95 transition" onclick="closeNoAuth()">Đóng lại</button>
+    </div>
+  </div>
+</div>
+
+<div id="authSuccessToast" class="success-toast">
+  <div class="success-toast-inner">
+    <div class="w-9 h-9 bg-white/15 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4" style="color:#fff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-check"/></svg></div>
+    <div><div class="text-sm font-extrabold text-white">Đã cấp quyền Drive!</div><div class="text-xs text-white/70 mt-0.5">Bạn có thể bắt đầu sao chép ngay bây giờ</div></div>
+  </div>
+</div>
+
+    <header class="bg-white px-6 md:px-10 py-4 flex justify-between items-center sticky top-0 z-40 border-b border-[#f1f3f5] shadow-sm">
+        <div class="flex items-center gap-3">
+            <svg class="w-10 h-10 rounded-xl flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
+              <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
+              <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="font-bold text-2xl text-black tracking-[-0.8px] whitespace-nowrap">
+                SwiftCopy<span class="text-[#dc3545]">.</span><span>Drive</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-6 relative" id="navGuest">
+            <div class="relative cursor-pointer p-1.5 rounded-lg transition-colors hover:bg-[#fffbea]" id="bellIcon" title="Thông báo">
+                <svg class="w-[22px] h-[22px] stroke-[#343a40] fill-none stroke-[1.8]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <div class="absolute top-[38px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-72 hidden z-50 py-2" id="bellPopover">
+                    <div class="px-4 py-1.5 pb-2 font-bold text-[13px] border-b border-[#f1f3f5] text-black tracking-wide">THÔNG BÁO HỆ THỐNG</div>
+                    <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">⚡ <b>Cập nhật v0.2:</b> Tối ưu hóa thêm 40% tốc độ copy thư mục chứa trên 10,000 files.</div>
+                    <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">📘 <b>Hướng dẫn mới:</b> Cách cấu hình tài khoản phụ để bypass giới hạn API.</div>
+                    <div class="px-4 py-2.5 text-xs text-[#212529] border-b border-[#f8f9fa] last:border-b-0 leading-relaxed">🛠️ <b>Bảo trì định kỳ:</b> Hệ thống nâng cấp máy chủ vào 23:00 tối mai.</div>
+                </div>
+            </div>
+
+            <div class="relative cursor-pointer p-1.5 rounded-lg transition-colors hover:bg-[#fffbea]" id="helpIcon" title="Trợ giúp">
+                <svg class="w-[22px] h-[22px] stroke-[#343a40] fill-none stroke-[1.8]" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <div class="absolute top-[38px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-60 hidden z-50 py-1.5" id="helpPopover">
+                    <div class="px-4 py-1.5 pb-2 font-bold text-[13px] border-b border-[#f1f3f5] text-black tracking-wide">TRỢ GIÚP NHANH</div>
+                    <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545]" onclick="openZaloHelp()">📞 Thông tin hỗ trợ & Zalo</div>
+                    <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545]" onclick="triggerFaqModal()">❓ Câu hỏi thường gặp (FAQ)</div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 px-3.5 py-1.5 border border-[#ffc107] rounded-full bg-white cursor-pointer transition-all duration-200 hover:bg-[#fffdf0] hover:-translate-y-[1px]" onclick="openEarnModal()">
+                <div class="w-[19px] h-[19px] bg-[#ffe662] rounded-full flex items-center justify-center relative shadow-[inset_-2px_-1px_0px_0px_#dca10d] after:content-['$'] after:font-sans after:text-[13px] after:font-bold after:text-[#212529] after:z-10 after:relative after:top-[-0.5px]"></div>
+                <div class="text-sm font-bold text-[#212529]">Kiếm tiền</div>
+            </div>
+
+            <div class="text-base flex items-center gap-2 select-none">
+                <span class="text-[#ffc107] font-bold cursor-pointer hover:text-[#e6ac00] transition-colors" onclick="openLangModal()">VI</span>
+                <span class="text-[#adc2d1]">|</span>
+                <span class="text-[#6c757d] cursor-pointer hover:text-[#ffc107] transition-colors" onclick="openLangModal()">EN</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3" id="navRight" style="display:none">
+            <img id="navAv" class="w-8 h-8 rounded-full border-2 border-[#e9ecef] object-cover" src="" alt=""/>
+            <div class="text-left"><div id="navName" class="text-xs font-bold leading-tight"></div><div id="navEmail" class="text-[10px] text-[#868e96] leading-tight"></div></div>
+            <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition" onclick="reAuth()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> Cấp quyền Drive</button>
+            <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#fffbea] hover:border-[#ffc107] active:scale-95 transition" onclick="doLogout()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-out"/></svg> Đăng xuất</button>
+        </div>
+    </header>
+
+<!-- ══════════════ LANDING (not logged in) ══════════════ -->
+<div id="s-land">
+    <main class="flex-1 flex flex-col items-center px-4 py-10">
+        <div class="text-center max-w-[750px] mb-10">
+            <div class="bg-[#ffc107] inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-black font-bold text-xs mb-6 shadow-sm">
+                ⚡ Công cụ sao chép Drive #1
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-black mb-4 tracking-tight">
+                SwiftCopy<span class="text-[#dc3545]">.</span><span>Drive</span>
+            </h1>
+            <p class="text-base md:text-lg text-[#6c757d] mb-8 leading-relaxed">
+                Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn,<br class="hidden md:block">chạy thẳng trên trình duyệt.
+            </p>
+            <div class="flex gap-4 justify-center">
+                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] hover:opacity-95 active:scale-95 transition-all" onclick="doLogin()">Đăng ký dùng thử</button>
+                <button class="bg-white hover:bg-[#fffbea] hover:border-[#ffc107] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer active:scale-95 transition-all" onclick="doLogin()">Đăng nhập</button>
+            </div>
+            <p class="text-sm text-[#868e96] mt-4">Mua một lần, sử dụng trọn đời</p>
+        </div>
+
+        <!-- TỐI ƯU DASHBOARD: Mở rộng chiều ngang (max-w-7xl), nén padding, thu gọn chiều cao log -->
+        <div id="pvCard" class="w-full max-w-7xl bg-[#f1f3f5] rounded-2xl p-3 shadow-2xl border border-[#e9ecef] relative transition-all duration-500 hover:scale-[1.005] group">
+
+            <button onclick="openPvFullscreen()" aria-label="Phóng to bản xem trước" class="absolute top-3 right-3 z-40 w-8 h-8 rounded-lg bg-black/70 hover:bg-black/85 text-white flex items-center justify-center transition-colors" style="pointer-events:auto">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-expand"/></svg>
+            </button>
+
+            <div id="pvBlurBadge" class="absolute inset-0 bg-white/5 backdrop-blur-[1.5px] rounded-2xl z-30 pointer-events-none flex items-center justify-center border border-white/10">
+                <span class="bg-black/75 text-white text-[11px] font-bold tracking-widest uppercase px-4 py-2 rounded-full shadow-lg border border-white/10 opacity-90 group-hover:opacity-100 transition-opacity duration-300">Nhấp để xem</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-20 min-w-0">
+
+                <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between min-w-0">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-2 pb-1 border-b border-[#f1f3f5]">
+                            📁 Cấu hình nguồn & đích
+                        </div>
+
+                        <div class="space-y-2 mb-3">
+                            <div>
+                                <div class="text-[9px] font-bold text-[#868e96] mb-0.5 uppercase tracking-wider">Drive Nguồn (Shared Drive)</div>
+                                <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded-lg text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/19TIcajH26y2uh5bV...</div>
+                            </div>
+                            <div>
+                                <div class="text-[9px] font-bold text-[#868e96] mb-0.5 uppercase tracking-wider">Drive Bạn Tải Về</div>
+                                <div class="bg-[#f8f9fa] border border-[#dee2e6] px-2 py-1 rounded-lg text-[11px] text-[#495057] overflow-hidden text-ellipsis whitespace-nowrap font-mono">https://drive.google.com/drive/folders/11yngY7qmJLYAgAr1...</div>
+                            </div>
+                        </div>
+
+                        <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Thư mục chọn lọc sao chép</div>
+                        <div class="space-y-1">
+                            <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow1">
+                                <span class="font-medium truncate">📁 12. Thiết lập tiến độ với MS PROJECT</span>
+                                <span class="text-[9px] font-bold text-[#099268] bg-[#e6fcf5] px-1.5 py-0.5 rounded flex-shrink-0">Folder</span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-[#f8f9fa]/60 rounded-lg border border-[#f1f3f5] text-[11px] text-[#343a40] transition-colors duration-300" id="pvFolderRow2">
+                                <span class="font-medium truncate">📁 13. Làm việc hiệu quả với Spreadsheet</span>
+                                <span class="text-[9px] font-bold text-[#099268] bg-[#e6fcf5] px-1.5 py-0.5 rounded flex-shrink-0">Folder</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 mt-2 border-t border-[#f1f3f5] pt-2">
+                        <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] cursor-pointer transition-colors duration-300" id="pvBtnScan">Kiểm tra</div>
+                        <div class="flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg bg-[#212529] text-white cursor-pointer transition-colors duration-300" id="pvBtnCopy">Dừng copy</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-3 border border-[#e9ecef] flex flex-col justify-between gap-2 min-w-0">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 text-xs font-bold text-[#495057] mb-2 pb-1 border-b border-[#f1f3f5]">
+                            ⚡ Tiến trình đồng bộ
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="flex justify-between text-[10px] font-bold text-[#6c757d] mb-1 min-w-0">
+                                <span class="truncate min-w-0" id="pvStatusText">Đang xử lý: 56. Hàm thống kê - COUNT.mp4</span>
+                                <span class="text-black flex-shrink-0 ml-1" id="pvPercentText">73%</span>
+                            </div>
+                            <div class="h-1.5 bg-[#e9ecef] rounded-full overflow-hidden">
+                                <div class="h-full bg-[#212529] transition-[width] duration-300 ease-linear" id="pvProgBar" style="width:73%"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-lg p-1.5 text-center">
+                                <span class="text-sm font-bold text-[#099268] block" id="pvStatOk">70</span>
+                                <span class="text-[9px] uppercase font-bold text-[#20c997] tracking-tight">Thành công</span>
+                            </div>
+                            <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-lg p-1.5 text-center">
+                                <span class="text-sm font-bold text-[#fa5252] block" id="pvStatErr">139</span>
+                                <span class="text-[9px] uppercase font-bold text-[#f03e3e] tracking-tight">Lỗi Drive</span>
+                            </div>
+                            <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-lg p-1.5 text-center">
+                                <span class="text-sm font-bold text-[#495057] block" id="pvStatFold">25</span>
+                                <span class="text-[9px] uppercase font-bold text-[#868e96] tracking-tight">Thư mục</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-[9px] font-bold text-[#868e96] mb-1 uppercase tracking-wider">Activity Log</div>
+                        <div class="bg-[#141414] text-[#a9b7c6] font-mono text-[10px] p-2 rounded-lg h-[60px] overflow-hidden flex flex-col justify-end" id="pvLogBox">
+                            <div class="truncate"><span class="text-[#4e9a06]">✓ OK:</span> 55. Hàm thống kê - SUM.mp4</div>
+                            <div class="text-white truncate" id="pvLogRunning">>> RUNNING: 56. Hàm thống kê - COUNT.mp4...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <section class="bg-white px-6 md:px-20 pt-10 pb-6 border-t border-[#f1f3f5]">
+        <div class="max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start mb-8">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <svg class="w-9 h-9 rounded-lg flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
+                      <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
+                      <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h3 class="font-bold text-black tracking-tight text-xl">SwiftCopy<span class="text-[#dc3545]">.</span>Drive</h3>
+                </div>
+                <p class="text-[15px] text-[#868e96] leading-snug">Tối ưu hóa thời gian xử lý dữ liệu sao chép trên nền tảng Google Drive cho cá nhân và doanh nghiệp sản xuất nội dung số.</p>
+            </div>
+            <div>
+                <h3 class="font-bold text-black text-[17.5px] mb-3 tracking-tight">Tính năng</h3>
+                <ul class="text-[15px] text-[#6c757d] space-y-2">
+                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Sao chép tốc độ cực nhanh</li>
+                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Kiểm tra Drive lỗi trước</li>
+                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Chọn lọc mục muốn copy</li>
+                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Theo dõi hành trình sao chép</li>
+                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Tự động sao chép tiếp nếu mất mạng</li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="font-bold text-black text-[17.5px] mb-3 tracking-tight">Liên hệ</h3>
+                <ul class="text-[15px] text-[#6c757d] space-y-2">
+                    <li class="flex items-center gap-2">
+                        <svg class="w-4 h-4 stroke-[#868e96] fill-none stroke-2 flex-shrink-0" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        hgntran.contact@gmail.com
+                    </li>
+                </ul>
+                <span class="font-bold text-black text-[15px] block mt-4 mb-1.5">ZALO</span>
+                <img src="zalo-qr.png" alt="Mã QR Zalo" class="border border-[#dee2e6] rounded-md w-[88px] h-[88px] object-contain bg-white p-1"/>
+            </div>
+            <div>
+                <h3 class="font-bold text-black text-[17.5px] mb-3 tracking-tight">Hỗ trợ</h3>
+                <div class="flex flex-col items-start gap-2 mb-4">
+                    <span class="text-[15px] text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
+                    <span class="text-[15px] text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openReviewListModal()">Xem thử đánh giá</span>
+                </div>
+                <button class="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#ffc107] to-[#ff8f00] text-black px-4 py-2 rounded-full text-[15px] font-bold shadow-md hover:scale-105 active:scale-95 transition-all whitespace-nowrap" id="reviewBtn">
+                    <span class="text-black text-[15px]">★</span>
+                    <span>Đánh giá SwiftCopy<span class="text-[#dc3545]">.</span>Drive</span>
+                </button>
+            </div>
+        </div>
+        <div class="border-t border-[#f1f3f5] pt-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-[15px] text-[#868e96]">
+            <div>© 2026 SwiftCopy<span class="text-[#dc3545]">.</span>Drive. All rights reserved.</div>
+            <div class="font-bold text-black bg-[#fafafa] border border-[#e9ecef] rounded-full px-4 py-1.5">Mua 1 lần sử dụng trọn đời</div>
+        </div>
+        </div>
+    </section>
+</div>
+
+
+<!-- ══════════════ CHECKING ══════════════ -->
+<div id="s-check">
+  <div class="flex-1 flex flex-col items-center justify-center gap-4 py-24">
+    <div class="spin"></div>
+    <p class="text-[#868e96] text-sm font-semibold">Đang kiểm tra tài khoản...</p>
+  </div>
+</div>
+
+<!-- ══════════════ PENDING ══════════════ -->
+<div id="s-pend">
+  <div class="flex-1 flex items-center justify-center px-5 py-16">
+    <div class="bg-white border border-[#e9ecef] rounded-2xl p-11 max-w-md w-full text-center shadow-xl">
+      <div class="text-4xl mb-4">⏳</div>
+      <h2 class="text-xl font-extrabold mb-2">Chờ kích hoạt</h2>
+      <p class="text-[13px] text-[#495057] leading-relaxed">Tài khoản đã được ghi nhận. Sau khi thanh toán, admin sẽ kích hoạt trong thời gian sớm nhất.</p>
+      <div class="inline-flex items-center gap-1.5 bg-[#ffc107] text-black text-[11px] font-extrabold px-3.5 py-1.5 rounded-full my-3.5">Đang chờ duyệt</div>
+      <p class="text-[11px] text-[#868e96] mt-3">Đã thanh toán nhưng chưa được kích hoạt sau 24h? Liên hệ admin.</p>
+      <br/>
+      <button class="inline-flex items-center gap-1.5 mx-auto px-4 py-2 rounded-lg border border-[#dee2e6] bg-white text-[#495057] text-xs font-bold hover:bg-[#fffbea] hover:border-[#ffc107] active:scale-95 transition" onclick="location.reload()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-reset"/></svg> Kiểm tra lại</button>
+    </div>
+  </div>
+</div>
+
+<div id="s-app">
+  <main class="flex-1 px-4 py-6 md:py-8">
+    <div class="max-w-6xl mx-auto">
+
+      <!-- RESUME BANNER -->
+      <div id="resumeBanner" class="resume-banner" style="display:none">
+        <div class="flex items-center gap-2 text-[13px] text-[#7a5a00] font-semibold"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-clock"/></svg> Phát hiện phiên sao chép chưa hoàn tất. Tiếp tục?</div>
+        <div class="flex gap-2">
+          <button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition" onclick="resumeSession()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-play"/></svg> Tiếp tục</button>
+          <button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#f8f9fa] active:scale-95 transition" onclick="clearSession()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-reset"/></svg> Bỏ qua</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        <!-- CONFIG CARD -->
+        <div class="bg-white rounded-xl p-4 md:p-5 border border-[#e9ecef] flex flex-col justify-between box-border shadow-sm">
+          <div class="flex-1 flex flex-col min-h-0">
+            <div class="flex items-center gap-2 text-xs md:text-sm font-bold text-[#495057] mb-3 pb-2 border-b border-[#f1f3f5] flex-shrink-0">
+              📁 Cấu hình nguồn &amp; đích
+            </div>
+
+            <div class="space-y-3 mb-3 flex-shrink-0">
+              <div>
+                <div class="text-[10px] font-bold text-[#868e96] mb-1.5 uppercase tracking-wider">Drive Nguồn (Shared Drive)</div>
+                <input id="srcInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive nguồn" oninput="onInputChange('src')" onpaste="setTimeout(()=>onInputChange('src'),100)"/>
+                <div id="srcPreview" class="folder-preview" style="display:none"></div>
+              </div>
+              <div>
+                <div class="text-[10px] font-bold text-[#868e96] mb-1.5 uppercase tracking-wider">Drive Bạn Tải Về</div>
+                <input id="destInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive đích" oninput="onInputChange('dest')" onpaste="setTimeout(()=>onInputChange('dest'),100)"/>
+                <div id="destPreview" class="folder-preview" style="display:none"></div>
+              </div>
+            </div>
+
+            <!-- CHECKLIST -->
+            <div id="checklistWrap" style="display:none" class="checklist-wrap">
+              <div class="checklist-toolbar">
+                <span class="checklist-info"><b id="clSelected">0</b> mục được chọn / <b id="clTotal">0</b> tổng</span>
+                <div class="checklist-toolbar-btns">
+                  <button class="btn-ghost" onclick="clSelectAll()">Chọn tất cả</button>
+                  <button class="btn-ghost" onclick="clDeselectAll()">Bỏ chọn</button>
+                </div>
+              </div>
+              <div class="checklist-body" id="checklistBody"
+                onmousedown="dragStart(event)"
+                onmouseover="dragOver(event)"
+                onmouseup="dragEnd()">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-2 mt-4 border-t border-[#f1f3f5] pt-3 flex-shrink-0 flex-wrap">
+            <button id="btnScan" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] hover:bg-[#fa5252] hover:text-white transition select-none cursor-pointer" onclick="handleScanBtn()">
+              <span id="btnScanTxt">Kiểm tra trước</span>
+            </button>
+            <button id="btnStart" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg bg-[#ffc107] text-black hover:bg-[#e6ac00] transition select-none cursor-pointer" onclick="handleStartBtn()">
+              <span id="btnStartTxt">Bắt đầu sao chép</span>
+            </button>
+            <button id="btnPause" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg border border-[#ffe066] text-[#f59f00] bg-[#fff9db] hover:bg-[#f59f00] hover:text-white active:scale-95 transition select-none cursor-pointer" onclick="doPause()" style="display:none">Tạm dừng</button>
+            <button id="btnResume" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg border border-[#c3fae8] text-[#099268] bg-[#e6fcf5] hover:bg-[#099268] hover:text-white active:scale-95 transition select-none cursor-pointer" onclick="doResume()" style="display:none">Tiếp tục</button>
+            <button id="btnReset" class="px-3 text-center py-2 text-[11px] font-bold rounded-lg bg-[#212529] text-white hover:bg-black active:scale-95 transition select-none cursor-pointer" onclick="doReset()">Reset</button>
+          </div>
+          <div class="mt-2 text-right"><span id="actionStatus" class="text-[10px] text-[#868e96] font-mono"></span></div>
+        </div>
+
+        <!-- PROGRESS CARD -->
+        <div class="bg-white rounded-xl p-4 md:p-5 border border-[#e9ecef] flex flex-col justify-between box-border shadow-sm">
+          <div class="flex-1 flex flex-col min-h-0">
+            <div class="flex items-center gap-2 text-xs md:text-sm font-bold text-[#495057] mb-3 pb-2 border-b border-[#f1f3f5] flex-shrink-0">
+              ⚡ Tiến trình đồng bộ
+            </div>
+
+            <div class="mb-4 flex-shrink-0">
+              <div id="statusLbl" class="status-lbl mb-1">Chưa bắt đầu</div>
+              <div class="prog-track"><div id="progFill" class="prog-fill" style="width:0%"></div></div>
+            </div>
+
+            <div id="statsRow" class="grid grid-cols-3 gap-2.5 mb-4 flex-shrink-0">
+              <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-lg p-2 text-center cursor-pointer hover:shadow-md hover:border-[#099268] active:scale-95 transition flex flex-col items-center justify-center h-[58px]" onclick="openModal('result')">
+                <span id="sCopied" class="text-lg md:text-xl font-bold text-[#099268] block leading-none">0</span>
+                <span class="text-[9px] uppercase font-bold text-[#20c997] tracking-tight mt-1">Kết quả</span>
+              </div>
+              <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-lg p-2 text-center cursor-pointer hover:shadow-md hover:border-[#fa5252] active:scale-95 transition flex flex-col items-center justify-center h-[58px]" onclick="openModal('failed')">
+                <span id="sFailed" class="text-lg md:text-xl font-bold text-[#fa5252] block leading-none">0</span>
+                <span class="text-[9px] uppercase font-bold text-[#f03e3e] tracking-tight mt-1">Lỗi</span>
+              </div>
+              <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-lg p-2 text-center cursor-pointer hover:shadow-md hover:border-[#ffc107] active:scale-95 transition flex flex-col items-center justify-center h-[58px]" onclick="openModal('folders')">
+                <span id="sFolders" class="text-lg md:text-xl font-bold text-[#495057] block leading-none">0</span>
+                <span class="text-[9px] uppercase font-bold text-[#868e96] tracking-tight mt-1">Thư mục</span>
+              </div>
+            </div>
+
+            <div class="flex-1 flex flex-col min-h-0">
+              <div class="text-[10px] font-bold text-[#868e96] mb-1.5 uppercase tracking-wider flex-shrink-0">Activity Log</div>
+              <div id="logBox" class="log-box"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SCAN RESULT -->
+      <div id="scanResult" style="display:none"></div>
+
+    </div>
+  </main>
+</div>
+
+<!-- DETAIL MODAL (result/failed/folders tree) -->
+<div id="modalOv" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-wrapper" style="max-width:640px;max-height:88vh;display:flex;flex-direction:column;padding:0">
+    <div class="flex items-center justify-between px-5 py-3.5 border-b border-[#f1f3f5] bg-[#f8f9fa] flex-shrink-0">
+      <h3 id="modalTitle" class="text-[15px] font-extrabold flex items-center gap-2">Chi tiết</h3>
+      <button class="border border-[#dee2e6] text-[#495057] text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-[#f8f9fa] hover:border-[#ffc107] active:scale-95 transition" onclick="closeModal()">Đóng</button>
+    </div>
+    <div id="modalBody" class="overflow-y-auto flex-1"></div>
+  </div>
+</div>
+
+<!-- PRE-COPY VIDEO WARNING MODAL -->
+<div id="vidWarnOv" class="modal-overlay">
+  <div class="modal-wrapper" style="max-width:480px;padding:0">
+    <div class="px-5 py-3.5 border-b border-[#f1f3f5] bg-[#fffbea]">
+      <h3 class="text-[15px] font-extrabold flex items-center gap-2 text-[#d97706]"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-film"/></svg> Phát hiện file video</h3>
+    </div>
+    <div class="vidwarn-body">
+      <p id="vidWarnTitleNote">Thư mục bạn chọn có chứa <b id="vidWarnCount">0</b> file video. Trước khi tiếp tục, vui lòng lưu ý:</p>
+      <ul class="vidwarn-list">
+        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Trong 1–3 ngày đầu sau khi sao chép, video có thể chỉ phát ở độ phân giải 360p hoặc chưa hiển thị được — đây là hành vi bình thường của Google Drive, không phải lỗi từ quá trình sao chép.</li>
+        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Nguyên nhân là do Google cần thời gian xử lý và mã hóa lại (re-encode) các video dung lượng lớn hoặc thời lượng dài trên hệ thống của họ.</li>
+        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Sau 2–3 ngày, độ phân giải sẽ tự động được phục hồi về chất lượng gốc (720p / 1080p / 4K) mà không cần thao tác thêm.</li>
+        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Nếu video hiển thị mờ hoặc không phát được ngay sau khi sao chép, vui lòng chờ 2–3 ngày rồi truy cập lại. Đừng nóng vội mà xoá hoặc sao chép lại.</li>
+      </ul>
+      <label class="vidwarn-check">
+        <input type="checkbox" id="vidWarnDontShow"/> Không hiển thị lại nhắc nhở này
+      </label>
+    </div>
+    <div class="vidwarn-foot">
+      <button class="btn-modal btn-cancel flex-1" onclick="closeVidWarn()">Huỷ</button>
+      <button class="px-5 py-2.5 rounded-xl font-extrabold text-[13px] bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition flex-[2]" onclick="confirmVidWarn()">Đã hiểu, bắt đầu sao chép</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETION MODAL -->
+<div id="complOv" class="compl-ov">
+  <div class="compl-card">
+    <div class="compl-head">
+      <div class="compl-icon ok"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-check-c"/></svg></div>
+      <div class="compl-title">Sao chép hoàn tất!</div>
+      <div class="compl-sub" id="complSub">Hoàn thành trong 0s</div>
+    </div>
+    <div class="compl-stats">
+      <div class="compl-stat gr"><div class="n" id="complCopied">0</div><div class="l">Đã copy</div></div>
+      <div class="compl-stat re"><div class="n" id="complFailed">0</div><div class="l">Lỗi</div></div>
+      <div class="compl-stat"><div class="n" id="complFolders">0</div><div class="l">Thư mục</div></div>
+      <div class="compl-stat"><div class="n" id="complTime">0s</div><div class="l">Thời gian</div></div>
+    </div>
+    <div class="compl-video" id="complVideoBox" style="display:none">
+      <div class="compl-video-h"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-film"/></svg> Lưu ý về <span id="complVideoCount">0</span> video</div>
+      <ul>
+        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Trong 1–3 ngày đầu, video có thể chỉ phát ở 360p — đây là hành vi bình thường của Google Drive khi xử lý lại file.</li>
+        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Chất lượng file gốc không thay đổi, chỉ bản xem trước bị ảnh hưởng tạm thời.</li>
+        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Sau 2–3 ngày chất lượng sẽ tự phục hồi. Tải file về máy nếu cần xem ngay ở chất lượng đầy đủ.</li>
+      </ul>
+    </div>
+    <div class="compl-foot">
+      <button class="compl-btn" onclick="closeComplModal()">Đã hiểu</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- ══════════════ DEMO MODALS (static placeholder data, ported from the original mockup) ══════════════ -->
+<div class="modal-overlay" id="langModal">
+    <div class="modal-wrapper" style="text-align:center;">
+        <div class="modal-title">Thông báo</div>
+        <p class="text-sm text-[#6c757d]">Tính năng chưa được hỗ trợ. Vui lòng sử dụng Google Translate tạm thời trong khi chờ bản cập nhật sắp tới.</p>
+        <div class="modal-actions">
+            <button class="btn-modal btn-cancel" onclick="closeAllModals()" style="width:100%;">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="supportModal">
+    <div class="modal-wrapper" style="max-width:380px;text-align:center;">
+        <div class="modal-title">Thông tin hỗ trợ kỹ thuật</div>
+        <p class="text-sm text-[#6c757d] mb-4">Liên hệ qua Email hoặc quét mã QR Zalo bên dưới để được hỗ trợ nhanh nhất.</p>
+        <div class="flex items-center justify-center gap-2 mb-4 text-sm font-bold text-[#212529]">
+            <svg class="w-4 h-4 stroke-[#868e96] fill-none stroke-2 flex-shrink-0" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            hgntran.contact@gmail.com
+        </div>
+        <img src="zalo-qr.png" alt="Mã QR Zalo hỗ trợ" class="mx-auto rounded-xl border border-[#dee2e6]" style="width:180px;height:180px;object-fit:contain;"/>
+        <div class="modal-actions" style="margin-top:1.25rem;">
+            <button class="btn-modal btn-cancel" onclick="closeAllModals()" style="width:100%;">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="earnModal">
+    <div class="modal-wrapper">
+        <div class="modal-title">Chương trình Đối tác Affiliate</div>
+        <div class="earn-info-box">
+            <p>Chia sẻ liên kết giới thiệu <strong>SwiftCopy.Drive</strong> để nhận ngay hoa hồng hấp dẫn:</p>
+            <ul class="list-disc pl-5 my-2 text-[#6c757d]">
+                <li>Chiết khấu <strong>50%</strong> cho mỗi đơn hàng phát sinh thành công từ liên kết của bạn, và người dùng áp mã giới thiệu của bạn sẽ được giảm <strong>5%</strong>.</li>
+                <li>Rút tiền hoa hồng về tài khoản ngân hàng nhanh chóng, hỗ trợ thanh toán <strong>cuối ngày</strong> hoặc <strong>chủ nhật hàng tuần</strong>.</li>
+                <li><strong>Hiện chương trình chưa mở đăng ký</strong>; khi nào mở cổng cho Cộng tác viên, chúng tôi sẽ có thông báo chính thức!</li>
+            </ul>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-modal btn-cancel" onclick="closeAllModals()">Đóng lại</button>
+            <button class="btn-modal btn-submit" onclick="toast('Chương trình (Sắp ra mắt) hiện tại chưa hỗ trợ !','warn')">Đăng ký ngay</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="addReviewModal">
+    <div class="modal-wrapper">
+        <div class="modal-title">Đánh giá SwiftCopy.Drive</div>
+        <div class="star-rating-box" id="starRatingContainer">
+            <span onclick="setReviewStars(1)">★</span><span onclick="setReviewStars(2)">★</span><span onclick="setReviewStars(3)">★</span><span onclick="setReviewStars(4)">★</span><span onclick="setReviewStars(5)">★</span>
+        </div>
+        <div class="feedback-area hidden" id="feedbackField">
+            <label class="form-label block text-xs font-bold mb-2">Nội dung ý kiến phản hồi</label>
+            <textarea class="w-full p-3 border border-[#dee2e6] rounded-lg text-sm outline-none focus:border-[#ffc107]" id="reviewTextArea" rows="3" placeholder="Nhập trải nghiệm thực tế của bạn tại đây..."></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-modal btn-cancel" onclick="closeAllModals()">Không phải bây giờ</button>
+            <button class="btn-modal btn-submit" onclick="submitReviewForm()">Gửi đánh giá</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="reviewListModal">
+    <div class="modal-wrapper">
+        <div class="modal-title">Đánh giá hệ thống công khai</div>
+        <div class="max-h-60 overflow-y-auto pr-1 space-y-2 relative" id="reviewListContent"></div>
+        <div class="modal-actions">
+            <button class="btn-modal btn-cancel" onclick="closeAllModals()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="faqModal">
+    <div class="modal-wrapper">
+        <div class="modal-title">Câu hỏi thường gặp</div>
+        <div class="max-h-80 overflow-y-auto pr-1 relative" id="faqContentContainer"></div>
+        <div class="modal-actions">
+            <button class="btn-modal btn-cancel" onclick="closeAllModals()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<div id="pvFullscreenOverlay" class="pv-fullscreen-overlay">
+    <button onclick="closePvFullscreen()" aria-label="Đóng bản xem trước" class="pv-fullscreen-close">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-x-c"/></svg>
+    </button>
+    <div id="pvFullscreenSlot" class="pv-fullscreen-slot"></div>
+</div>
+
+<script type="module" src="app.js"></script>
+
+
+<script src="ui.js"></script>
+</body>
+</html>
