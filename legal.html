@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftCopy.Drive</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+    <link rel="icon" href="favicon.ico"/>
+    <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Nunito Sans', sans-serif; background: #fafafa; color: #212529; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        a { color: inherit; }
+        header { background: #fff; border-bottom: 2px solid #ffc107; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+        .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .brand-name { font-family: 'Nunito', sans-serif; font-size: 22px; font-weight: 800; color: #111; letter-spacing: -0.5px; }
+        .brand-dot { color: #dc3545; }
+        .back-link { font-size: 13px; font-weight: 700; color: #6c757d; text-decoration: none; border: 1.5px solid #dee2e6; padding: 7px 16px; border-radius: 8px; transition: .15s; white-space: nowrap; }
+        .back-link:hover { background: #fffbea; border-color: #ffc107; color: #212529; }
+        main { max-width: 760px; margin: 0 auto; padding: 44px 20px 80px; }
+        h1 { font-family: 'Nunito', sans-serif; font-size: 28px; font-weight: 800; margin-bottom: 6px; color: #111; }
+        .updated { font-size: 13px; color: #868e96; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid #e9ecef; }
+        .content { font-size: 15px; line-height: 1.9; color: #495057; white-space: pre-wrap; word-break: break-word; }
+        .loading { color: #868e96; font-style: italic; }
+        .error-msg { color: #dc3545; }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="/" class="brand">
+        <svg class="brand-logo" width="40" height="40" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="border-radius:10px;flex-shrink:0">
+            <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
+            <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
+            <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-name">SwiftCopy<span class="brand-dot">.</span>Drive</span>
+    </a>
+    <a href="/" class="back-link">← Quay về trang chủ</a>
+</header>
+
+<main>
+    <h1 id="pageTitle"></h1>
+    <div class="updated" id="pageUpdated"></div>
+    <div class="content" id="pageContent"><span class="loading">Đang tải nội dung...</span></div>
+</main>
+
+<script>
+const ROUTES = {
+    '/dieu-khoan': { title: 'Điều khoản sử dụng',  file: 'legal/dieu-khoan.txt' },
+    '/bao-mat':    { title: 'Chính sách bảo mật',   file: 'legal/bao-mat.txt'    },
+    '/hoan-tien':  { title: 'Chính sách hoàn tiền', file: 'legal/hoan-tien.txt'  }
+};
+
+const path = location.pathname.replace(/\/$/, '') || '/';
+const route = ROUTES[path];
+
+if (!route) {
+    document.getElementById('pageTitle').textContent = 'Trang không tồn tại';
+    document.getElementById('pageUpdated').textContent = '';
+    document.getElementById('pageContent').innerHTML = '<span class="error-msg">Không tìm thấy trang này. <a href="/" style="color:#dc3545;font-weight:700">Quay về trang chủ</a>.</span>';
+} else {
+    document.title = route.title + ' — SwiftCopy.Drive';
+    document.getElementById('pageTitle').textContent = route.title;
+    document.getElementById('pageUpdated').textContent = 'Cập nhật lần cuối: tháng 6, 2026';
+
+    fetch(route.file)
+        .then(function(r) {
+            if (!r.ok) throw new Error(r.status);
+            return r.text();
+        })
+        .then(function(text) {
+            document.getElementById('pageContent').textContent = text;
+        })
+        .catch(function() {
+            document.getElementById('pageContent').innerHTML = '<span class="error-msg">Không thể tải nội dung. Vui lòng thử lại sau.</span>';
+        });
+}
+</script>
+</body>
+</html>

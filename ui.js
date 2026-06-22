@@ -20,6 +20,13 @@ const adminFaqData = [
     { q: `Tốc độ sao chép nhanh cỡ nào?`, a: `Ví dụ minh hoạ: một thư mục Drive nặng 50GB với khoảng 5.000 file.<br><br>Cách thủ công (tải về máy rồi tải lên lại): tải về mất khoảng 40–50 phút, tải lên lại thường chậm hơn nhiều nên mất thêm 2–3 giờ — tổng khoảng 3–4 giờ, chưa kể công sắp xếp lại thủ công.<br><br>Dùng SwiftCopy.Drive: vì copy diễn ra trực tiếp giữa Google với Google (không qua đường truyền mạng của bạn), cùng khối lượng này thường chỉ mất khoảng 10–15 phút và các thư mục Drive nguồn không bị lẫn lộn.<br><br>→ Tiết kiệm gần như toàn bộ thời gian so với cách làm thủ công.<br><br>(Đây là ví dụ minh hoạ để tham khảo dựa trên cơ chế hoạt động thực tế, thời gian thật có thể thay đổi tuỳ số lượng/kích thước file.)` }
 ];
 
+// Nội dung 3 trang chính sách — cập nhật trực tiếp tại đây khi có nội dung thật
+const policyData = {
+    terms:   { title: 'Điều khoản sử dụng',   content: 'Nội dung sẽ được cập nhật sớm.' },
+    privacy: { title: 'Chính sách bảo mật',   content: 'Nội dung sẽ được cập nhật sớm.' },
+    refund:  { title: 'Chính sách hoàn tiền', content: 'Nội dung sẽ được cập nhật sớm.' }
+};
+
 let selectedStars = 0;
 
 document.getElementById('bellIcon').addEventListener('click', function(e) { e.stopPropagation(); togglePopover('bellPopover'); });
@@ -43,11 +50,17 @@ function openEarnModal() { document.getElementById('earnModal').classList.add('a
 
 document.getElementById('reviewBtn').addEventListener('click', function() {
     selectedStars = 0; updateStarUI();
-    document.getElementById('reviewTextArea').value = "";
+    document.getElementById('reviewTextArea').value = '';
     document.getElementById('feedbackField').classList.add('hidden');
+    document.getElementById('btnSubmitReview').style.display = 'none';
+    renderReviewsInAddModal();
     document.getElementById('addReviewModal').classList.add('active');
 });
-function setReviewStars(num) { selectedStars = num; updateStarUI(); document.getElementById('feedbackField').classList.remove('hidden'); }
+function setReviewStars(num) {
+    selectedStars = num; updateStarUI();
+    document.getElementById('feedbackField').classList.remove('hidden');
+    document.getElementById('btnSubmitReview').style.display = '';
+}
 function updateStarUI() {
     const stars = document.querySelectorAll('#starRatingContainer span');
     stars.forEach((star, index) => { if(index < selectedStars) star.classList.add('selected'); else star.classList.remove('selected'); });
@@ -88,6 +101,60 @@ function anonymizeUserEmail(email) {
     let parts = email.split("@"); let name = parts[0]; let domain = parts[1];
     if (name.length <= 4) return name.substring(0, 2) + "********@" + domain;
     return name.substring(0, 2) + "********" + name.substring(name.length - 4) + "@" + domain;
+}
+
+// Render danh sách đánh giá vào modal gộp (#addReviewModal)
+function renderReviewsInAddModal() {
+    const container = document.getElementById('addReviewListContent');
+    let html = '';
+    initialReviews.forEach((item, index) => {
+        const anonymized = anonymizeUserEmail(item.email);
+        const starString = '★'.repeat(item.stars) + '☆'.repeat(5 - item.stars);
+        const borderStyle = index === initialReviews.length - 1 ? '' : 'border-bottom:1px solid #f1f3f5;';
+        html += `<div style="padding:10px 0;${borderStyle}"><div style="display:flex;justify-content:space-between;font-weight:700;font-size:12px;margin-bottom:4px;"><span style="color:#212529">${anonymized}</span><span style="color:#ffca28">${starString}</span></div><div style="font-size:12px;color:#6c757d;line-height:1.625;">${item.comment}</div></div>`;
+    });
+    container.innerHTML = html;
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            if (container.children.length > 4) {
+                const fourth = container.children[3];
+                container.style.maxHeight = (fourth.offsetTop + fourth.offsetHeight) + 'px';
+            } else {
+                container.style.maxHeight = '';
+            }
+        });
+    });
+}
+
+// Mở modal chính sách với nội dung từ policyData
+function openPolicyModal(type) {
+    const p = policyData[type]; if (!p) return;
+    document.getElementById('policyModalTitle').textContent = p.title;
+    document.getElementById('policyModalContent').innerHTML = p.content;
+    document.getElementById('policyModal').classList.add('active');
+}
+
+// Mở hub modal "Chính sách & đánh giá" từ header dropdown
+function openPolicyAndReviewModal() {
+    document.getElementById('helpPopover').style.display = 'none';
+    document.getElementById('policyAndReviewModal').classList.add('active');
+}
+
+// Đóng hub modal rồi mở đúng modal chính sách tương ứng
+function switchToPolicyModal(type) {
+    closeAllModals();
+    openPolicyModal(type);
+}
+
+// Đóng hub modal rồi mở modal đánh giá gộp
+function switchToReviewModal() {
+    closeAllModals();
+    selectedStars = 0; updateStarUI();
+    document.getElementById('reviewTextArea').value = '';
+    document.getElementById('feedbackField').classList.add('hidden');
+    document.getElementById('btnSubmitReview').style.display = 'none';
+    renderReviewsInAddModal();
+    document.getElementById('addReviewModal').classList.add('active');
 }
 
 function openFaqModal() {

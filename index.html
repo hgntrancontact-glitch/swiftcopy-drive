@@ -95,8 +95,9 @@
                 </svg>
                 <div class="absolute top-[38px] right-0 bg-white border border-[#dee2e6] rounded-xl shadow-xl w-60 hidden z-50 py-1.5" id="helpPopover">
                     <div class="px-4 py-1.5 pb-2 font-bold text-[13px] border-b border-[#f1f3f5] text-black tracking-wide">TRỢ GIÚP NHANH</div>
-                    <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545]" onclick="openZaloHelp()">📞 Thông tin hỗ trợ & Zalo</div>
-                    <div class="block px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545]" onclick="triggerFaqModal()">❓ Câu hỏi thường gặp (FAQ)</div>
+                    <div class="flex items-center gap-2 px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545] cursor-pointer" onclick="openZaloHelp()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Thông tin liên hệ & hỗ trợ</div>
+                    <div class="flex items-center gap-2 px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545] cursor-pointer" onclick="triggerFaqModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Câu hỏi thường gặp (FAQ)</div>
+                    <div class="flex items-center gap-2 px-4 py-2 text-xs text-[#212529] hover:bg-[#f8f9fa] hover:text-[#dc3545] cursor-pointer" onclick="openPolicyAndReviewModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Chính sách & đánh giá</div>
                 </div>
             </div>
 
@@ -273,7 +274,9 @@
                 <h3 class="font-bold text-black text-[17.5px] mb-3 tracking-tight">Hỗ trợ</h3>
                 <div class="flex flex-col items-start gap-2 mb-4">
                     <span class="text-[15px] text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
-                    <span class="text-[15px] text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openReviewListModal()">Xem thử đánh giá</span>
+                    <a href="/dieu-khoan" class="text-[15px] text-[#6c757d] hover:text-[#dc3545] transition-colors" style="text-decoration:none">Điều khoản sử dụng</a>
+                    <a href="/bao-mat" class="text-[15px] text-[#6c757d] hover:text-[#dc3545] transition-colors" style="text-decoration:none">Chính sách bảo mật</a>
+                    <a href="/hoan-tien" class="text-[15px] text-[#6c757d] hover:text-[#dc3545] transition-colors" style="text-decoration:none">Chính sách hoàn tiền</a>
                 </div>
                 <button class="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#ffc107] to-[#ff8f00] text-black px-4 py-2 rounded-full text-[15px] font-bold shadow-md hover:scale-105 active:scale-95 transition-all whitespace-nowrap" id="reviewBtn">
                     <span class="text-black text-[15px]">★</span>
@@ -535,6 +538,11 @@
 <div class="modal-overlay" id="addReviewModal">
     <div class="modal-wrapper">
         <div class="modal-title">Đánh giá SwiftCopy.Drive</div>
+        <!-- (a) Danh sách đánh giá hiện có — render bởi renderReviewsInAddModal() -->
+        <div style="position:relative;overflow-y:auto;padding-right:4px;" id="addReviewListContent"></div>
+        <div style="border-top:1px solid #e9ecef;margin:12px 0 10px;"></div>
+        <!-- (b) Form gửi đánh giá mới — textarea chỉ hiện sau khi chọn sao -->
+        <div class="text-[11px] font-bold text-[#868e96] mb-2 uppercase tracking-wider">Để lại đánh giá của bạn</div>
         <div class="star-rating-box" id="starRatingContainer">
             <span onclick="setReviewStars(1)">★</span><span onclick="setReviewStars(2)">★</span><span onclick="setReviewStars(3)">★</span><span onclick="setReviewStars(4)">★</span><span onclick="setReviewStars(5)">★</span>
         </div>
@@ -544,7 +552,7 @@
         </div>
         <div class="modal-actions">
             <button class="btn-modal btn-cancel" onclick="closeAllModals()">Không phải bây giờ</button>
-            <button class="btn-modal btn-submit" onclick="submitReviewForm()">Gửi đánh giá</button>
+            <button class="btn-modal btn-submit" id="btnSubmitReview" onclick="submitReviewForm()" style="display:none">Gửi đánh giá</button>
         </div>
     </div>
 </div>
@@ -565,6 +573,35 @@
         <div class="max-h-80 overflow-y-auto pr-1 relative" id="faqContentContainer"></div>
         <div class="modal-actions">
             <button class="btn-modal btn-cancel" onclick="closeAllModals()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- POLICY MODAL — nội dung quản lý qua policyData trong ui.js -->
+<div class="modal-overlay" id="policyModal">
+    <div class="modal-wrapper">
+        <div class="modal-title" id="policyModalTitle">Điều khoản sử dụng</div>
+        <div style="font-size:13px;color:#6c757d;line-height:1.7;padding:4px 0 8px;" id="policyModalContent">Nội dung sẽ được cập nhật sớm.</div>
+        <div class="modal-actions">
+            <button class="btn-modal btn-cancel" onclick="closeAllModals()" style="width:100%;">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- POLICY & REVIEW HUB MODAL — mở từ dropdown header -->
+<div class="modal-overlay" id="policyAndReviewModal">
+    <div class="modal-wrapper">
+        <div class="modal-title">Chính sách & đánh giá</div>
+        <div class="text-[11px] font-bold text-[#868e96] mb-2 uppercase tracking-wider">Chính sách</div>
+        <div class="flex flex-col gap-1.5 mb-4">
+            <a href="/dieu-khoan" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[#e9ecef] text-[13px] font-semibold text-[#212529] hover:bg-[#f8f9fa] hover:border-[#dee2e6] transition-colors" style="text-decoration:none">📄 Điều khoản sử dụng</a>
+            <a href="/bao-mat" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[#e9ecef] text-[13px] font-semibold text-[#212529] hover:bg-[#f8f9fa] hover:border-[#dee2e6] transition-colors" style="text-decoration:none">🔒 Chính sách bảo mật</a>
+            <a href="/hoan-tien" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[#e9ecef] text-[13px] font-semibold text-[#212529] hover:bg-[#f8f9fa] hover:border-[#dee2e6] transition-colors" style="text-decoration:none">↩️ Chính sách hoàn tiền</a>
+        </div>
+        <div class="text-[11px] font-bold text-[#868e96] mb-2 uppercase tracking-wider">Đánh giá</div>
+        <div class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[#ffe8b0] bg-[#fffbea] cursor-pointer text-[13px] font-semibold text-[#212529] hover:bg-[#fff3c4] hover:border-[#ffc107] transition-colors" onclick="switchToReviewModal()">★ Đánh giá SwiftCopy.Drive</div>
+        <div class="modal-actions">
+            <button class="btn-modal btn-cancel" onclick="closeAllModals()" style="width:100%;">Đóng</button>
         </div>
     </div>
 </div>

@@ -1078,14 +1078,14 @@ function sec(name, _noPush){
   const nr=document.getElementById('navRight');if(nr)nr.style.display=name==='app'?'flex':'none';
   const ng=document.getElementById('navGuest');if(ng)ng.style.display=name==='app'?'none':'flex';
   if(!_noPush){
-    if(name==='app'&&location.pathname!=='/copydrive') history.pushState(null,'','/copydrive');
+    if(name==='app'&&location.pathname!=='/copy-drive') history.pushState(null,'','/copy-drive');
     else if((name==='land'||name==='pend')&&location.pathname!=='/') history.pushState(null,'','/');
   }
 }
 
 // ── CLIENT-SIDE ROUTING ──────────────────────────────────────
 window.addEventListener('popstate',()=>{
-  if(location.pathname==='/copydrive'){
+  if(location.pathname==='/copy-drive'){
     if(gUser) sec('app',true);
     else{ history.replaceState(null,'','/'); sec('land',true); }
   } else {

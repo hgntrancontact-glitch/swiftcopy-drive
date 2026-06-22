@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"/Users/macsos/Documents/Tệp lưu trữ/SwiftCopy.Drive /legal\")"
+    ],
+    "additionalDirectories": [
+      "/Users/macsos/Documents/Tệp lưu trữ/SwiftCopy.Drive "
+    ]
+  }
+}
