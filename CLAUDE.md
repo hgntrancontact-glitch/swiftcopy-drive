@@ -343,7 +343,9 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **SITE_URL trong email**: đã set `https://swiftcopydrive.com` trong `admin.html` — khi mua domain xong chỉ cần trỏ domain về Vercel, không cần sửa code
 - **Auth flow**: ĐÃ implement luồng mới — #loginModal premium + #planSelectModal (chọn Free/Paid sau login), #startModal đã bị xóa
 - **loginModal UI**: tiêu đề "Đăng ký", backdrop `rgba(0,0,0,0.85)` không blur — tạo cảm giác tập trung
-- **paymentModal UI**: bố cục 2 cột (QR 185×185px bên trái + thông tin ngân hàng bên phải), max-width 520px; ô hướng dẫn đổi sang nền tối `#1e2327` + text sáng (premium style)
+- **planSelectModal UI**: backdrop `rgba(0,0,0,0.82)` không blur; cột Trọn đời nền `#fffdf5` (kem vàng nhạt)
+- **paymentModal UI**: bố cục 2 cột (QR 185×185px bên trái + thông tin ngân hàng bên phải), max-width 520px; ô hướng dẫn: `border-left: 3px solid #c9a84c`, nền `#f8f9fa`, tiêu đề `#212529 700`, text bước `#495057`, highlight `#a07820 600`
+- **premiumBadge icon**: đổi từ emoji 👑 sang SVG outline icon (chart-line/zigzag) stroke `#c9a84c`
 - **Premium badge**: ĐÃ implement — `#premiumBadge` hiện khi plan=paid, thay freeBanner
 - **Kick screen**: ĐÃ fix — `pollKickStatus()` hiện `#s-kicked` (không signOut), user thấy lý do và phải bấm Đăng xuất
 - **Readd + welcome modal**: ĐÃ implement — `doReadd()` set plan='paid' + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login

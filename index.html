@@ -355,7 +355,7 @@
       <!-- PREMIUM BADGE (plan='paid') -->
       <div id="premiumBadge" style="display:none;align-items:center;gap:16px;background:#111110;border:1.5px solid #c9a84c;border-radius:14px;padding:12px 20px;margin-bottom:14px;box-shadow:0 2px 16px rgba(201,168,76,.14);">
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:36px;height:36px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👑</div>
+          <div style="width:36px;height:36px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l3-8 5 5 4-9 3 5"/><path d="M3 17h18"/><path d="M5 20h14"/></svg></div>
           <div>
             <div style="font-size:11px;font-weight:900;color:#c9a84c;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">PREMIUM</div>
             <div style="font-size:12px;font-weight:700;color:#f0d080;">Gói Trọn đời</div>
@@ -723,7 +723,7 @@
 </div>
 
 <!-- ══════════════ PLAN SELECT MODAL — hiện sau Google auth, trước khi tạo user doc ══════════════ -->
-<div class="modal-overlay" id="planSelectModal">
+<div class="modal-overlay" id="planSelectModal" style="background-color:rgba(0,0,0,0.82);backdrop-filter:none;">
   <div class="modal-wrapper" style="max-width:600px;padding:0;border-radius:20px;overflow:hidden;position:relative;">
     <button onclick="closePlanSelect()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
     <div style="background:#212529;padding:22px 28px 16px;text-align:center;">
@@ -746,7 +746,7 @@
         <button onclick="createFreeUser()" style="width:100%;background:#f1f3f5;color:#212529;border:1.5px solid #dee2e6;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">Dùng miễn phí</button>
       </div>
       <!-- PAID COLUMN -->
-      <div style="padding:20px 22px 22px;background:#fffbea;position:relative;">
+      <div style="padding:20px 22px 22px;background:#fffdf5;position:relative;">
         <div style="position:absolute;top:14px;right:14px;background:#ffc107;color:#212529;font-size:10px;font-weight:900;padding:2px 10px;border-radius:999px;">PHỔ BIẾN</div>
         <div style="font-size:11px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Trọn đời</div>
         <div style="margin-bottom:4px;"><span style="font-size:16px;font-weight:700;color:#adb5bd;text-decoration:line-through;">450.000 ₫</span> <span style="font-size:26px;font-weight:900;color:#212529;">250.000 ₫</span></div>
@@ -812,12 +812,12 @@
           </div>
         </div>
       </div>
-      <!-- Steps — dark premium -->
-      <div style="background:#1e2327;border-radius:12px;padding:14px 16px;font-size:13px;color:#ced4da;line-height:1.8;">
-        <div style="font-weight:800;color:#fff;margin-bottom:6px;font-size:13px;">Cách thanh toán:</div>
+      <!-- Steps -->
+      <div style="background:#f8f9fa;border-left:3px solid #c9a84c;border-radius:0 10px 10px 0;padding:14px 16px;font-size:13px;color:#495057;line-height:1.8;">
+        <div style="font-weight:700;color:#212529;margin-bottom:6px;font-size:13px;">Cách thanh toán:</div>
         <div>1. Quét mã QR hoặc chuyển khoản theo thông tin trên</div>
-        <div>2. Nội dung CK: <b style="color:#ffc107;">email_tên</b> của bạn &nbsp;<span style="font-size:11px;color:#6c757d;">Ví dụ: abc@gmail.com_Nam</span></div>
-        <div>3. Nhấn <b style="color:#ffc107;">"Hoàn tất thanh toán"</b> bên dưới</div>
+        <div>2. Nội dung CK: <b style="color:#a07820;font-weight:600;">email_tên</b> của bạn &nbsp;<span style="font-size:11px;color:#adb5bd;">Ví dụ: abc@gmail.com_Nam</span></div>
+        <div>3. Nhấn <b style="color:#a07820;font-weight:600;">"Hoàn tất thanh toán"</b> bên dưới</div>
       </div>
       <!-- Contact -->
       <div style="font-size:12px;color:#868e96;text-align:center;">Cần hỗ trợ? <a href="mailto:hgntran.contact@gmail.com" style="color:#212529;font-weight:700;text-decoration:none;">hgntran.contact@gmail.com</a></div>
