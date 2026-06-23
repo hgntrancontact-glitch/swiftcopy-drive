@@ -284,7 +284,7 @@ async function checkApproval(u){
 }
 
 function _gasPost(payload){
-  if (!GAS_URL||GAS_URL==='PASTE_YOUR_GAS_URL_HERE') return;
+  if (!GAS_URL||GAS_URL==='https://script.google.com/macros/s/AKfycbwr_OJrX-kvV085UeOBQLPmOVnaZjWfrfAv8jCS2P7rV0ND7z8X6N_OQXRpn9r37C6LYA/exec') return;
   fetch(GAS_URL,{method:'POST',mode:'no-cors',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(()=>{});
 }
 function sendRegEmail(u){
