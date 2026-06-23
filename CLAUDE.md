@@ -345,12 +345,12 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Premium badge**: ĐÃ implement — `#premiumBadge` hiện khi plan=paid, thay freeBanner
 - **Kick screen**: ĐÃ fix — `pollKickStatus()` hiện `#s-kicked` (không signOut), user thấy lý do và phải bấm Đăng xuất
 - **Readd + welcome modal**: ĐÃ implement — `doReadd()` set plan='paid' + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login
+- **Admin email có thể test luồng user**: `ADMIN_EMAIL` (`hgntran.contact@gmail.com`) đã bỏ bypass trong `app.js` — giờ đi qua planSelectModal, có thể bị kick, nhận email kick/approve bình thường. `admin.html` vẫn gate riêng, không ảnh hưởng.
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
 - **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html (user báo đã chuyển → admin kiểm tra → bấm "Duyệt nâng cấp")
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"
 - **Review/FAQ**: dữ liệu tĩnh trong JS, chưa nối Firestore thật
 - **zalo-qr.png**: ảnh thật (đã crop), phải nằm cùng thư mục với index.html khi deploy
-- **Chưa push lên GitHub** — local chứa toàn bộ thay đổi 7 task, push khi owner cho phép
 
 ---
 
