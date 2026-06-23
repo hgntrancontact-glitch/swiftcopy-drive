@@ -139,8 +139,9 @@ window.openRegisterModal = () => {
   document.getElementById('startModal')?.classList.add('active');
 };
 window.showRegisterStep2 = () => {
-  document.getElementById('registerStep1')?.style.display='none';
-  document.getElementById('registerStep2')?.style.display='block';
+  const s1=document.getElementById('registerStep1'), s2=document.getElementById('registerStep2');
+  if (s1) s1.style.display='none';
+  if (s2) s2.style.display='block';
 };
 window.doLoginFree = async () => {
   _pendingPlan = 'free';
