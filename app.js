@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, collection, serverTimestamp }
+import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -14,6 +14,7 @@ const firebaseConfig = {
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
 // GAS_URL đã chuyển vào Vercel env var — xem api/email.js
+const ADMIN_EMAIL = "hgntran.contact@gmail.com"; // email test — luôn reset doc khi login
 
 // Free plan limits
 const FREE_MB_LIMIT = 500;
@@ -182,6 +183,13 @@ onAuthStateChanged(auth, async u => {
   try {
     // Kiểm tra document tồn tại chưa
     const docSnap = await getDoc(doc(db,'users',u.uid));
+    // Admin email luôn reset về trạng thái user mới để test luồng
+    if (u.email === ADMIN_EMAIL) {
+      if (docSnap.exists()) await deleteDoc(doc(db,'users',u.uid));
+      setNavUser(u);
+      showPlanSelect();
+      return;
+    }
     if (!docSnap.exists()){
       // User mới — hiện modal chọn gói, KHÔNG tạo doc ngay
       setNavUser(u);
