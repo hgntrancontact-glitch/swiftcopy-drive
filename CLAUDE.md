@@ -59,19 +59,59 @@ SwiftCopy.Drive/
 
 ---
 
+## Luồng Auth mới (sau khi implement 7 task)
+
+```
+Landing → openLoginModal() → #loginModal (premium design)
+  → doLogin() → signInWithPopup → onAuthStateChanged
+    → check Firestore doc exists?
+      NO  → showPlanSelect() → #planSelectModal
+              "Dùng miễn phí"     → createFreeUser()        → approved=true, plan='free' → sec('app')
+              "Đăng ký Trọn đời" → openPlanSelectPaid()    → _paymentContext='new'
+                                   → #paymentModal → showPaymentConfirm()
+                                   → #paymentConfirmModal → confirmPayment()
+                                   → createPaidPendingUser() → approved=false, status='pending' → sec('pend')
+      YES → checkApproval()
+              status='kicked' → notifyAdminKicked() + sec('kicked') + hiện kickedReasonText
+              approved=true   → sec('app') + updateFreeBanner() + checkReaddWelcome()
+              approved=false  → sec('pend')
+
+Nâng cấp Free → Paid (đã đăng nhập):
+  freeBanner → openUpgradeModal() → _paymentContext='upgrade' → #paymentModal
+  → showPaymentConfirm() → #paymentConfirmModal → confirmPayment()
+  → _doUpgradeRequestInternal() → updateDoc(upgradeRequestedAt) → updateFreeBanner() → hiện "Chờ xác nhận"
+
+pollKickStatus() (30s interval khi đang ở sec='app'):
+  → nếu status !== 'approved' → clearInterval → sec('kicked') — KHÔNG signOut()
+  → User phải bấm "Đăng xuất" trong #s-kicked để về landing
+```
+
+---
+
 ## Cấu trúc bên trong index.html (sau khi tách file)
 
-### HTML (~585 dòng — chỉ còn HTML thuần)
+### HTML (~600 dòng — chỉ còn HTML thuần)
 - `<head>`: Tailwind CDN, favicon, `<link rel="stylesheet" href="style.css">`
 - SVG sprite: icon dùng lại qua `<use href="#ic-...">`
-- 4 section: `#s-land` (landing), `#s-check` (đang kiểm tra auth), `#s-pend` (chờ duyệt), `#s-app` (dashboard thật)
-- Các modal overlay: `#modalOv`, `#vidWarnOv`, `#complOv`, `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal` (gộp list + form), `#reviewListModal` (giữ lại nhưng không dùng), `#faqModal`, `#policyModal` (dùng chung cho 3 chính sách), `#policyAndReviewModal` (hub từ header), `#pvFullscreenOverlay`
+- 5 section: `#s-land` (landing), `#s-check` (đang kiểm tra auth), `#s-pend` (chờ duyệt), `#s-app` (dashboard thật), `#s-kicked` (bị kick — hiển thị lý do, nút Đăng xuất)
+- **Modals auth/plan**: `#loginModal` (premium design, Google OAuth + email hint), `#planSelectModal` (chọn gói Free/Paid sau login), `#paymentModal` (thông tin chuyển khoản), `#paymentConfirmModal` (xác nhận đã chuyển — bước trung gian trước confirmPayment), `#readdWelcomeModal` (chào mừng user được admin thêm lại)
+- **Modals app**: `#modalOv`, `#vidWarnOv`, `#complOv`, `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal` (gộp list + form), `#reviewListModal` (giữ lại nhưng không gọi từ UI), `#faqModal`, `#policyModal` (dùng chung cho 3 chính sách), `#policyAndReviewModal` (hub từ header), `#pvFullscreenOverlay`, `#freeLimitModal`
+- **Banner/badge dashboard**: `#freeBanner` (render innerHTML động — 3 trạng thái), `#premiumBadge` (vàng #c9a84c, crown icon — hiện khi plan=paid)
 - Preview Dashboard: `id="pvCard"` — animation minh hoạ cho khách chưa đăng nhập
 - Cuối body: `<script type="module" src="app.js"></script>` + `<script src="ui.js"></script>`
 
-### app.js — ES module (~1159 dòng)
+**Lưu ý `#startModal` đã bị xóa hoàn toàn** — thay bằng `#loginModal` + `#planSelectModal`.
+
+### app.js — ES module (~1200 dòng)
 Nhóm hàm chính:
-- **Firebase/Auth**: `onAuthStateChanged`, `ensureUser`, `checkApproval`, `doLogin`, `doLogout`, `reAuth`
+- **Firebase/Auth**: `onAuthStateChanged`, `checkApproval`, `doLogin`, `doLogout`, `reAuth`, `setNavUser`
+- **Plan selection (new)**: `showPlanSelect`, `closePlanSelect` (sign out nếu đóng), `createFreeUser`, `openPlanSelectPaid`, `createPaidPendingUser`
+- **Payment flow (new)**: `showPaymentConfirm`, `confirmPayment`, `_doUpgradeRequestInternal`, `openUpgradeModal`
+  - `doUpgradeRequest` là alias của `showPaymentConfirm` (backward compat)
+  - `_paymentContext`: `'new'` | `'upgrade'` — quyết định `confirmPayment()` làm gì
+- **Kicked screen**: `pollKickStatus` — hiện `sec('kicked')` thay vì `signOut()` khi bị kick
+- **Readd welcome (new)**: `checkReaddWelcome` (gọi sau login), `closeReaddWelcome`
+  - localStorage key: `swiftcopy_readd_{uid}` — đảm bảo modal chỉ hiện 1 lần
 - **Drive API wrapper**: `dget`, `dpost`, `ddel`, `fid`, `fname`, `listItems`, `existNames`, `copyFileSingle`, `mkFolder` — có retry exponential backoff cho 429/500/503
 - **Auth expiry**: `isAuthExpiredErr`, `handleAuthExpired` — xử lý 401 giữa chừng, tự resume sau khi reauth
 - **Checklist**: `loadChecklist`, `renderChecklist` — cây thư mục lazy-load, checkbox 3 trạng thái
@@ -79,7 +119,7 @@ Nhóm hàm chính:
 - **Copy**: `startCopy`, `_runCopyInternal`, `copyRecTree` — đa luồng (CONCUR=8 file, FOLDER_CONCUR=3)
 - **Progress**: `progStart`, `progInc`, `progFinish` — indeterminate mode, không pre-scan
 - **Session/resume**: `saveSession`, `checkResume`, `resumeSession` — lưu localStorage key `swiftcopy_session`
-- **UI helpers**: `sec`, `setBtnMode`, `setStatus`, `addLog`, `updStats`, `toast` (expose qua `window.toast`)
+- **UI helpers**: `sec`, `setBtnMode`, `setStatus`, `addLog`, `updStats`, `updateFreeBanner`, `toast` (expose qua `window.toast`)
 
 ### ui.js — script thường (~330 dòng)
 - Dữ liệu tĩnh: `initialReviews` (8 đánh giá mẫu), `adminFaqData` (7 câu FAQ), `policyData` (3 chính sách)
@@ -152,10 +192,14 @@ Mỗi document trong collection `users` có các field sau:
 | `createdAt` | Timestamp | Lần đầu tạo tài khoản |
 | `approvedAt` | Timestamp | (optional) Thời điểm admin duyệt |
 | `upgradedAt` | Timestamp | (optional) Thời điểm admin duyệt nâng cấp |
+| `readdedAt` | Timestamp | (optional) Set bởi admin.html `doReadd()` — trigger `#readdWelcomeModal` 1 lần duy nhất |
+| `readdNote` | string | (optional) Ghi chú admin khi thêm lại |
+| `kickReason` | string | (optional) Lý do kick — hiện trong `#s-kicked` và email |
 
-**Quy tắc tạo user mới:**
-- **Gói Free** (bấm "Dùng thử miễn phí"): `approved=true, status='approved', plan='free'` — không cần admin duyệt, vào app ngay
-- **Gói Trọn đời** (bấm "Đăng ký gói Trọn đời"): `approved=false, status='pending', plan='free', upgradeRequestedAt=serverTimestamp()` — chờ admin xác nhận thanh toán
+**Quy tắc tạo user mới (qua `#planSelectModal` sau login):**
+- **Gói Free** (bấm "Dùng miễn phí"): `createFreeUser()` → `approved=true, status='approved', plan='free'` — vào app ngay
+- **Gói Trọn đời** (bấm "Đăng ký Trọn đời" → xác nhận thanh toán): `createPaidPendingUser()` → `approved=false, status='pending', plan='free', upgradeRequestedAt=serverTimestamp()` — chờ admin xác nhận
+- **Readd** bởi admin: `doReadd()` → `approved=true, status='approved', plan='paid', readdedAt=serverTimestamp()` — plan luôn là paid khi được thêm lại
 
 ---
 
@@ -173,19 +217,33 @@ const FREE_MB_LIMIT = 500;                    // MB tối đa mỗi window
 const FREE_RESET_MS = 5 * 60 * 60 * 1000;    // 5 giờ
 ```
 
-### Luồng nâng cấp Free → Paid
-1. User (đã đăng nhập, plan=free) bấm nút "Nâng cấp lên Trọn đời →" trong `#freeBanner`
-2. `openUpgradeModal()` mở `#paymentModal` ở chế độ upgrade (hiện `#paymentUpgradeBtn`, ẩn `#paymentLoginBtn`)
-3. User bấm "Tôi đã thanh toán" → `doUpgradeRequest()` → set `upgradeRequestedAt=serverTimestamp()` trong Firestore → gửi email `upgrade_request` cho admin
-4. Admin vào admin.html, thấy badge "⬆ Chờ nâng cấp", bấm "Duyệt nâng cấp" → `approveUpgrade()` → set `plan='paid', upgradeRequestedAt=null` → gửi email `upgrade_approved` cho user
+### Luồng nâng cấp Free → Paid (đã đăng nhập)
+1. User bấm "Nâng cấp lên Trọn đời →" trong `#freeBanner`
+2. `openUpgradeModal()` → `_paymentContext='upgrade'` → mở `#paymentModal`
+3. User bấm "Tôi đã thanh toán — Xác nhận" → `showPaymentConfirm()` → mở `#paymentConfirmModal`
+4. User bấm "Xác nhận — Đã chuyển khoản" → `confirmPayment()` → gọi `_doUpgradeRequestInternal()`
+5. `_doUpgradeRequestInternal()` → set `upgradeRequestedAt=serverTimestamp()` → gửi email `upgrade_request` → `updateFreeBanner()` hiện trạng thái "Chờ xác nhận"
+6. Admin vào admin.html, thấy badge "⬆ Chờ nâng cấp", bấm "Duyệt nâng cấp" → `approveUpgrade()` → set `plan='paid', upgradeRequestedAt=null` → gửi email `upgrade_approved` cho user
+
+### `updateFreeBanner()` — 3 trạng thái (render innerHTML động)
+| Trạng thái | Điều kiện | Hiện |
+|---|---|---|
+| `plan='paid'` | gUserData.plan === 'paid' | `#premiumBadge` (vàng, crown icon), ẩn `#freeBanner` |
+| Chờ xác nhận | plan='free' + upgradeRequestedAt set | freeBanner: "⏳ Gói Trọn đời — Đang chờ admin xác nhận..." |
+| Free bình thường | plan='free', không có upgradeRequestedAt | freeBanner: dung lượng còn lại + nút "Nâng cấp" |
+
+**Lưu ý:** `#freeBanner` không có con HTML tĩnh — toàn bộ nội dung được render bởi `updateFreeBanner()`. Không tạo child element tĩnh trong `#freeBanner`.
 
 ### Biến module-level quan trọng trong app.js
 | Biến | Mô tả |
 |---|---|
 | `gUserData` | Full Firestore user document (set bởi `checkApproval()`) |
-| `_pendingPlan` | `'free'` hoặc `'paid'` — intent khi tạo user mới, set trước `signInWithPopup` |
+| `_paymentContext` | `'new'` hoặc `'upgrade'` — `confirmPayment()` dùng để quyết định gọi `createPaidPendingUser()` hay `_doUpgradeRequestInternal()` |
 | `_sessionCopiedMB` | MB đã copy trong phiên hiện tại, cộng vào `freeUsedMB` khi copy xong |
 | `_freeLimitTimer` | `setInterval` ID cho countdown trong `#freeLimitModal` |
+| `_kickPollTimer` | `setInterval` ID cho `pollKickStatus()` — clearInterval khi logout hoặc kicked |
+
+**`_pendingPlan` đã bị xóa** — thay bằng `_paymentContext`.
 
 ---
 
@@ -228,6 +286,42 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 
 ---
 
+## Design system — dashboard & admin
+
+### Tokens chung (áp dụng cho cả index.html và admin.html)
+| Token | Giá trị | Dùng cho |
+|---|---|---|
+| Amber | `#ffc107` | CTA chính, border premium, accent |
+| Red | `#dc3545` / `#fa5252` | Lỗi, danger, kick |
+| Dark | `#212529` | Nền header modal, nút dark, text heading |
+| Success | `#099268` / `#20c997` | Thành công, approved |
+| Border | `#e9ecef` / `#f1f3f5` | Card border, divider |
+| Font | Nunito (heading 800) + Nunito Sans (body) |
+
+### Dashboard user (#s-app)
+- **Cards**: `rounded-2xl` + `p-5 md:p-6` + `shadow-sm hover:shadow-md transition-shadow`
+- **Card headers**: icon badge (icon trong ô màu nhỏ 28×28) thay vì emoji — config card dùng folder icon nền fffbea, progress card dùng bolt icon nền fff9db
+- **Input section**: source→dest flow với arrow SVG divider ở giữa + icon màu nhỏ ở label (green=source, blue=dest)
+- **Action buttons**: `py-2.5 text-[12px] rounded-xl border-2` — scan=đỏ outline, start=amber fill+shadow, pause=vàng outline, resume=xanh outline, reset=dark fill
+- **Stats cards**: `rounded-xl h-[70px] text-2xl md:text-3xl` font numbers, 3 gaps `gap-3`
+- **Premium badge**: dark `#111110` bg + gold `#c9a84c` border 1.5px + box-shadow amber nhẹ + icon badge + divider dọc + feature summary
+
+### Admin panel (admin.html)
+- **Nav**: height 60px, có logo SVG (cùng SVG với index.html), badge "ADMIN" vàng
+- **Stats boxes**: `padding:20px 14px`, số `font-size:32px`
+- **Table**: `padding:13px 18px`, avatar 38×38px + border 2px, u-name 13.5px
+- **Badges**: có `.badge-dot` tròn 6×6 màu tương ứng ở trước text
+- **Action buttons**: `padding:5px 13px border-radius:8px` + `.act-btn:active` scale(.96)
+- **Modals**: `border-radius:18px` + backdrop-filter:blur(3px)
+- **Card**: `border-radius:16px`
+
+### Quy tắc KHÔNG vi phạm khi sửa UI
+- Không đổi ID hoặc functional CSS class (`fi`, `log-box`, `prog-track`, `cl-row`, v.v.)
+- Không thêm con tĩnh vào `#freeBanner` — JS render toàn bộ innerHTML
+- Không đổi `style.display` logic cho `#premiumBadge` — JS chỉ set display:flex/none
+
+---
+
 ## Các lỗi đã gặp — không lặp lại
 
 - **Chiều cao modal FAQ/review không ổn định**: do đo `offsetTop` khi container chưa có `position:relative`, hoặc đo trước khi Tailwind CDN kịp compile class. Fix: dùng `position:relative` trên container + `requestAnimationFrame` double-tick + inline style thay vì Tailwind class cho padding/margin của item.
@@ -235,6 +329,9 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Animation Preview Dashboard lag khi mở modal**: fix bằng `anyModalOpen()` check trong `tick()`, và STEP_MS=250 (không để 90).
 - **Stats hiển thị dữ liệu phiên cũ sau Reset**: fix bằng gọi `updStats()` ngay sau `stats=ns()` trong `doReset()` và đầu `startScan()`.
 - **Email không gửi được dù GAS_URL đã set trong Vercel**: env var mới không áp dụng cho deployment cũ — phải Redeploy thủ công sau khi thêm/sửa env var. Kiểm tra bằng GAS "Nhật ký thực thi": nếu không có log mới → Vercel chưa reach GAS → chưa Redeploy.
+- **pollKickStatus gọi signOut() làm mất token giữa chừng**: đã fix — `pollKickStatus()` chỉ gọi `sec('kicked')` và clear interval, KHÔNG gọi `signOut()`. User được đẩy về `#s-kicked` và phải bấm "Đăng xuất" để thật sự logout.
+- **Readd user không set plan='paid'**: đã fix trong `admin.html` — `doReadd()` luôn kèm `plan:'paid'` khi updateDoc.
+- **`serverTimestamp()` trong gUserData gây crash khi read `.toMillis()`**: Firestore FieldValue không có `.toMillis()` ngay khi optimistic write. Luôn dùng optional chaining `gUserData.freeResetAt?.toMillis?.()` hoặc fallback `Date.now()`.
 
 ---
 
@@ -244,12 +341,16 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **CI/CD**: Vercel tự động deploy khi push lên GitHub
 - **Email system**: ĐÃ hoạt động — `GAS_URL` lưu trong Vercel env var, proxy qua `api/email.js`, confirmed working (kick/readd/approve/upgrade đều gửi được)
 - **SITE_URL trong email**: đã set `https://swiftcopydrive.com` trong `admin.html` — khi mua domain xong chỉ cần trỏ domain về Vercel, không cần sửa code
+- **Auth flow**: ĐÃ implement luồng mới — #loginModal premium + #planSelectModal (chọn Free/Paid sau login), #startModal đã bị xóa
+- **Premium badge**: ĐÃ implement — `#premiumBadge` hiện khi plan=paid, thay freeBanner
+- **Kick screen**: ĐÃ fix — `pollKickStatus()` hiện `#s-kicked` (không signOut), user thấy lý do và phải bấm Đăng xuất
+- **Readd + welcome modal**: ĐÃ implement — `doReadd()` set plan='paid' + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
-- **Free/Paid system**: ĐÃ implement — Free tự approved, Paid qua admin duyệt, 500MB/5h limit
 - **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html (user báo đã chuyển → admin kiểm tra → bấm "Duyệt nâng cấp")
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"
 - **Review/FAQ**: dữ liệu tĩnh trong JS, chưa nối Firestore thật
 - **zalo-qr.png**: ảnh thật (đã crop), phải nằm cùng thư mục với index.html khi deploy
+- **Chưa push lên GitHub** — local chứa toàn bộ thay đổi 7 task, push khi owner cho phép
 
 ---
 

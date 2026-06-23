@@ -114,10 +114,16 @@
         </div>
 
         <div class="flex items-center gap-3" id="navRight" style="display:none">
-            <img id="navAv" class="w-8 h-8 rounded-full border-2 border-[#e9ecef] object-cover" src="" alt=""/>
-            <div class="text-left"><div id="navName" class="text-xs font-bold leading-tight"></div><div id="navEmail" class="text-[10px] text-[#868e96] leading-tight"></div></div>
-            <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition" onclick="reAuth()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> Cấp quyền Drive</button>
-            <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#fffbea] hover:border-[#ffc107] active:scale-95 transition" onclick="doLogout()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-out"/></svg> Đăng xuất</button>
+            <div class="flex items-center gap-2.5">
+                <img id="navAv" class="w-9 h-9 rounded-full border-2 border-[#f1f3f5] object-cover shadow-sm" src="" alt=""/>
+                <div class="text-left">
+                    <div id="navName" class="text-[13px] font-bold leading-tight text-[#212529]"></div>
+                    <div id="navEmail" class="text-[11px] text-[#868e96] leading-tight"></div>
+                </div>
+            </div>
+            <div class="h-7 w-px bg-[#e9ecef] mx-0.5 hidden sm:block"></div>
+            <button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition shadow-sm" onclick="reAuth()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> <span class="hidden sm:inline">Cấp quyền Drive</span></button>
+            <button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#f8f9fa] hover:border-[#adb5bd] active:scale-95 transition" onclick="doLogout()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-out"/></svg> <span class="hidden sm:inline">Đăng xuất</span></button>
         </div>
     </header>
 
@@ -135,7 +141,7 @@
                 Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn,<br class="hidden md:block">chạy thẳng trên trình duyệt.
             </p>
             <div class="flex gap-3 justify-center flex-wrap">
-                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] active:scale-95 transition-all" onclick="openRegisterModal()">Đăng ký dùng thử</button>
+                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] active:scale-95 transition-all" onclick="openLoginModal()">Đăng ký dùng thử</button>
                 <button class="px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer bg-white border-2 border-[#212529] hover:bg-[#f8f9fa] active:scale-95 transition-all" onclick="openLoginModal()">Đăng nhập</button>
             </div>
             <p class="text-sm text-[#868e96] mt-4">Dùng thử miễn phí hoặc mua trọn đời</p>
@@ -343,13 +349,20 @@
   <main class="flex-1 px-4 py-6 md:py-8">
     <div class="max-w-6xl mx-auto">
 
-      <!-- FREE PLAN BANNER -->
-      <div id="freeBanner" style="display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;">
-          <span>⚡</span>
-          <span>Gói Miễn phí — Còn <b id="freeBannerMB">500</b> MB / 500 MB (reset lúc <b id="freeBannerTimer">--:--</b>)</span>
+      <!-- FREE PLAN BANNER (rendered dynamically by updateFreeBanner) -->
+      <div id="freeBanner" style="display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;"></div>
+
+      <!-- PREMIUM BADGE (plan='paid') -->
+      <div id="premiumBadge" style="display:none;align-items:center;gap:16px;background:#111110;border:1.5px solid #c9a84c;border-radius:14px;padding:12px 20px;margin-bottom:14px;box-shadow:0 2px 16px rgba(201,168,76,.14);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👑</div>
+          <div>
+            <div style="font-size:11px;font-weight:900;color:#c9a84c;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;">PREMIUM</div>
+            <div style="font-size:12px;font-weight:700;color:#f0d080;">Gói Trọn đời</div>
+          </div>
         </div>
-        <button onclick="openUpgradeModal()" style="flex-shrink:0;background:#212529;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Nâng cấp lên Trọn đời →</button>
+        <div style="width:1px;height:32px;background:#c9a84c;opacity:.25;flex-shrink:0;"></div>
+        <div style="font-size:12px;color:#8a7040;font-weight:600;line-height:1.6;">Không giới hạn dung lượng · Copy video<br>Lưu lịch sử · Tự resume khi mất mạng</div>
       </div>
 
       <!-- RESUME BANNER -->
@@ -361,23 +374,43 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         <!-- CONFIG CARD -->
-        <div class="bg-white rounded-xl p-4 md:p-5 border border-[#e9ecef] flex flex-col justify-between box-border shadow-sm">
+        <div class="bg-white rounded-2xl p-5 md:p-6 border border-[#e9ecef] flex flex-col justify-between box-border shadow-sm hover:shadow-md transition-shadow duration-200">
           <div class="flex-1 flex flex-col min-h-0">
-            <div class="flex items-center gap-2 text-xs md:text-sm font-bold text-[#495057] mb-3 pb-2 border-b border-[#f1f3f5] flex-shrink-0">
-              📁 Cấu hình nguồn &amp; đích
+            <div class="flex items-center gap-2.5 text-sm font-bold text-[#212529] mb-4 pb-3 border-b border-[#f1f3f5] flex-shrink-0">
+              <span class="w-7 h-7 bg-[#fffbea] border border-[#f0d060] rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-3.5 h-3.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-folder"/></svg>
+              </span>
+              Cấu hình nguồn &amp; đích
             </div>
 
-            <div class="space-y-3 mb-3 flex-shrink-0">
+            <div class="flex flex-col gap-3 mb-3 flex-shrink-0">
               <div>
-                <div class="text-[10px] font-bold text-[#868e96] mb-1.5 uppercase tracking-wider">Drive Nguồn (Shared Drive)</div>
+                <div class="flex items-center gap-1.5 mb-1.5">
+                  <span class="w-4 h-4 bg-[#e6fcf5] border border-[#c3fae8] rounded flex items-center justify-center flex-shrink-0">
+                    <svg class="w-2.5 h-2.5 text-[#099268]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-folder"/></svg>
+                  </span>
+                  <span class="text-[11px] font-bold text-[#495057] uppercase tracking-[.04em]">Drive Nguồn</span>
+                  <span class="text-[10px] text-[#adb5bd]">(Shared Drive)</span>
+                </div>
                 <input id="srcInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive nguồn" oninput="onInputChange('src')" onpaste="setTimeout(()=>onInputChange('src'),100)"/>
                 <div id="srcPreview" class="folder-preview" style="display:none"></div>
               </div>
+              <div class="flex items-center gap-2 px-2">
+                <div class="flex-1 h-px bg-[#f1f3f5]"></div>
+                <svg class="w-4 h-4 text-[#ced4da]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="7 14 12 19 17 14"/></svg>
+                <div class="flex-1 h-px bg-[#f1f3f5]"></div>
+              </div>
               <div>
-                <div class="text-[10px] font-bold text-[#868e96] mb-1.5 uppercase tracking-wider">Drive Bạn Tải Về</div>
+                <div class="flex items-center gap-1.5 mb-1.5">
+                  <span class="w-4 h-4 bg-[#e7f5ff] border border-[#b8d4f8] rounded flex items-center justify-center flex-shrink-0">
+                    <svg class="w-2.5 h-2.5 text-[#1d6ece]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-folder"/></svg>
+                  </span>
+                  <span class="text-[11px] font-bold text-[#495057] uppercase tracking-[.04em]">Drive Đích</span>
+                  <span class="text-[10px] text-[#adb5bd]">(Drive của bạn)</span>
+                </div>
                 <input id="destInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive đích" oninput="onInputChange('dest')" onpaste="setTimeout(()=>onInputChange('dest'),100)"/>
                 <div id="destPreview" class="folder-preview" style="display:none"></div>
               </div>
@@ -401,49 +434,55 @@
             </div>
           </div>
 
-          <div class="flex gap-2 mt-4 border-t border-[#f1f3f5] pt-3 flex-shrink-0 flex-wrap">
-            <button id="btnScan" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg border border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] hover:bg-[#fa5252] hover:text-white transition select-none cursor-pointer" onclick="handleScanBtn()">
+          <div class="flex gap-2 mt-4 border-t border-[#f1f3f5] pt-3.5 flex-shrink-0 flex-wrap">
+            <button id="btnScan" class="flex-1 text-center py-2.5 text-[12px] font-bold rounded-xl border-2 border-[#ffc9c9] text-[#fa5252] bg-[#fff5f5] hover:bg-[#fa5252] hover:text-white hover:border-[#fa5252] active:scale-95 transition-all select-none cursor-pointer" onclick="handleScanBtn()">
               <span id="btnScanTxt">Kiểm tra trước</span>
             </button>
-            <button id="btnStart" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg bg-[#ffc107] text-black hover:bg-[#e6ac00] transition select-none cursor-pointer" onclick="handleStartBtn()">
+            <button id="btnStart" class="flex-1 text-center py-2.5 text-[12px] font-bold rounded-xl bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition-all select-none cursor-pointer shadow-sm" onclick="handleStartBtn()">
               <span id="btnStartTxt">Bắt đầu sao chép</span>
             </button>
-            <button id="btnPause" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg border border-[#ffe066] text-[#f59f00] bg-[#fff9db] hover:bg-[#f59f00] hover:text-white active:scale-95 transition select-none cursor-pointer" onclick="doPause()" style="display:none">Tạm dừng</button>
-            <button id="btnResume" class="flex-1 text-center py-2 text-[11px] font-bold rounded-lg border border-[#c3fae8] text-[#099268] bg-[#e6fcf5] hover:bg-[#099268] hover:text-white active:scale-95 transition select-none cursor-pointer" onclick="doResume()" style="display:none">Tiếp tục</button>
-            <button id="btnReset" class="px-3 text-center py-2 text-[11px] font-bold rounded-lg bg-[#212529] text-white hover:bg-black active:scale-95 transition select-none cursor-pointer" onclick="doReset()">Reset</button>
+            <button id="btnPause" class="flex-1 text-center py-2.5 text-[12px] font-bold rounded-xl border-2 border-[#ffe066] text-[#f59f00] bg-[#fff9db] hover:bg-[#f59f00] hover:text-white hover:border-[#f59f00] active:scale-95 transition-all select-none cursor-pointer" onclick="doPause()" style="display:none">Tạm dừng</button>
+            <button id="btnResume" class="flex-1 text-center py-2.5 text-[12px] font-bold rounded-xl border-2 border-[#c3fae8] text-[#099268] bg-[#e6fcf5] hover:bg-[#099268] hover:text-white hover:border-[#099268] active:scale-95 transition-all select-none cursor-pointer" onclick="doResume()" style="display:none">Tiếp tục</button>
+            <button id="btnReset" class="px-4 text-center py-2.5 text-[12px] font-bold rounded-xl bg-[#212529] text-white hover:bg-black active:scale-95 transition-all select-none cursor-pointer" onclick="doReset()">Reset</button>
           </div>
           <div class="mt-2 text-right"><span id="actionStatus" class="text-[10px] text-[#868e96] font-mono"></span></div>
         </div>
 
         <!-- PROGRESS CARD -->
-        <div class="bg-white rounded-xl p-4 md:p-5 border border-[#e9ecef] flex flex-col justify-between box-border shadow-sm">
+        <div class="bg-white rounded-2xl p-5 md:p-6 border border-[#e9ecef] flex flex-col justify-between box-border shadow-sm hover:shadow-md transition-shadow duration-200">
           <div class="flex-1 flex flex-col min-h-0">
-            <div class="flex items-center gap-2 text-xs md:text-sm font-bold text-[#495057] mb-3 pb-2 border-b border-[#f1f3f5] flex-shrink-0">
-              ⚡ Tiến trình đồng bộ
+            <div class="flex items-center gap-2.5 text-sm font-bold text-[#212529] mb-4 pb-3 border-b border-[#f1f3f5] flex-shrink-0">
+              <span class="w-7 h-7 bg-[#fff9db] border border-[#ffe066] rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-3.5 h-3.5 text-[#f59f00]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-bolt"/></svg>
+              </span>
+              Tiến trình đồng bộ
             </div>
 
             <div class="mb-4 flex-shrink-0">
-              <div id="statusLbl" class="status-lbl mb-1">Chưa bắt đầu</div>
+              <div id="statusLbl" class="status-lbl mb-1.5">Chưa bắt đầu</div>
               <div class="prog-track"><div id="progFill" class="prog-fill" style="width:0%"></div></div>
             </div>
 
-            <div id="statsRow" class="grid grid-cols-3 gap-2.5 mb-4 flex-shrink-0">
-              <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-lg p-2 text-center cursor-pointer hover:shadow-md hover:border-[#099268] active:scale-95 transition flex flex-col items-center justify-center h-[58px]" onclick="openModal('result')">
-                <span id="sCopied" class="text-lg md:text-xl font-bold text-[#099268] block leading-none">0</span>
-                <span class="text-[9px] uppercase font-bold text-[#20c997] tracking-tight mt-1">Kết quả</span>
+            <div id="statsRow" class="grid grid-cols-3 gap-3 mb-4 flex-shrink-0">
+              <div class="bg-[#e6fcf5] border border-[#c3fae8] rounded-xl p-2 text-center cursor-pointer hover:shadow-md hover:border-[#099268] active:scale-95 transition-all flex flex-col items-center justify-center h-[70px]" onclick="openModal('result')">
+                <span id="sCopied" class="text-2xl md:text-3xl font-bold text-[#099268] block leading-none">0</span>
+                <span class="text-[10px] uppercase font-bold text-[#20c997] tracking-tight mt-1.5">Thành công</span>
               </div>
-              <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-lg p-2 text-center cursor-pointer hover:shadow-md hover:border-[#fa5252] active:scale-95 transition flex flex-col items-center justify-center h-[58px]" onclick="openModal('failed')">
-                <span id="sFailed" class="text-lg md:text-xl font-bold text-[#fa5252] block leading-none">0</span>
-                <span class="text-[9px] uppercase font-bold text-[#f03e3e] tracking-tight mt-1">Lỗi</span>
+              <div class="bg-[#fff5f5] border border-[#ffe3e3] rounded-xl p-2 text-center cursor-pointer hover:shadow-md hover:border-[#fa5252] active:scale-95 transition-all flex flex-col items-center justify-center h-[70px]" onclick="openModal('failed')">
+                <span id="sFailed" class="text-2xl md:text-3xl font-bold text-[#fa5252] block leading-none">0</span>
+                <span class="text-[10px] uppercase font-bold text-[#f03e3e] tracking-tight mt-1.5">Lỗi</span>
               </div>
-              <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-lg p-2 text-center cursor-pointer hover:shadow-md hover:border-[#ffc107] active:scale-95 transition flex flex-col items-center justify-center h-[58px]" onclick="openModal('folders')">
-                <span id="sFolders" class="text-lg md:text-xl font-bold text-[#495057] block leading-none">0</span>
-                <span class="text-[9px] uppercase font-bold text-[#868e96] tracking-tight mt-1">Thư mục</span>
+              <div class="bg-[#f1f3f5] border border-[#e9ecef] rounded-xl p-2 text-center cursor-pointer hover:shadow-md hover:border-[#ffc107] active:scale-95 transition-all flex flex-col items-center justify-center h-[70px]" onclick="openModal('folders')">
+                <span id="sFolders" class="text-2xl md:text-3xl font-bold text-[#495057] block leading-none">0</span>
+                <span class="text-[10px] uppercase font-bold text-[#868e96] tracking-tight mt-1.5">Thư mục</span>
               </div>
             </div>
 
             <div class="flex-1 flex flex-col min-h-0">
-              <div class="text-[10px] font-bold text-[#868e96] mb-1.5 uppercase tracking-wider flex-shrink-0">Activity Log</div>
+              <div class="flex items-center gap-2 text-[11px] font-bold text-[#6c757d] mb-2 uppercase tracking-wider flex-shrink-0">
+                <span class="w-1.5 h-1.5 bg-[#20c997] rounded-full flex-shrink-0" id="logDot"></span>
+                Activity Log
+              </div>
               <div id="logBox" class="log-box"></div>
             </div>
           </div>
@@ -646,94 +685,80 @@
     <div id="pvFullscreenSlot" class="pv-fullscreen-slot"></div>
 </div>
 
-<!-- ══════════════ LOGIN MODAL ══════════════ -->
+<!-- ══════════════ LOGIN MODAL (premium) ══════════════ -->
 <div class="modal-overlay" id="loginModal" onclick="if(event.target===this)this.classList.remove('active')">
   <div class="modal-wrapper" style="max-width:400px;padding:0;border-radius:20px;overflow:hidden;position:relative;">
     <button onclick="document.getElementById('loginModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
     <div style="background:#212529;padding:28px 28px 20px;">
-      <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:4px;">Đăng nhập</div>
-      <div style="font-size:13px;color:#adb5bd;">Dùng tài khoản Google để tiếp tục</div>
+      <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:6px;">Đăng nhập</div>
+      <div style="font-size:13px;color:#adb5bd;line-height:1.65;">Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn — chạy thẳng trên trình duyệt.</div>
     </div>
     <div style="padding:24px 28px;">
-      <div style="margin-bottom:18px;">
-        <label style="display:block;font-size:11px;font-weight:800;color:#868e96;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Email Google của bạn</label>
-        <input id="loginEmailHint" type="email" placeholder="your@gmail.com" style="width:100%;box-sizing:border-box;border:1.5px solid #dee2e6;border-radius:10px;padding:10px 12px;font-size:14px;outline:none;color:#212529;" onfocus="this.style.borderColor='#ffc107'" onblur="this.style.borderColor='#dee2e6'"/>
-        <div style="font-size:11px;color:#adb5bd;margin-top:4px;">Không bắt buộc — chỉ để gợi nhớ tài khoản</div>
-      </div>
-      <button onclick="doLogin()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg>
-        Đăng nhập với Google
+      <!-- Google OAuth — CTA chính -->
+      <button onclick="doLogin()" style="width:100%;box-sizing:border-box;background:#fff;color:#212529;border:1.5px solid #dee2e6;border-radius:10px;padding:12px 16px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px;" onmouseover="this.style.boxShadow='0 3px 12px rgba(0,0,0,.12)'" onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,.08)'">
+        <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Tiếp tục với Google
       </button>
+
+      <!-- Divider -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <div style="flex:1;height:1px;background:#e9ecef;"></div>
+        <span style="font-size:12px;color:#adb5bd;font-weight:600;">hoặc</span>
+        <div style="flex:1;height:1px;background:#e9ecef;"></div>
+      </div>
+
+      <!-- Email input (UI only — both paths trigger Google OAuth) -->
+      <input id="loginEmailHint" type="email" placeholder="Nhập email Google của bạn" style="width:100%;box-sizing:border-box;border:1.5px solid #dee2e6;border-radius:10px;padding:10px 12px;font-size:14px;outline:none;color:#212529;margin-bottom:10px;" onfocus="this.style.borderColor='#ffc107'" onblur="this.style.borderColor='#dee2e6'"/>
+      <button onclick="doLogin()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:16px;">Tiếp tục →</button>
+
+      <!-- Terms & Privacy -->
+      <div style="font-size:11px;color:#adb5bd;text-align:center;line-height:1.65;">
+        Bằng cách tiếp tục, bạn đồng ý với
+        <a href="/dieu-khoan" style="color:#6c757d;text-decoration:underline;">Điều khoản sử dụng</a>
+        và
+        <a href="/bao-mat" style="color:#6c757d;text-decoration:underline;">Chính sách bảo mật</a>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════ REGISTER MODAL (2-step) ══════════════ -->
-<div class="modal-overlay" id="startModal" onclick="if(event.target===this)this.classList.remove('active')">
+<!-- ══════════════ PLAN SELECT MODAL — hiện sau Google auth, trước khi tạo user doc ══════════════ -->
+<div class="modal-overlay" id="planSelectModal">
   <div class="modal-wrapper" style="max-width:600px;padding:0;border-radius:20px;overflow:hidden;position:relative;">
-
-    <!-- STEP 1: Email gợi ý -->
-    <div id="registerStep1">
-      <button onclick="document.getElementById('startModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
-      <div style="background:#212529;padding:28px 28px 20px;position:relative;">
-        <div style="font-size:19px;font-weight:900;color:#fff;margin-bottom:4px;">Đăng ký dùng thử</div>
-        <div style="font-size:13px;color:#adb5bd;">Bắt đầu miễn phí — không cần thẻ tín dụng</div>
-      </div>
-      <div style="padding:28px;">
-        <div style="margin-bottom:20px;">
-          <label style="display:block;font-size:11px;font-weight:800;color:#868e96;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;">Email Google của bạn</label>
-          <input id="registerEmailHint" type="email" placeholder="your@gmail.com" style="width:100%;box-sizing:border-box;border:1.5px solid #dee2e6;border-radius:10px;padding:11px 14px;font-size:14px;outline:none;color:#212529;" onfocus="this.style.borderColor='#ffc107'" onblur="this.style.borderColor='#dee2e6'"/>
-          <div style="font-size:11px;color:#adb5bd;margin-top:5px;">Không bắt buộc — chỉ để gợi nhớ tài khoản khi đăng nhập Google</div>
-        </div>
-        <button onclick="showRegisterStep2()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:900;cursor:pointer;">Tiếp theo →</button>
-      </div>
+    <button onclick="closePlanSelect()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
+    <div style="background:#212529;padding:22px 28px 16px;text-align:center;">
+      <div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:3px;">Chọn gói phù hợp với bạn</div>
+      <div style="font-size:13px;color:#adb5bd;">Bắt đầu miễn phí hoặc mua trọn đời một lần duy nhất</div>
     </div>
-
-    <!-- STEP 2: Plan comparison -->
-    <div id="registerStep2" style="display:none;">
-      <div style="background:#212529;padding:20px 24px 14px;position:relative;">
-        <button onclick="document.getElementById('registerStep1').style.display='block';document.getElementById('registerStep2').style.display='none';" style="position:absolute;top:12px;left:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1;">←</button>
-        <button onclick="document.getElementById('startModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
-        <div style="text-align:center;">
-          <div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:2px;">Chọn gói phù hợp với bạn</div>
-          <div style="font-size:13px;color:#adb5bd;">Bắt đầu miễn phí hoặc mua trọn đời một lần duy nhất</div>
-        </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+      <!-- FREE COLUMN -->
+      <div style="padding:20px 22px 22px;border-right:1px solid #e9ecef;">
+        <div style="font-size:11px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Miễn phí</div>
+        <div style="font-size:26px;font-weight:900;color:#212529;margin-bottom:4px;">0₫</div>
+        <div style="font-size:11px;color:#adb5bd;margin-bottom:14px;">Không cần thanh toán</div>
+        <ul style="list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:7px;font-size:13px;">
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Sao chép file & thư mục</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>500 MB / 5 giờ (tự reset)</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Kiểm tra quyền trước khi copy</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Không copy video</span></li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Không lưu lịch sử</span></li>
+        </ul>
+        <button onclick="createFreeUser()" style="width:100%;background:#f1f3f5;color:#212529;border:1.5px solid #dee2e6;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">Dùng miễn phí</button>
       </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #e9ecef;">
-        <!-- FREE COLUMN -->
-        <div style="padding:20px 22px 22px;border-right:1px solid #e9ecef;">
-          <div style="font-size:11px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Miễn phí</div>
-          <div style="font-size:26px;font-weight:900;color:#212529;margin-bottom:4px;">0₫</div>
-          <div style="font-size:11px;color:#adb5bd;margin-bottom:14px;">Không cần thanh toán</div>
-          <ul style="list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:7px;font-size:13px;">
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Sao chép file & thư mục</li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>500 MB / 5 giờ (tự reset)</li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Kiểm tra quyền trước khi copy</li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Chọn lọc mục cần copy</li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Không copy video</span></li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Không lưu lịch sử</span></li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Không tự resume sau mất mạng</span></li>
-          </ul>
-          <button onclick="doLoginFree()" style="width:100%;background:#f1f3f5;color:#212529;border:1.5px solid #dee2e6;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">Dùng thử miễn phí</button>
-        </div>
-        <!-- PAID COLUMN -->
-        <div style="padding:20px 22px 22px;background:#fffbea;position:relative;">
-          <div style="position:absolute;top:14px;right:14px;background:#ffc107;color:#212529;font-size:10px;font-weight:900;padding:2px 10px;border-radius:999px;letter-spacing:.04em;">PHỔ BIẾN</div>
-          <div style="font-size:11px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Trọn đời</div>
-          <div style="margin-bottom:4px;"><span style="font-size:16px;font-weight:700;color:#adb5bd;text-decoration:line-through;">450.000 ₫</span> <span style="font-size:26px;font-weight:900;color:#212529;">250.000 ₫</span></div>
-          <div style="font-size:11px;color:#adb5bd;margin-bottom:14px;">Mua 1 lần, dùng mãi mãi</div>
-          <ul style="list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:7px;font-size:13px;">
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Sao chép file & thư mục</li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Không giới hạn dung lượng</b></li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Kiểm tra quyền trước khi copy</li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Chọn lọc mục cần copy</li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Copy video không giới hạn</b></li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Lưu lịch sử sao chép</b></li>
-            <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Tự resume sau mất mạng</b></li>
-          </ul>
-          <button onclick="openPaymentForNew()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px #0002;">Đăng ký gói Trọn đời →</button>
-        </div>
+      <!-- PAID COLUMN -->
+      <div style="padding:20px 22px 22px;background:#fffbea;position:relative;">
+        <div style="position:absolute;top:14px;right:14px;background:#ffc107;color:#212529;font-size:10px;font-weight:900;padding:2px 10px;border-radius:999px;">PHỔ BIẾN</div>
+        <div style="font-size:11px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Trọn đời</div>
+        <div style="margin-bottom:4px;"><span style="font-size:16px;font-weight:700;color:#adb5bd;text-decoration:line-through;">450.000 ₫</span> <span style="font-size:26px;font-weight:900;color:#212529;">250.000 ₫</span></div>
+        <div style="font-size:11px;color:#adb5bd;margin-bottom:14px;">Mua 1 lần, dùng mãi mãi</div>
+        <ul style="list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:7px;font-size:13px;">
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Sao chép file & thư mục</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Không giới hạn dung lượng</b></li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Copy video không giới hạn</b></li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Lưu lịch sử sao chép</b></li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Tự resume sau mất mạng</b></li>
+        </ul>
+        <button onclick="openPlanSelectPaid()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px #0002;">Đăng ký gói Trọn đời →</button>
       </div>
     </div>
   </div>
@@ -766,20 +791,14 @@
         </div>
       </div>
 
-      <!-- Nút cho user đã đăng nhập (muốn nâng cấp) -->
-      <div id="paymentUpgradeBtn" style="display:none;flex-direction:column;gap:8px;">
-        <button onclick="doUpgradeRequest()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;">Tôi đã thanh toán — Chờ xác nhận</button>
-        <div style="font-size:11px;color:#adb5bd;text-align:center;">Admin sẽ kích hoạt gói Trọn đời sau khi xác nhận thanh toán</div>
+      <!-- Nút thanh toán (dùng chung cho new user & upgrade) -->
+      <div id="paymentUpgradeBtn" style="display:flex;flex-direction:column;gap:8px;">
+        <button onclick="showPaymentConfirm()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;">Tôi đã thanh toán — Xác nhận</button>
+        <div style="font-size:11px;color:#adb5bd;text-align:center;">Nhấn để gửi yêu cầu cho admin xác nhận thanh toán</div>
       </div>
 
-      <!-- Nút cho user chưa đăng nhập (đăng nhập bằng Google) -->
-      <div id="paymentLoginBtn" style="display:block;flex-direction:column;gap:8px;">
-        <button onclick="doLoginPaid()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg>
-          Đăng nhập Google & đặt mua
-        </button>
-        <div style="font-size:11px;color:#adb5bd;text-align:center;">Sau khi đăng nhập, admin xác nhận thanh toán rồi kích hoạt</div>
-      </div>
+      <!-- Không dùng nữa — ẩn -->
+      <div id="paymentLoginBtn" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -799,6 +818,47 @@
         <button onclick="openUpgradeFromLimit()" style="background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">Nâng cấp lên Trọn đời — Không giới hạn</button>
         <button onclick="closeFreeLimitModal()" style="background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Chờ reset tự động</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ PAYMENT CONFIRM MODAL ══════════════ -->
+<div class="modal-overlay" id="paymentConfirmModal">
+  <div class="modal-wrapper" style="max-width:400px;padding:0;border-radius:20px;overflow:hidden;position:relative;text-align:center;">
+    <button onclick="document.getElementById('paymentConfirmModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
+    <div style="background:#212529;padding:22px 24px 16px;">
+      <div style="font-size:36px;margin-bottom:6px;">✅</div>
+      <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:3px;">Xác nhận đã thanh toán</div>
+      <div style="font-size:12px;color:#adb5bd;">Vui lòng đảm bảo đã chuyển khoản đúng nội dung</div>
+    </div>
+    <div style="padding:22px 24px;">
+      <div style="background:#f8f9fa;border-radius:12px;padding:14px;margin-bottom:18px;font-size:13px;color:#495057;text-align:left;line-height:1.75;">
+        <div>• Nội dung chuyển khoản: <b>email_tên</b> của bạn</div>
+        <div style="color:#868e96;font-size:12px;">  Ví dụ: your@gmail.com_Nam</div>
+        <div style="margin-top:8px;font-size:12px;">Sau khi bấm Xác nhận, admin sẽ kiểm tra và kích hoạt tài khoản trong thời gian sớm nhất.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button onclick="confirmPayment()" style="background:#212529;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;">Xác nhận — Đã chuyển khoản</button>
+        <button onclick="document.getElementById('paymentConfirmModal').classList.remove('active')" style="background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Kiểm tra lại</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ READD WELCOME MODAL ══════════════ -->
+<div class="modal-overlay" id="readdWelcomeModal">
+  <div class="modal-wrapper" style="max-width:400px;padding:0;border-radius:20px;overflow:hidden;position:relative;text-align:center;">
+    <div style="background:linear-gradient(135deg,#1a1a1a 0%,#2a2a2a 100%);padding:28px 24px 22px;border-bottom:1px solid #c9a84c;">
+      <div style="font-size:40px;margin-bottom:8px;">👑</div>
+      <div style="font-size:18px;font-weight:900;color:#f0d080;margin-bottom:4px;">Tài khoản đã được phục hồi</div>
+      <div style="font-size:13px;color:#adb5bd;">Chào mừng bạn trở lại</div>
+    </div>
+    <div style="padding:24px;">
+      <p style="font-size:14px;color:#495057;line-height:1.75;margin-bottom:22px;">
+        Chào mừng bạn trở lại gói <b>Premium Trọn đời</b> của <b>SwiftCopy.Drive</b>.<br>
+        Tài khoản của bạn đã được khôi phục đầy đủ quyền lợi.
+      </p>
+      <button onclick="closeReaddWelcome()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;">Vào dashboard →</button>
     </div>
   </div>
 </div>
