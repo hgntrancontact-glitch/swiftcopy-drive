@@ -13,7 +13,6 @@ const firebaseConfig = {
   messagingSenderId: "477488339991",
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
-const ADMIN_EMAIL = "hgntran.contact@gmail.com";
 // GAS_URL đã chuyển vào Vercel env var — xem api/email.js
 
 // Free plan limits
@@ -28,7 +27,7 @@ provider.addScope('https://www.googleapis.com/auth/drive');
 
 let gUser = null, gToken = null;
 let gUserData = null;          // full Firestore user document
-let _pendingPlan = 'free';     // intent khi tạo user mới: 'free' | 'paid'
+let _paymentContext = null;    // 'new' | 'upgrade' — context khi mở paymentModal
 let pauseFlag = false, stopFlag = false, runMode = 'idle';
 let stats = ns();
 let _resumeResolve = null;
@@ -118,9 +117,7 @@ window.doReset = () => {
 };
 
 // ── AUTH ─────────────────────────────────────────────────────
-// Đăng nhập gói Miễn phí — tự approved không cần admin duyệt
 window.doLogin = async () => {
-  _pendingPlan = 'free';
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   try {
     const res = await signInWithPopup(auth, provider);
@@ -131,36 +128,8 @@ window.openLoginModal = () => {
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   document.getElementById('loginModal')?.classList.add('active');
 };
-window.openRegisterModal = () => {
-  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
-  const s1=document.getElementById('registerStep1'), s2=document.getElementById('registerStep2');
-  if (s1) s1.style.display='block';
-  if (s2) s2.style.display='none';
-  document.getElementById('startModal')?.classList.add('active');
-};
-window.showRegisterStep2 = () => {
-  const s1=document.getElementById('registerStep1'), s2=document.getElementById('registerStep2');
-  if (s1) s1.style.display='none';
-  if (s2) s2.style.display='block';
-};
-window.doLoginFree = async () => {
-  _pendingPlan = 'free';
-  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
-  try {
-    const res = await signInWithPopup(auth, provider);
-    gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
-  } catch(e) { toast('Đăng nhập thất bại','err'); }
-};
-
-// Đăng nhập gói Trọn đời — tạo user với status='pending', chờ admin xác nhận thanh toán
-window.doLoginPaid = async () => {
-  _pendingPlan = 'paid';
-  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
-  try {
-    const res = await signInWithPopup(auth, provider);
-    gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
-  } catch(e) { toast('Đăng nhập thất bại','err'); }
-};
+// openRegisterModal giờ chỉ mở loginModal — plan selection xảy ra sau login
+window.openRegisterModal = () => window.openLoginModal();
 
 window.doLogout = () => signOut(auth);
 window.reAuth   = async () => {
@@ -206,25 +175,33 @@ onAuthStateChanged(auth, async u => {
   if (!u){
     gUser=null; gToken=null; gUserData=null;
     if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
+    document.getElementById('planSelectModal')?.classList.remove('active');
     sec('land'); return;
   }
   gUser=u; sec('check');
   try {
-    const isAdmin = u.email===ADMIN_EMAIL;
-    if (!isAdmin) await ensureUser(u);
-    const approved = isAdmin || await checkApproval(u);
+    // Kiểm tra document tồn tại chưa
+    const docSnap = await getDoc(doc(db,'users',u.uid));
+    if (!docSnap.exists()){
+      // User mới — hiện modal chọn gói, KHÔNG tạo doc ngay
+      setNavUser(u);
+      showPlanSelect();
+      return;
+    }
+    // User cũ bị kick → thông báo admin
+    const d = docSnap.data();
+    if (d.status === 'kicked') notifyAdminKicked(u, d.kickReason);
+    const approved = await checkApproval(u);
     setNavUser(u);
     if (approved){
-      sec('app'); checkResume(); updateFreeBanner();
-      if (!isAdmin){
-        if (_kickPollTimer) clearInterval(_kickPollTimer);
-        _kickPollTimer = setInterval(pollKickStatus, 30000);
-      }
+      sec('app'); checkResume(); updateFreeBanner(); checkReaddWelcome();
+      if (_kickPollTimer) clearInterval(_kickPollTimer);
+      _kickPollTimer = setInterval(pollKickStatus, 30000);
     }
     else if (gUserData?.status === 'kicked'){
       sec('kicked');
       const el = document.getElementById('kickedReasonText');
-      if (el) el.textContent = gUserData.kickReason ? `Lý do: ${gUserData.kickReason}` : '';
+      if (el) el.textContent = gUserData.kickReason ? `Lý do: ${gUserData.kickReason}` : 'Lý do: Vi phạm điều khoản sử dụng.';
     }
     else sec('pend');
   } catch(e){ setNavUser(u); sec('pend'); }
@@ -238,38 +215,13 @@ async function pollKickStatus(){
       if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
       stopFlag=true; pauseFlag=false;
       if (_resumeResolve){ _resumeResolve(); _resumeResolve=null; }
-      toast('Tài khoản đã bị thu hồi quyền truy cập','err');
-      await signOut(auth);
+      const d = snap.exists() ? snap.data() : {};
+      gUserData = snap.exists() ? { id: gUser.uid, ...d } : null;
+      sec('kicked');
+      const el = document.getElementById('kickedReasonText');
+      if (el) el.textContent = d.kickReason ? `Lý do: ${d.kickReason}` : 'Lý do: Vi phạm điều khoản sử dụng.';
     }
   } catch(e){ console.warn('pollKickStatus',e); }
-}
-
-async function ensureUser(u){
-  const ref=doc(db,'users',u.uid), snap=await getDoc(ref);
-  if (!snap.exists()){
-    const isFree = _pendingPlan !== 'paid';
-    const userData = {
-      email: u.email, displayName: u.displayName, photoURL: u.photoURL,
-      plan: 'free',
-      freeUsedMB: 0,
-      freeResetAt: serverTimestamp(),
-      upgradeRequestedAt: null,
-      createdAt: serverTimestamp()
-    };
-    if (isFree) {
-      userData.approved = true;
-      userData.status = 'approved';
-    } else {
-      userData.approved = false;
-      userData.status = 'pending';
-      userData.upgradeRequestedAt = serverTimestamp();
-    }
-    await setDoc(ref, userData);
-    if (isFree) sendRegEmail(u);
-    else sendUpgradeRequestEmail(u);
-  } else if(snap.data().status==='kicked'){
-    notifyAdminKicked(u,snap.data().kickReason);
-  }
 }
 
 async function checkApproval(u){
@@ -299,6 +251,94 @@ function sendUpgradeRequestEmail(u){
 function notifyAdminKicked(u,reason){
   _gasPost({type:'kick_alert',userEmail:u.email,userName:u.displayName||u.email,reason:reason||'?'});
 }
+
+// ── PLAN SELECTION (sau Google auth, user chưa có Firestore doc) ─────────
+function showPlanSelect(){
+  document.getElementById('planSelectModal')?.classList.add('active');
+}
+window.closePlanSelect = async () => {
+  document.getElementById('planSelectModal')?.classList.remove('active');
+  await signOut(auth);
+};
+
+// Tạo user gói Free và vào dashboard
+window.createFreeUser = async () => {
+  if (!gUser) return;
+  document.getElementById('planSelectModal')?.classList.remove('active');
+  sec('check');
+  try {
+    const userData = {
+      email:gUser.email, displayName:gUser.displayName, photoURL:gUser.photoURL,
+      approved:true, status:'approved', plan:'free',
+      freeUsedMB:0, freeResetAt:serverTimestamp(),
+      upgradeRequestedAt:null, createdAt:serverTimestamp()
+    };
+    await setDoc(doc(db,'users',gUser.uid), userData);
+    gUserData = { id:gUser.uid, ...userData };
+    sendRegEmail(gUser);
+    setNavUser(gUser);
+    sec('app'); checkResume(); updateFreeBanner();
+    if (_kickPollTimer) clearInterval(_kickPollTimer);
+    _kickPollTimer = setInterval(pollKickStatus, 30000);
+  } catch(e){ toast('Lỗi tạo tài khoản: '+e.message,'err'); sec('land'); await signOut(auth); }
+};
+
+// Mở paymentModal từ planSelectModal (user mới, chưa có doc)
+window.openPlanSelectPaid = () => {
+  _paymentContext = 'new';
+  document.getElementById('planSelectModal')?.classList.remove('active');
+  const upgradeBtn = document.getElementById('paymentUpgradeBtn');
+  const loginBtn   = document.getElementById('paymentLoginBtn');
+  if (upgradeBtn) upgradeBtn.style.display = 'flex';
+  if (loginBtn)   loginBtn.style.display   = 'none';
+  document.getElementById('paymentModal')?.classList.add('active');
+};
+
+// Tạo user pending (paid intent, chưa thanh toán được xác nhận)
+async function createPaidPendingUser(){
+  if (!gUser) return;
+  try {
+    const userData = {
+      email:gUser.email, displayName:gUser.displayName, photoURL:gUser.photoURL,
+      approved:false, status:'pending', plan:'free',
+      freeUsedMB:0, freeResetAt:serverTimestamp(),
+      upgradeRequestedAt:serverTimestamp(), createdAt:serverTimestamp()
+    };
+    await setDoc(doc(db,'users',gUser.uid), userData);
+    gUserData = { id:gUser.uid, ...userData };
+    sendUpgradeRequestEmail(gUser);
+    setNavUser(gUser);
+    sec('pend');
+  } catch(e){ toast('Lỗi: '+e.message,'err'); }
+}
+
+// Hiện modal xác nhận trước khi submit thanh toán
+window.showPaymentConfirm = () => {
+  document.getElementById('paymentConfirmModal')?.classList.add('active');
+};
+
+// Xác nhận thanh toán — phân nhánh theo context
+window.confirmPayment = async () => {
+  document.getElementById('paymentConfirmModal')?.classList.remove('active');
+  document.getElementById('paymentModal')?.classList.remove('active');
+  if (_paymentContext === 'new') {
+    await createPaidPendingUser();
+  } else {
+    await _doUpgradeRequestInternal();
+  }
+};
+
+// ── READD WELCOME ─────────────────────────────────────────────
+function checkReaddWelcome(){
+  if (!gUser || !gUserData || !gUserData.readdedAt) return;
+  const flagKey = 'swiftcopy_readd_'+gUser.uid;
+  if (localStorage.getItem(flagKey)) return;
+  localStorage.setItem(flagKey, '1');
+  document.getElementById('readdWelcomeModal')?.classList.add('active');
+}
+window.closeReaddWelcome = () => {
+  document.getElementById('readdWelcomeModal')?.classList.remove('active');
+};
 
 // ── DRIVE API ────────────────────────────────────────────────
 const BASE='https://www.googleapis.com/drive/v3';
@@ -1215,22 +1255,49 @@ window.closeModal=()=>document.getElementById('modalOv').classList.remove('on');
 
 // ── FREE PLAN HELPERS ─────────────────────────────────────────
 function updateFreeBanner() {
-  const banner = document.getElementById('freeBanner');
+  const banner       = document.getElementById('freeBanner');
+  const premiumBadge = document.getElementById('premiumBadge');
   if (!banner) return;
+
+  // Plan 'paid' → hiện premium badge
+  if (gUserData?.plan === 'paid') {
+    banner.style.display = 'none';
+    if (premiumBadge) premiumBadge.style.display = 'flex';
+    return;
+  }
+  if (premiumBadge) premiumBadge.style.display = 'none';
+
   if (!gUserData || gUserData.plan !== 'free') {
     banner.style.display = 'none';
     return;
   }
-  const usedMB = gUserData.freeUsedMB || 0;
+
+  // Free user đang chờ nâng cấp được xác nhận
+  if (gUserData.upgradeRequestedAt) {
+    banner.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;flex:1;">
+        <span>⏳</span>
+        <span>Gói Trọn đời — Đang chờ admin xác nhận thanh toán</span>
+      </div>
+      <div style="font-size:11px;color:#adb5bd;font-weight:500;flex-shrink:0;">Sẽ được kích hoạt sau khi xác nhận</div>
+    `;
+    banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;';
+    return;
+  }
+
+  // Free plan bình thường
+  const usedMB  = gUserData.freeUsedMB || 0;
   const remainMB = Math.max(0, FREE_MB_LIMIT - usedMB).toFixed(0);
-  const resetAt = gUserData.freeResetAt?.toMillis ? gUserData.freeResetAt.toMillis() : Date.now();
-  const resetTime = new Date(resetAt + FREE_RESET_MS);
-  const resetStr = resetTime.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
-  const el1 = document.getElementById('freeBannerMB');
-  const el2 = document.getElementById('freeBannerTimer');
-  if (el1) el1.textContent = remainMB;
-  if (el2) el2.textContent = resetStr;
-  banner.style.display = 'flex';
+  const resetAt  = gUserData.freeResetAt?.toMillis ? gUserData.freeResetAt.toMillis() : Date.now();
+  const resetStr = new Date(resetAt + FREE_RESET_MS).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+  banner.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;">
+      <span>⚡</span>
+      <span>Gói Miễn phí — Còn <b>${remainMB}</b> MB / 500 MB (reset lúc <b>${resetStr}</b>)</span>
+    </div>
+    <button onclick="openUpgradeModal()" style="flex-shrink:0;background:#212529;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Nâng cấp lên Trọn đời →</button>
+  `;
+  banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;';
 }
 
 async function checkFreeLimit() {
@@ -1264,22 +1331,13 @@ async function updateFreeUsedMB() {
   } catch(e) { console.warn('updateFreeUsedMB', e); }
 }
 
-// Mở paymentModal cho user chưa đăng nhập (từ startModal)
-window.openPaymentForNew = () => {
-  const loginBtn    = document.getElementById('paymentLoginBtn');
-  const upgradeBtn  = document.getElementById('paymentUpgradeBtn');
-  if (loginBtn)   loginBtn.style.display   = 'block';
-  if (upgradeBtn) upgradeBtn.style.display = 'none';
-  document.getElementById('startModal')?.classList.remove('active');
-  document.getElementById('paymentModal')?.classList.add('active');
-};
-
-// Mở paymentModal cho free user muốn nâng cấp
+// Mở paymentModal (context='upgrade') — từ freeBanner
 window.openUpgradeModal = () => {
-  const loginBtn    = document.getElementById('paymentLoginBtn');
-  const upgradeBtn  = document.getElementById('paymentUpgradeBtn');
+  _paymentContext = 'upgrade';
+  const loginBtn   = document.getElementById('paymentLoginBtn');
+  const upgradeBtn = document.getElementById('paymentUpgradeBtn');
   if (loginBtn)   loginBtn.style.display   = 'none';
-  if (upgradeBtn) upgradeBtn.style.display = 'block';
+  if (upgradeBtn) upgradeBtn.style.display = 'flex';
   document.getElementById('paymentModal')?.classList.add('active');
 };
 
@@ -1288,10 +1346,9 @@ window.openUpgradeFromLimit = () => {
   window.openUpgradeModal();
 };
 
-// Gửi yêu cầu nâng cấp (từ free user đã đăng nhập)
-window.doUpgradeRequest = async () => {
+// Internal: thực sự gửi yêu cầu nâng cấp (gọi từ confirmPayment)
+async function _doUpgradeRequestInternal(){
   if (!gUserData || !gUser) return;
-  document.getElementById('paymentModal')?.classList.remove('active');
   if (gUserData.upgradeRequestedAt) {
     toast('Yêu cầu nâng cấp đã được gửi, admin đang xử lý','info');
     return;
@@ -1300,9 +1357,13 @@ window.doUpgradeRequest = async () => {
     await updateDoc(doc(db,'users',gUser.uid), {upgradeRequestedAt: serverTimestamp()});
     gUserData.upgradeRequestedAt = { toMillis: () => Date.now() };
     sendUpgradeRequestEmail(gUser);
-    toast('Đã gửi yêu cầu nâng cấp! Admin sẽ kích hoạt sau khi xác nhận thanh toán','ok');
+    updateFreeBanner(); // Thay freeBanner thành trạng thái "Chờ xác nhận"
+    toast('Đã gửi yêu cầu! Admin sẽ xác nhận thanh toán và kích hoạt sớm nhất','ok');
   } catch(e) { toast('Lỗi: '+e.message,'err'); }
-};
+}
+
+// Giữ backward compat nếu còn tham chiếu từ nơi khác
+window.doUpgradeRequest = () => window.showPaymentConfirm();
 
 function showFreeLimitModal() {
   const modal = document.getElementById('freeLimitModal');
