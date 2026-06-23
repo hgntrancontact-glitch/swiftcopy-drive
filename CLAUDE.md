@@ -349,7 +349,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Premium badge**: ĐÃ implement — `#premiumBadge` hiện khi plan=paid, thay freeBanner
 - **Kick screen**: ĐÃ fix — `pollKickStatus()` hiện `#s-kicked` (không signOut), user thấy lý do và phải bấm Đăng xuất
 - **Readd + welcome modal**: ĐÃ implement — `doReadd()` set plan='paid' + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login
-- **Admin email hoạt động như user bình thường**: `hgntran.contact@gmail.com` — trong app chính (index.html), email này đi qua đúng luồng user thông thường: nếu chưa có doc → hiện `planSelectModal`, nếu đã approved → vào dashboard. Không có logic đặc biệt hay xóa doc tự động. Để test lại toàn bộ luồng từ đầu: vào Firestore console và xóa doc của uid tương ứng thủ công. `admin.html` vẫn gate riêng, không bị ảnh hưởng.
+- **Admin email là email test**: `hgntran.contact@gmail.com` — mỗi lần đăng xuất và đăng nhập lại vào app chính, Firestore doc bị xóa tự động → luôn về `planSelectModal` như user mới. Dùng để test toàn bộ luồng: Free, Paid-pending, kick, approve. Khi đang đăng nhập trong phiên thì hoạt động bình thường (approved → dashboard). `admin.html` vẫn gate riêng, không bị ảnh hưởng.
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
 - **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html (user báo đã chuyển → admin kiểm tra → bấm "Duyệt nâng cấp")
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"
