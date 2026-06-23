@@ -262,6 +262,7 @@ function notifyAdminKicked(u,reason){
 
 // ── PLAN SELECTION (sau Google auth, user chưa có Firestore doc) ─────────
 function showPlanSelect(){
+  sec('land'); // hiện landing page phía sau modal thay vì spinner
   document.getElementById('planSelectModal')?.classList.add('active');
 }
 window.closePlanSelect = async () => {
@@ -322,7 +323,22 @@ async function createPaidPendingUser(){
 
 // Hiện modal xác nhận trước khi submit thanh toán
 window.showPaymentConfirm = () => {
+  document.getElementById('paymentModal')?.classList.remove('active');
   document.getElementById('paymentConfirmModal')?.classList.add('active');
+};
+
+window.backToPaymentModal = () => {
+  document.getElementById('paymentConfirmModal')?.classList.remove('active');
+  document.getElementById('paymentModal')?.classList.add('active');
+};
+
+window.copyText = (text, btn) => {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓';
+    btn.style.color = '#099268';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 1500);
+  }).catch(() => toast('Không copy được','err'));
 };
 
 // Xác nhận thanh toán — phân nhánh theo context

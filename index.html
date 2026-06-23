@@ -766,37 +766,63 @@
 
 <!-- ══════════════ PAYMENT MODAL ══════════════ -->
 <div class="modal-overlay" id="paymentModal" onclick="if(event.target===this)this.classList.remove('active')">
-  <div class="modal-wrapper" style="max-width:460px;padding:0;border-radius:20px;overflow:hidden;position:relative;">
+  <div class="modal-wrapper" style="max-width:480px;padding:0;border-radius:20px;overflow:hidden;position:relative;">
     <button onclick="document.getElementById('paymentModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
-    <div style="background:#212529;padding:22px 24px 16px;">
-      <div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:3px;">Đăng ký gói Trọn đời</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-        <span style="font-size:15px;color:#adb5bd;text-decoration:line-through;">450.000 ₫</span>
-        <span style="font-size:24px;font-weight:900;color:#ffc107;">250.000 ₫</span>
+    <!-- Header -->
+    <div style="background:#212529;padding:20px 24px 16px;">
+      <div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:4px;">Đăng ký gói Trọn đời</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:14px;color:#adb5bd;text-decoration:line-through;">450.000 ₫</span>
+        <span style="font-size:22px;font-weight:900;color:#ffc107;">250.000 ₫</span>
         <span style="background:#dc3545;color:#fff;font-size:10px;font-weight:900;padding:2px 8px;border-radius:999px;">-44%</span>
       </div>
-      <div style="font-size:12px;color:#adb5bd;margin-top:2px;">Mua một lần, sử dụng không giới hạn mãi mãi</div>
+      <div style="font-size:12px;color:#adb5bd;margin-top:3px;">Mua một lần, sử dụng không giới hạn mãi mãi</div>
     </div>
-    <div style="padding:20px 22px;">
-      <div style="text-align:center;margin-bottom:16px;">
-        <img src="vpbank-qr.png" alt="QR VPBank" style="width:180px;height:180px;border-radius:14px;border:2px solid #dee2e6;object-fit:contain;box-shadow:0 2px 12px rgba(0,0,0,.08);"/>
+    <!-- Body -->
+    <div style="padding:18px 22px;display:flex;flex-direction:column;gap:14px;">
+      <!-- QR -->
+      <div style="text-align:center;">
+        <div style="font-size:12px;font-weight:700;color:#868e96;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">Quét mã QR thanh toán</div>
+        <img src="vpbank-qr.png" alt="QR VPBank" style="width:160px;height:160px;border-radius:14px;border:2px solid #dee2e6;object-fit:contain;box-shadow:0 2px 12px rgba(0,0,0,.08);"/>
       </div>
-      <div style="background:#f8f9fa;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#495057;line-height:1.75;">
-        <div style="font-weight:800;color:#212529;margin-bottom:8px;">Cách thanh toán:</div>
-        <div style="display:flex;flex-direction:column;gap:5px;">
-          <div>• Quét mã QR VPBank bên trên</div>
-          <div>• Nội dung chuyển khoản: <b>email_tên</b> của bạn<br>&nbsp;&nbsp;<span style="color:#868e96;font-size:12px;">Ví dụ: your@gmail.com_Nam</span></div>
-          <div>• Nhấn <b>"Tôi đã thanh toán"</b> sau khi chuyển xong, bạn có thể đăng nhập lại sau ít phút</div>
-          <div>• Liên hệ admin: <b>hgntran.contact@gmail.com</b></div>
+      <!-- Bank info -->
+      <div style="background:#f8f9fa;border-radius:12px;overflow:hidden;border:1px solid #e9ecef;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e9ecef;">
+          <div>
+            <div style="font-size:11px;color:#868e96;font-weight:600;margin-bottom:1px;">Ngân hàng</div>
+            <div style="font-size:14px;font-weight:800;color:#212529;">VP Bank</div>
+          </div>
+          <button onclick="copyText('VP Bank',this)" title="Sao chép" style="background:none;border:1.5px solid #dee2e6;border-radius:7px;padding:5px 8px;cursor:pointer;color:#495057;font-size:13px;display:flex;align-items:center;gap:4px;font-weight:700;transition:.15s;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='none'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e9ecef;">
+          <div>
+            <div style="font-size:11px;color:#868e96;font-weight:600;margin-bottom:1px;">Số tài khoản</div>
+            <div style="font-size:15px;font-weight:900;color:#212529;font-family:monospace;letter-spacing:.04em;">0388314162</div>
+          </div>
+          <button onclick="copyText('0388314162',this)" title="Sao chép" style="background:none;border:1.5px solid #dee2e6;border-radius:7px;padding:5px 8px;cursor:pointer;color:#495057;font-size:13px;display:flex;align-items:center;gap:4px;font-weight:700;transition:.15s;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='none'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;">
+          <div>
+            <div style="font-size:11px;color:#868e96;font-weight:600;margin-bottom:1px;">Chủ tài khoản</div>
+            <div style="font-size:14px;font-weight:800;color:#212529;">Trần Hồng Nam</div>
+          </div>
+          <button onclick="copyText('Trần Hồng Nam',this)" title="Sao chép" style="background:none;border:1.5px solid #dee2e6;border-radius:7px;padding:5px 8px;cursor:pointer;color:#495057;font-size:13px;display:flex;align-items:center;gap:4px;font-weight:700;transition:.15s;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='none'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
         </div>
       </div>
-
-      <!-- Nút thanh toán (dùng chung cho new user & upgrade) -->
-      <div id="paymentUpgradeBtn" style="display:flex;flex-direction:column;gap:8px;">
-        <button onclick="showPaymentConfirm()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;">Tôi đã thanh toán — Xác nhận</button>
-        <div style="font-size:11px;color:#adb5bd;text-align:center;">Nhấn để gửi yêu cầu cho admin xác nhận thanh toán</div>
+      <!-- Steps -->
+      <div style="background:#fffbea;border:1px solid #ffe066;border-radius:12px;padding:12px 14px;font-size:13px;color:#7a5a00;line-height:1.75;">
+        <div style="font-weight:800;margin-bottom:4px;">Cách thanh toán:</div>
+        <div>1. Quét mã QR hoặc chuyển khoản theo thông tin trên</div>
+        <div>2. Nội dung CK: <b>email_tên</b> của bạn &nbsp;<span style="font-size:11px;color:#adb5bd;">Ví dụ: abc@gmail.com_Nam</span></div>
+        <div>3. Nhấn <b>"Hoàn tất thanh toán"</b> bên dưới</div>
       </div>
-
+      <!-- Contact -->
+      <div style="font-size:12px;color:#868e96;text-align:center;">Cần hỗ trợ? <a href="mailto:hgntran.contact@gmail.com" style="color:#212529;font-weight:700;text-decoration:none;">hgntran.contact@gmail.com</a></div>
+      <!-- Button -->
+      <div id="paymentUpgradeBtn" style="display:flex;flex-direction:column;gap:6px;">
+        <button onclick="showPaymentConfirm()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;">Hoàn tất thanh toán</button>
+        <div style="font-size:11px;color:#adb5bd;text-align:center;">Nhấn để gửi yêu cầu — admin sẽ xác nhận và kích hoạt sớm nhất</div>
+      </div>
       <!-- Không dùng nữa — ẩn -->
       <div id="paymentLoginBtn" style="display:none;"></div>
     </div>
@@ -824,23 +850,24 @@
 
 <!-- ══════════════ PAYMENT CONFIRM MODAL ══════════════ -->
 <div class="modal-overlay" id="paymentConfirmModal">
-  <div class="modal-wrapper" style="max-width:400px;padding:0;border-radius:20px;overflow:hidden;position:relative;text-align:center;">
-    <button onclick="document.getElementById('paymentConfirmModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
-    <div style="background:#212529;padding:22px 24px 16px;">
-      <div style="font-size:36px;margin-bottom:6px;">✅</div>
-      <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:3px;">Xác nhận đã thanh toán</div>
-      <div style="font-size:12px;color:#adb5bd;">Vui lòng đảm bảo đã chuyển khoản đúng nội dung</div>
+  <div class="modal-wrapper" style="max-width:420px;padding:28px 28px 24px;border-radius:20px;position:relative;text-align:center;">
+    <!-- Icon -->
+    <div style="width:64px;height:64px;background:#e6fcf5;border:2px solid #c3fae8;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:30px;">✅</div>
+    <!-- Title -->
+    <div style="font-size:18px;font-weight:900;color:#212529;margin-bottom:6px;">Xác nhận đã thanh toán</div>
+    <div style="font-size:13px;color:#868e96;margin-bottom:18px;line-height:1.6;">Vui lòng đảm bảo đã chuyển khoản đúng nội dung.<br>Kiểm tra lại nếu cần trước khi xác nhận.</div>
+    <!-- Transfer note -->
+    <div style="background:#fffbea;border:1px solid #ffe066;border-radius:12px;padding:14px 16px;margin-bottom:14px;text-align:left;font-size:13px;color:#7a5a00;">
+      <div style="font-weight:800;margin-bottom:4px;">Nội dung chuyển khoản:</div>
+      <div><b>email_tên</b> của bạn</div>
+      <div style="font-size:11px;color:#adb5bd;margin-top:2px;">Ví dụ: abc@gmail.com_Nam</div>
     </div>
-    <div style="padding:22px 24px;">
-      <div style="background:#f8f9fa;border-radius:12px;padding:14px;margin-bottom:18px;font-size:13px;color:#495057;text-align:left;line-height:1.75;">
-        <div>• Nội dung chuyển khoản: <b>email_tên</b> của bạn</div>
-        <div style="color:#868e96;font-size:12px;">  Ví dụ: your@gmail.com_Nam</div>
-        <div style="margin-top:8px;font-size:12px;">Sau khi bấm Xác nhận, admin sẽ kiểm tra và kích hoạt tài khoản trong thời gian sớm nhất.</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button onclick="confirmPayment()" style="background:#212529;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;">Xác nhận — Đã chuyển khoản</button>
-        <button onclick="document.getElementById('paymentConfirmModal').classList.remove('active')" style="background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Kiểm tra lại</button>
-      </div>
+    <!-- Info -->
+    <div style="font-size:13px;color:#495057;margin-bottom:20px;line-height:1.7;">Sau khi bấm xác nhận, admin sẽ kiểm tra và kích hoạt gói <b>Premium trọn đời</b> của bạn sớm nhất có thể. Bạn có thể quay lại trang web để trải nghiệm ngay khi được kích hoạt.</div>
+    <!-- Buttons -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="confirmPayment()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">Xác nhận — Đã chuyển khoản</button>
+      <button onclick="backToPaymentModal()" style="width:100%;background:#f1f3f5;color:#495057;border:1.5px solid #e9ecef;border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Kiểm tra lại</button>
     </div>
   </div>
 </div>
