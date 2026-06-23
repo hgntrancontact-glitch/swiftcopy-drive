@@ -14,7 +14,7 @@ const firebaseConfig = {
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
 const ADMIN_EMAIL = "hgntran.contact@gmail.com";
-const GAS_URL = 'PASTE_YOUR_GAS_URL_HERE'; // ← dán URL Google Apps Script sau khi deploy gas-email.js
+// GAS_URL đã chuyển vào Vercel env var — xem api/email.js
 
 // Free plan limits
 const FREE_MB_LIMIT = 500;
@@ -288,8 +288,7 @@ async function checkApproval(u){
 }
 
 function _gasPost(payload){
-  if (!GAS_URL||GAS_URL==='PASTE_YOUR_GAS_URL_HERE') return;
-  fetch(GAS_URL,{method:'POST',mode:'no-cors',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(()=>{});
+  fetch('/api/email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});
 }
 function sendRegEmail(u){
   _gasPost({type:'new_registration',userEmail:u.email,userName:u.displayName||u.email,plan:'free'});
