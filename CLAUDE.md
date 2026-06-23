@@ -111,14 +111,71 @@ Email được gửi qua GAS Web App (không còn dùng EmailJS). Endpoint là U
 - Hai file phải dùng cùng một GAS_URL
 - **KHÔNG commit GAS_URL lên GitHub** — URL là bí mật (hoạt động như API key)
 
-**5 loại email GAS xử lý:**
+**7 loại email GAS xử lý:**
 | type | Người nhận | Khi nào |
 |---|---|---|
-| `new_user` | Admin | User lần đầu đăng ký |
+| `new_user` | Admin | User lần đầu đăng ký (free — tự approved) |
 | `kick_alert` | Admin | User bị kick đang cố đăng nhập lại |
-| `approve` | User | Admin bấm "Kích hoạt" |
+| `approve` | User | Admin bấm "Kích hoạt" (duyệt tài khoản mới pending) |
 | `kick` | User | Admin bấm "Kick" |
 | `readd` | User | Admin bấm "Thêm lại" |
+| `upgrade_request` | Admin | Free user bấm "Tôi đã thanh toán" trong paymentModal |
+| `upgrade_approved` | User | Admin bấm "Duyệt nâng cấp" trong admin.html |
+
+---
+
+## Firestore schema — users collection
+
+Mỗi document trong collection `users` có các field sau:
+
+| Field | Type | Mô tả |
+|---|---|---|
+| `email` | string | Email Google |
+| `displayName` | string | Tên hiển thị |
+| `photoURL` | string | Ảnh đại diện |
+| `approved` | boolean | true = được vào app |
+| `status` | string | `'approved'` / `'pending'` / `'kicked'` |
+| `plan` | string | `'free'` hoặc `'paid'` |
+| `freeUsedMB` | number | MB đã dùng trong window hiện tại (chỉ tính cho plan=free) |
+| `freeResetAt` | Timestamp | Mốc thời gian bắt đầu window 5h hiện tại |
+| `upgradeRequestedAt` | Timestamp \| null | null nếu chưa yêu cầu nâng cấp |
+| `createdAt` | Timestamp | Lần đầu tạo tài khoản |
+| `approvedAt` | Timestamp | (optional) Thời điểm admin duyệt |
+| `upgradedAt` | Timestamp | (optional) Thời điểm admin duyệt nâng cấp |
+
+**Quy tắc tạo user mới:**
+- **Gói Free** (bấm "Dùng thử miễn phí"): `approved=true, status='approved', plan='free'` — không cần admin duyệt, vào app ngay
+- **Gói Trọn đời** (bấm "Đăng ký gói Trọn đời"): `approved=false, status='pending', plan='free', upgradeRequestedAt=serverTimestamp()` — chờ admin xác nhận thanh toán
+
+---
+
+## Free/Paid system
+
+### Giới hạn gói Free
+- **500 MB / 5 giờ** — tự reset sau 5 giờ kể từ `freeResetAt`
+- **Không copy video** — file video bị bỏ qua hoàn toàn (addLog + skip), không báo lỗi
+- **Không lưu lịch sử** — `saveHist()` bị gate bởi `gUserData?.plan !== 'free'`
+- Khi hết hạn mức: hiện `#freeLimitModal` với countdown đến khi reset
+
+### Hằng số Free plan (trong app.js)
+```js
+const FREE_MB_LIMIT = 500;                    // MB tối đa mỗi window
+const FREE_RESET_MS = 5 * 60 * 60 * 1000;    // 5 giờ
+```
+
+### Luồng nâng cấp Free → Paid
+1. User (đã đăng nhập, plan=free) bấm nút "Nâng cấp lên Trọn đời →" trong `#freeBanner`
+2. `openUpgradeModal()` mở `#paymentModal` ở chế độ upgrade (hiện `#paymentUpgradeBtn`, ẩn `#paymentLoginBtn`)
+3. User bấm "Tôi đã thanh toán" → `doUpgradeRequest()` → set `upgradeRequestedAt=serverTimestamp()` trong Firestore → gửi email `upgrade_request` cho admin
+4. Admin vào admin.html, thấy badge "⬆ Chờ nâng cấp", bấm "Duyệt nâng cấp" → `approveUpgrade()` → set `plan='paid', upgradeRequestedAt=null` → gửi email `upgrade_approved` cho user
+
+### Biến module-level quan trọng trong app.js
+| Biến | Mô tả |
+|---|---|
+| `gUserData` | Full Firestore user document (set bởi `checkApproval()`) |
+| `_pendingPlan` | `'free'` hoặc `'paid'` — intent khi tạo user mới, set trước `signInWithPopup` |
+| `_sessionCopiedMB` | MB đã copy trong phiên hiện tại, cộng vào `freeUsedMB` khi copy xong |
+| `_freeLimitTimer` | `setInterval` ID cho countdown trong `#freeLimitModal` |
 
 ---
 
@@ -136,6 +193,10 @@ const SCAN_FOLDER_CONCUR = 4;  // thư mục song song khi scan
 
 // Session
 const SESSION_TTL = 120 * 60 * 1000; // 120 phút, tự xóa nếu cũ hơn
+
+// Free plan (trong app.js)
+const FREE_MB_LIMIT = 500;
+const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 ```
 
 ---
@@ -171,7 +232,8 @@ const SESSION_TTL = 120 * 60 * 1000; // 120 phút, tự xóa nếu cũ hơn
 - **Đang deploy**: Vercel — domain tạm thời là URL Vercel, sắp mua domain .com
 - **CI/CD**: Vercel tự động deploy khi push lên GitHub (repo vẫn giữ nguyên)
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
-- **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html
+- **Free/Paid system**: ĐÃ implement — Free tự approved, Paid qua admin duyệt, 500MB/5h limit
+- **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html (user báo đã chuyển → admin kiểm tra → bấm "Duyệt nâng cấp")
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"
 - **Review/FAQ**: dữ liệu tĩnh trong JS, chưa nối Firestore thật
 - **zalo-qr.png**: ảnh thật (đã crop), phải nằm cùng thư mục với index.html khi deploy

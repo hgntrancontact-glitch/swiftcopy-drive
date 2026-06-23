@@ -1,3 +1,36 @@
-CHÍNH SÁCH HOÀN TIỀN — SwiftCopy.Drive
+﻿CHÍNH SÁCH HOÀN TIỀN
+SwiftCopy.Drive | Cập nhật lần cuối: 22/06/2026
+1. Tổng quan
+SwiftCopy.Drive áp dụng mô hình thanh toán một lần, trọn đời. Chúng tôi cam kết hỗ trợ kỹ thuật tận tình và xem xét hoàn tiền trong các trường hợp hợp lý được quy định dưới đây.
 
-Nội dung sẽ được cập nhật sớm.
+2. Các trường hợp được xem xét hoàn tiền
+Bạn có thể yêu cầu hoàn tiền trong các trường hợp sau:
+    • Lỗi kỹ thuật nghiêm trọng từ phía hệ thống khiến Dịch vụ không hoạt động và không thể khắc phục trong vòng 72 giờ kể từ khi báo cáo
+    • Tài khoản không được kích hoạt sau 24 giờ kể từ khi xác nhận thanh toán mà không có lý do hợp lệ
+    • Yêu cầu hoàn tiền được gửi trong vòng 7 ngày kể từ ngày thanh toán VÀ chưa sử dụng Dịch vụ thành công lần nào
+
+3. Các trường hợp KHÔNG được hoàn tiền
+Chúng tôi sẽ không hoàn tiền trong các trường hợp sau:
+    • Đã sử dụng Dịch vụ thành công ít nhất một lần (dù chỉ copy 1 file)
+    • Lỗi phát sinh do quyền truy cập Google Drive bị hạn chế bởi chủ Drive gốc (ngoài tầm kiểm soát của chúng tôi)
+    • Lỗi do tài khoản Google của bạn bị hạn chế hoặc bị Google tạm khóa
+    • Thay đổi ý định hoặc không còn nhu cầu sử dụng sau khi đã kích hoạt tài khoản
+    • Yêu cầu hoàn tiền sau 7 ngày kể từ ngày thanh toán
+    • Tài khoản bị đình chỉ do vi phạm Điều khoản Sử dụng
+
+4. Quy trình yêu cầu hoàn tiền
+Để yêu cầu hoàn tiền, vui lòng thực hiện theo các bước sau:
+    • Bước 1: Liên hệ qua email hgntran.contact@gmail.com với tiêu đề "[HOÀN TIỀN] - Email tài khoản của bạn" hoặc QR ZALO 
+    • Bước 2: Mô tả rõ vấn đề gặp phải và lý do yêu cầu hoàn tiền
+    • Bước 3: Cung cấp bằng chứng (ảnh chụp màn hình lỗi nếu có)
+    • Bước 4: Chúng tôi phản hồi trong vòng 24-48 giờ làm việc
+    • Bước 5: Nếu được chấp thuận, hoàn tiền thực hiện trong vòng 3-5 ngày làm việc (hoặc sớm hơn) theo phương thức thanh toán ban đầu
+
+5. Hỗ trợ kỹ thuật trước khi hoàn tiền
+Chúng tôi khuyến khích bạn liên hệ hỗ trợ kỹ thuật trước khi yêu cầu hoàn tiền. Phần lớn vấn đề có thể được giải quyết nhanh chóng qua hỗ trợ trực tiếp. Đội ngũ hỗ trợ của SwiftCopy.Drive cam kết phản hồi trong vòng 24 giờ làm việc.
+
+6. Liên hệ
+Mọi thắc mắc về chính sách hoàn tiền, vui lòng liên hệ:
+    • Email: hgntran.contact@gmail.com
+    • Website: swiftcopydrive.com
+    • Zalo: Quét mã QR trên trang web để liên hệ trực tiếp

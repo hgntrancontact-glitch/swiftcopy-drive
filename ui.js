@@ -47,6 +47,7 @@ function openZaloHelp() { document.getElementById('supportModal').classList.add(
 function openLangModal() { document.getElementById('langModal').classList.add('active'); }
 function triggerFaqModal() { document.getElementById('helpPopover').style.display = 'none'; openFaqModal(); }
 function openEarnModal() { document.getElementById('earnModal').classList.add('active'); }
+function openStartModal() { document.getElementById('startModal').classList.add('active'); }
 
 document.getElementById('reviewBtn').addEventListener('click', function() {
     selectedStars = 0; updateStarUI();

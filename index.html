@@ -135,10 +135,9 @@
                 Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn,<br class="hidden md:block">chạy thẳng trên trình duyệt.
             </p>
             <div class="flex gap-4 justify-center">
-                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] hover:opacity-95 active:scale-95 transition-all" onclick="doLogin()">Đăng ký dùng thử</button>
-                <button class="bg-white hover:bg-[#fffbea] hover:border-[#ffc107] border border-[#dee2e6] px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer active:scale-95 transition-all" onclick="doLogin()">Đăng nhập</button>
+                <button class="animate-pulse-shadow px-10 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] hover:opacity-95 active:scale-95 transition-all" onclick="openStartModal()">Bắt đầu</button>
             </div>
-            <p class="text-sm text-[#868e96] mt-4">Mua một lần, sử dụng trọn đời</p>
+            <p class="text-sm text-[#868e96] mt-4">Dùng thử miễn phí hoặc mua trọn đời</p>
         </div>
 
         <!-- TỐI ƯU DASHBOARD: Mở rộng chiều ngang (max-w-7xl), nén padding, thu gọn chiều cao log -->
@@ -319,6 +318,15 @@
 <div id="s-app">
   <main class="flex-1 px-4 py-6 md:py-8">
     <div class="max-w-6xl mx-auto">
+
+      <!-- FREE PLAN BANNER -->
+      <div id="freeBanner" style="display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;">
+          <span>⚡</span>
+          <span>Gói Miễn phí — Còn <b id="freeBannerMB">500</b> MB / 500 MB (reset lúc <b id="freeBannerTimer">--:--</b>)</span>
+        </div>
+        <button onclick="openUpgradeModal()" style="flex-shrink:0;background:#212529;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Nâng cấp lên Trọn đời →</button>
+      </div>
 
       <!-- RESUME BANNER -->
       <div id="resumeBanner" class="resume-banner" style="display:none">
@@ -611,6 +619,126 @@
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-x-c"/></svg>
     </button>
     <div id="pvFullscreenSlot" class="pv-fullscreen-slot"></div>
+</div>
+
+<!-- ══════════════ START MODAL (plan comparison) ══════════════ -->
+<div class="modal-overlay" id="startModal" onclick="if(event.target===this)this.classList.remove('active')">
+  <div class="modal-wrapper" style="max-width:600px;padding:0;border-radius:20px;overflow:hidden;">
+    <div style="background:#212529;padding:20px 24px 14px;">
+      <div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:2px;">Chọn gói phù hợp với bạn</div>
+      <div style="font-size:13px;color:#adb5bd;">Bắt đầu miễn phí hoặc mua trọn đời một lần duy nhất</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #e9ecef;">
+
+      <!-- FREE COLUMN -->
+      <div style="padding:20px 22px 22px;border-right:1px solid #e9ecef;">
+        <div style="font-size:11px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Miễn phí</div>
+        <div style="font-size:26px;font-weight:900;color:#212529;margin-bottom:4px;">0₫</div>
+        <div style="font-size:11px;color:#adb5bd;margin-bottom:14px;">Không cần thanh toán</div>
+        <ul style="list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:7px;font-size:13px;">
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Sao chép file & thư mục</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>500 MB / 5 giờ (tự reset)</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Kiểm tra quyền trước khi copy</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Chọn lọc mục cần copy</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Không copy video</span></li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Không lưu lịch sử</span></li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Không tự resume sau mất mạng</span></li>
+        </ul>
+        <button onclick="doLoginFree()" style="width:100%;background:#f1f3f5;color:#212529;border:1.5px solid #dee2e6;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">Dùng thử miễn phí</button>
+      </div>
+
+      <!-- PAID COLUMN -->
+      <div style="padding:20px 22px 22px;background:#fffbea;position:relative;">
+        <div style="position:absolute;top:14px;right:14px;background:#ffc107;color:#212529;font-size:10px;font-weight:900;padding:2px 10px;border-radius:999px;letter-spacing:.04em;">PHỔ BIẾN</div>
+        <div style="font-size:11px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Trọn đời</div>
+        <div style="font-size:26px;font-weight:900;color:#212529;margin-bottom:4px;">Liên hệ</div>
+        <div style="font-size:11px;color:#adb5bd;margin-bottom:14px;">Mua 1 lần, dùng mãi mãi</div>
+        <ul style="list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:7px;font-size:13px;">
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Sao chép file & thư mục</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Không giới hạn dung lượng</b></li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Kiểm tra quyền trước khi copy</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Chọn lọc mục cần copy</li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Copy video không giới hạn</b></li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Lưu lịch sử sao chép</b></li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Tự resume sau mất mạng</b></li>
+        </ul>
+        <button onclick="openPaymentForNew()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px #0002;">Đăng ký gói Trọn đời →</button>
+      </div>
+    </div>
+
+    <div style="padding:12px 20px;text-align:center;">
+      <button onclick="document.getElementById('startModal').classList.remove('active')" style="background:none;border:none;color:#adb5bd;font-size:12px;cursor:pointer;">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ PAYMENT MODAL ══════════════ -->
+<div class="modal-overlay" id="paymentModal" onclick="if(event.target===this)this.classList.remove('active')">
+  <div class="modal-wrapper" style="max-width:440px;padding:0;border-radius:18px;overflow:hidden;">
+    <div style="background:#212529;padding:18px 22px 14px;">
+      <div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:2px;">Đăng ký gói Trọn đời</div>
+      <div style="font-size:12px;color:#adb5bd;">Mua một lần, sử dụng không giới hạn mãi mãi</div>
+    </div>
+    <div style="padding:20px 22px;">
+      <div style="background:#f8f9fa;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#495057;line-height:1.7;">
+        <div style="font-weight:800;color:#212529;margin-bottom:8px;">Cách thanh toán:</div>
+        <ol style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;">
+          <li>Chụp ảnh QR Zalo hoặc nhắn email bên dưới</li>
+          <li>Gửi tên Gmail bạn dùng để đăng nhập</li>
+          <li>Chuyển khoản theo thông tin admin cấp</li>
+          <li>Bấm "Tôi đã thanh toán" sau khi chuyển xong</li>
+        </ol>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;">
+        <img src="zalo-qr.png" alt="QR Zalo" style="width:80px;height:80px;border-radius:10px;border:1.5px solid #dee2e6;object-fit:contain;flex-shrink:0;"/>
+        <div style="font-size:13px;color:#495057;">
+          <div style="font-weight:800;color:#212529;margin-bottom:4px;">Liên hệ Admin</div>
+          <div style="margin-bottom:2px;">📧 hgntran.contact@gmail.com</div>
+          <div>Zalo: Quét mã QR bên cạnh</div>
+        </div>
+      </div>
+
+      <!-- Nút cho user đã đăng nhập (muốn nâng cấp) -->
+      <div id="paymentUpgradeBtn" style="display:none;flex-direction:column;gap:8px;">
+        <button onclick="doUpgradeRequest()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">Tôi đã thanh toán — Chờ xác nhận</button>
+        <div style="font-size:11px;color:#adb5bd;text-align:center;">Admin sẽ kích hoạt gói Trọn đời sau khi xác nhận thanh toán</div>
+      </div>
+
+      <!-- Nút cho user chưa đăng nhập (đăng nhập bằng Google) -->
+      <div id="paymentLoginBtn" style="display:block;flex-direction:column;gap:8px;">
+        <button onclick="doLoginPaid()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg>
+          Đăng nhập Google & đặt mua
+        </button>
+        <div style="font-size:11px;color:#adb5bd;text-align:center;">Sau khi đăng nhập, admin xác nhận thanh toán rồi kích hoạt</div>
+      </div>
+    </div>
+
+    <div style="padding:10px 20px 14px;text-align:center;border-top:1px solid #f1f3f5;">
+      <button onclick="document.getElementById('paymentModal').classList.remove('active')" style="background:none;border:none;color:#adb5bd;font-size:12px;cursor:pointer;">Đóng lại</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ FREE LIMIT MODAL ══════════════ -->
+<div class="modal-overlay" id="freeLimitModal" onclick="if(event.target===this)closeFreeLimitModal()">
+  <div class="modal-wrapper" style="max-width:400px;padding:0;border-radius:18px;overflow:hidden;text-align:center;">
+    <div style="background:#212529;padding:18px 22px 14px;">
+      <div style="font-size:40px;margin-bottom:6px;">⏳</div>
+      <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:2px;">Đã dùng hết hạn mức miễn phí</div>
+      <div style="font-size:12px;color:#adb5bd;">Hạn mức 500 MB / 5 giờ đã được sử dụng hết</div>
+    </div>
+    <div style="padding:22px 24px;">
+      <div style="font-size:13px;color:#495057;margin-bottom:6px;">Đã sử dụng: <b id="freeLimitUsedMB">500</b> MB / 500 MB</div>
+      <div style="font-size:13px;color:#495057;margin-bottom:18px;">Hạn mức tự reset sau: <b id="freeLimitCountdown" style="font-size:18px;color:#212529;font-family:monospace;">0:00:00</b></div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button onclick="openUpgradeFromLimit()" style="background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">Nâng cấp lên Trọn đời — Không giới hạn</button>
+        <button onclick="closeFreeLimitModal()" style="background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Chờ reset tự động</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script type="module" src="app.js"></script>

@@ -47,7 +47,7 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 .container{max-width:1060px;margin:0 auto;padding:20px 16px}
 
 /* STATS */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
 .stat-box{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:18px 12px;text-align:center;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
 .stat-box:hover{box-shadow:var(--shadow2);transform:translateY(-1px)}
 .stat-box .n{font-family:'Nunito',sans-serif;font-size:28px;font-weight:800;line-height:1;margin-bottom:4px}
@@ -125,6 +125,9 @@ tbody tr:last-child td{border-bottom:none}
 .toast.err{background:var(--red-mid)}
 .toast.ok{background:var(--green)}
 
+.act-upgrade{background:var(--blue-light);color:var(--blue);border-color:var(--blue-border)}
+.act-upgrade:hover:not(:disabled){background:var(--blue);color:#fff}
+.badge.blue{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-border)}
 @media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
@@ -182,10 +185,11 @@ tbody tr:last-child td{border-bottom:none}
 
     <!-- STATS -->
     <div class="stats-grid">
-      <div class="stat-box blue"   onclick="filterUsers('all')">    <div class="n" id="sTotal">—</div><div class="l">Tổng người dùng</div></div>
-      <div class="stat-box green"  onclick="filterUsers('approved')"><div class="n" id="sApproved">—</div><div class="l">Đã kích hoạt</div></div>
-      <div class="stat-box yellow" onclick="filterUsers('pending')"> <div class="n" id="sPending">—</div><div class="l">Chờ kích hoạt</div></div>
-      <div class="stat-box red"    onclick="filterUsers('kicked')">  <div class="n" id="sKicked">—</div><div class="l">Bị kick ra</div></div>
+      <div class="stat-box blue"   onclick="filterUsers('all')">      <div class="n" id="sTotal">—</div><div class="l">Tổng người dùng</div></div>
+      <div class="stat-box green"  onclick="filterUsers('approved')"> <div class="n" id="sApproved">—</div><div class="l">Đã kích hoạt</div></div>
+      <div class="stat-box yellow" onclick="filterUsers('pending')">  <div class="n" id="sPending">—</div><div class="l">Chờ kích hoạt</div></div>
+      <div class="stat-box red"    onclick="filterUsers('kicked')">   <div class="n" id="sKicked">—</div><div class="l">Bị kick ra</div></div>
+      <div class="stat-box blue"   onclick="filterUsers('upgrade')">  <div class="n" id="sUpgrade">—</div><div class="l">Chờ nâng cấp</div></div>
     </div>
 
     <!-- USERS TABLE -->
@@ -199,6 +203,7 @@ tbody tr:last-child td{border-bottom:none}
         <button class="filter-btn"        data-f="approved" onclick="filterUsers('approved')"><svg class="ic"><use href="#ic-check"/></svg> Đã kích hoạt</button>
         <button class="filter-btn"        data-f="pending"  onclick="filterUsers('pending')">Chờ kích hoạt</button>
         <button class="filter-btn"        data-f="kicked"   onclick="filterUsers('kicked')"><svg class="ic"><use href="#ic-ban"/></svg> Bị kick</button>
+        <button class="filter-btn"        data-f="upgrade"  onclick="filterUsers('upgrade')" style="background:var(--blue-light);border-color:var(--blue-border);color:var(--blue)">⬆ Chờ nâng cấp</button>
         <button class="filter-btn"        data-f="readd"    onclick="filterUsers('readd')" style="margin-left:auto;background:var(--yellow-light);border-color:var(--orange-border);color:var(--orange)"><svg class="ic"><use href="#ic-plus"/></svg> Thêm lại</button>
       </div>
       <div style="overflow-x:auto">
@@ -206,11 +211,12 @@ tbody tr:last-child td{border-bottom:none}
           <thead><tr>
             <th>Người dùng</th>
             <th>UID</th>
+            <th>Gói</th>
             <th>Trạng thái</th>
             <th>Ngày đăng ký</th>
             <th>Thao tác</th>
           </tr></thead>
-          <tbody id="usersBody"><tr><td colspan="5" class="empty-cell">Đang tải...</td></tr></tbody>
+          <tbody id="usersBody"><tr><td colspan="6" class="empty-cell">Đang tải...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -315,11 +321,12 @@ async function loadStats(){
     document.getElementById('sApproved').textContent = users.filter(u=>u.approved&&u.status!=='kicked').length;
     document.getElementById('sPending').textContent  = users.filter(u=>!u.approved&&u.status!=='kicked').length;
     document.getElementById('sKicked').textContent   = users.filter(u=>u.status==='kicked').length;
+    document.getElementById('sUpgrade').textContent  = users.filter(u=>u.upgradeRequestedAt&&u.plan!=='paid').length;
   } catch(e){ console.error(e); }
 }
 
 window.loadUsers = async () => {
-  document.getElementById('usersBody').innerHTML = '<tr><td colspan="5" class="empty-cell">Đang tải...</td></tr>';
+  document.getElementById('usersBody').innerHTML = '<tr><td colspan="6" class="empty-cell">Đang tải...</td></tr>';
   try {
     const snap = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
     // Giữ nguyên tất cả user cũ - chỉ đọc, không ghi đè
@@ -338,13 +345,24 @@ function renderUsers(filter){
   if (filter==='approved') list = allUsers.filter(u=>u.approved&&u.status!=='kicked');
   else if (filter==='pending') list = allUsers.filter(u=>!u.approved&&u.status!=='kicked');
   else if (filter==='kicked') list = allUsers.filter(u=>u.status==='kicked');
-  else if (filter==='readd') list = allUsers.filter(u=>u.status==='kicked'); // same as kicked for re-add
+  else if (filter==='readd') list = allUsers.filter(u=>u.status==='kicked');
+  else if (filter==='upgrade') list = allUsers.filter(u=>u.upgradeRequestedAt&&u.plan!=='paid');
 
   const tbody = document.getElementById('usersBody');
-  if (!list.length){ tbody.innerHTML='<tr><td colspan="5" class="empty-cell">Không có người dùng nào.</td></tr>'; return; }
+  if (!list.length){ tbody.innerHTML='<tr><td colspan="6" class="empty-cell">Không có người dùng nào.</td></tr>'; return; }
 
   tbody.innerHTML = list.map(u => {
     const dt = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString('vi-VN') : '—';
+
+    // Gói badge
+    const planBadge = u.plan==='paid'
+      ? `<span class="badge green">Trọn đời</span>`
+      : `<span class="badge gray">Miễn phí</span>`;
+    const upgradeBadge = (u.upgradeRequestedAt && u.plan!=='paid')
+      ? `<span class="badge yellow" style="margin-top:2px">⬆ Chờ nâng cấp</span>`
+      : '';
+
+    // Trạng thái badge
     let statusBadge = '';
     if (u.status==='kicked')
       statusBadge = `<span class="badge red">Bị kick</span>${u.kickReason?`<span style="font-size:10px;color:var(--text3);margin-left:4px">— ${u.kickReason.slice(0,40)}</span>`:''}`;
@@ -353,6 +371,7 @@ function renderUsers(filter){
     else
       statusBadge = `<span class="badge yellow">Chờ kích hoạt</span>`;
 
+    // Actions
     let actions = '';
     if (u.status==='kicked'){
       actions = `<div class="act-row">
@@ -361,7 +380,13 @@ function renderUsers(filter){
         </button>
       </div>`;
     } else if (u.approved){
+      const upgradeBtn = (u.upgradeRequestedAt && u.plan!=='paid')
+        ? `<button class="act-btn act-upgrade" onclick="approveUpgrade('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
+             ⬆ Duyệt nâng cấp
+           </button>`
+        : '';
       actions = `<div class="act-row">
+        ${upgradeBtn}
         <button class="act-btn act-kick" onclick="openKickModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
           <svg class="ic"><use href="#ic-ban"/></svg> Kick
         </button>
@@ -385,6 +410,7 @@ function renderUsers(filter){
         </div>
       </td>
       <td><span class="uid-txt">${u.id.slice(0,10)}…</span></td>
+      <td><div style="display:flex;flex-direction:column;gap:2px">${planBadge}${upgradeBadge}</div></td>
       <td>${statusBadge}</td>
       <td><span class="dt-txt">${dt}</span></td>
       <td>${actions}</td>
@@ -406,6 +432,19 @@ window.approveUser = async (uid, email, name) => {
     });
     toast('✓ Đã kích hoạt!','ok');
     await callGAS({ type: 'approve', toEmail: email, userName: name, siteUrl: SITE_URL });
+    await loadUsers(); await loadStats();
+  } catch(e){ toast('Lỗi: '+e.message,'err'); btns.forEach(b=>b.disabled=false); }
+};
+
+window.approveUpgrade = async (uid, email, name) => {
+  const btns = document.querySelectorAll(`tr[data-uid="${uid}"] .act-btn`);
+  btns.forEach(b=>b.disabled=true);
+  try {
+    await updateDoc(doc(db,'users',uid),{
+      plan:'paid', upgradeRequestedAt:null, upgradedAt:serverTimestamp()
+    });
+    toast('✓ Đã nâng cấp lên Trọn đời!','ok');
+    await callGAS({ type: 'upgrade_approved', toEmail: email, userName: name, siteUrl: SITE_URL });
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi: '+e.message,'err'); btns.forEach(b=>b.disabled=false); }
 };

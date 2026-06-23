@@ -37,11 +37,13 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
 
     switch (data.type) {
-      case 'new_user':   handleNewUser(data);   break;
-      case 'kick_alert': handleKickAlert(data); break;
-      case 'approve':    handleApprove(data);   break;
-      case 'kick':       handleKick(data);      break;
-      case 'readd':      handleReadd(data);     break;
+      case 'new_user':         handleNewUser(data);        break;
+      case 'kick_alert':       handleKickAlert(data);      break;
+      case 'approve':          handleApprove(data);        break;
+      case 'kick':             handleKick(data);           break;
+      case 'readd':            handleReadd(data);          break;
+      case 'upgrade_request':  handleUpgradeRequest(data); break;
+      case 'upgrade_approved': handleUpgradeApproved(data);break;
       default:
         throw new Error('Unknown type: ' + data.type);
     }
@@ -127,6 +129,43 @@ function handleKick(data) {
     'Trân trọng,',
     'Đội ngũ ' + SITE_NAME,
     data.siteUrl || SITE_URL
+  ].join('\n');
+  GmailApp.sendEmail(data.toEmail, subject, body);
+}
+
+// ── 6. THÔNG BÁO ADMIN: user yêu cầu nâng cấp lên Trọn đời ────────
+// Gửi khi: free user bấm "Tôi đã thanh toán — Chờ xác nhận" trong paymentModal
+// Payload: { type, userEmail, userName }
+function handleUpgradeRequest(data) {
+  const subject = '[' + SITE_NAME + '] ⬆ Yêu cầu nâng cấp lên gói Trọn đời';
+  const body = [
+    'Có người dùng vừa yêu cầu nâng cấp lên gói Trọn đời.',
+    '',
+    'Email : ' + data.userEmail,
+    'Tên   : ' + (data.userName || data.userEmail),
+    '',
+    'Xác nhận thanh toán và duyệt nâng cấp tại admin panel:',
+    (data.siteUrl || SITE_URL) + '/admin.html'
+  ].join('\n');
+  GmailApp.sendEmail(ADMIN_EMAIL, subject, body);
+}
+
+// ── 7. THÔNG BÁO USER: đã được nâng cấp lên gói Trọn đời ──────────
+// Gửi khi: admin nhấn "Duyệt nâng cấp" trong admin.html
+// Payload: { type, toEmail, userName, siteUrl }
+function handleUpgradeApproved(data) {
+  const subject = '[' + SITE_NAME + '] 🎉 Tài khoản đã được nâng cấp lên gói Trọn đời';
+  const body = [
+    'Xin chào ' + (data.userName || data.toEmail) + ',',
+    '',
+    'Tài khoản của bạn trên ' + SITE_NAME + ' đã được nâng cấp lên gói Trọn đời.',
+    'Từ bây giờ bạn có thể sao chép không giới hạn, bao gồm video và lịch sử đầy đủ.',
+    '',
+    'Truy cập ngay: ' + (data.siteUrl || SITE_URL),
+    '',
+    'Cảm ơn bạn đã tin tưởng và sử dụng ' + SITE_NAME + '!',
+    'Trân trọng,',
+    'Đội ngũ ' + SITE_NAME
   ].join('\n');
   GmailApp.sendEmail(data.toEmail, subject, body);
 }

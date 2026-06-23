@@ -1,3 +1,54 @@
-CHÍNH SÁCH BẢO MẬT — SwiftCopy.Drive
+﻿CHÍNH SÁCH BẢO MẬT
+SwiftCopy.Drive | Cập nhật lần cuối: 22/06/2026
+1. Cam kết bảo mật
+SwiftCopy.Drive cam kết bảo vệ quyền riêng tư của bạn. Chính sách này giải thích rõ cách chúng tôi thu thập, sử dụng và bảo vệ thông tin của bạn khi sử dụng Dịch vụ.
 
-Nội dung sẽ được cập nhật sớm.
+2. Thông tin chúng tôi thu thập
+Khi bạn sử dụng Dịch vụ, chúng tôi thu thập các thông tin sau:
+    • Email và tên hiển thị từ tài khoản Google (thông qua Google OAuth)
+    • Ảnh đại diện Google (chỉ dùng để hiển thị trong giao diện)
+    • Lịch sử các lần sao chép thành công (tên thư mục, số file, thời gian)
+    • Thời điểm đăng ký và kích hoạt tài khoản
+Chúng tôi KHÔNG thu thập:
+    • Mật khẩu Google hoặc bất kỳ thông tin xác thực nào
+    • Nội dung file hoặc thư mục trong Google Drive của bạn
+    • Thông tin thanh toán (giao dịch thực hiện ngoài hệ thống)
+
+3. Cơ chế hoạt động và bảo mật
+SwiftCopy.Drive sử dụng Google Drive API chính thống thông qua xác thực OAuth của Google. Khi bạn thực hiện sao chép:
+    • Lệnh sao chép được gửi thẳng từ trình duyệt của bạn đến máy chủ Google
+    • Nội dung file di chuyển hoàn toàn trên hạ tầng Google, KHÔNG đi qua máy chủ của chúng tôi
+    • Chúng tôi không thể xem hoặc lưu trữ nội dung file của bạn
+    • Bạn có thể thu hồi quyền truy cập bất cứ lúc nào trong phần Cài đặt tài khoản Google
+
+4. Cách chúng tôi sử dụng thông tin
+Thông tin thu thập được sử dụng để:
+    • Xác thực danh tính và quản lý quyền truy cập tài khoản
+    • Gửi thông báo về trạng thái tài khoản (kích hoạt, thay đổi...)
+    • Cải thiện chất lượng Dịch vụ dựa trên thống kê sử dụng
+    • Hỗ trợ kỹ thuật khi bạn gặp sự cố
+Chúng tôi KHÔNG bao giờ:
+    • Bán hoặc chia sẻ thông tin của bạn cho bên thứ ba vì mục đích thương mại
+    • Sử dụng thông tin cho mục đích quảng cáo
+
+5. Lưu trữ dữ liệu
+Thông tin tài khoản được lưu trữ trên Firebase Firestore (dịch vụ của Google) với các biện pháp bảo mật theo tiêu chuẩn của Google. Dữ liệu được giữ trong suốt thời gian tài khoản còn hoạt động.
+
+6. Quyền của bạn
+Bạn có quyền:
+    • Yêu cầu xem thông tin cá nhân chúng tôi đang lưu trữ
+    • Yêu cầu chỉnh sửa thông tin không chính xác
+    • Yêu cầu xóa tài khoản và toàn bộ dữ liệu liên quan
+    • Thu hồi quyền truy cập Google Drive bất cứ lúc nào
+Để thực hiện các quyền trên, vui lòng liên hệ: hgntran.contact@gmail.com
+
+7. Cookie và bộ nhớ cục bộ
+Dịch vụ sử dụng localStorage của trình duyệt để lưu trạng thái phiên sao chép đang thực hiện. Dữ liệu này chỉ tồn tại trên thiết bị của bạn và tự động xóa sau khi hoàn tất. Chúng tôi không sử dụng cookie theo dõi hoặc cookie quảng cáo.
+
+8. Thay đổi Chính sách
+Chúng tôi có thể cập nhật Chính sách Bảo mật này theo thời gian. Mọi thay đổi quan trọng sẽ được thông báo qua email trước ít nhất 7 ngày.
+
+9. Liên hệ
+Nếu có câu hỏi hoặc lo ngại về quyền riêng tư, vui lòng liên hệ:
+    • Email: hgntran.contact@gmail.com
+    • Website: swiftcopydrive.vercel.app

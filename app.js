@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, addDoc, collection, serverTimestamp }
+import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, collection, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -14,7 +14,11 @@ const firebaseConfig = {
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
 const ADMIN_EMAIL = "hgntran.contact@gmail.com";
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr_OJrX-kvV085UeOBQLPmOVnaZjWfrfAv8jCS2P7rV0ND7z8X6N_OQXRpn9r37C6LYA/exec'; // ← dán URL Google Apps Script sau khi deploy gas-email.js
+const GAS_URL = 'PASTE_YOUR_GAS_URL_HERE'; // ← dán URL Google Apps Script sau khi deploy gas-email.js
+
+// Free plan limits
+const FREE_MB_LIMIT = 500;
+const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 
 const fbApp    = initializeApp(firebaseConfig);
 const auth     = getAuth(fbApp);
@@ -23,11 +27,13 @@ const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/drive');
 
 let gUser = null, gToken = null;
+let gUserData = null;          // full Firestore user document
+let _pendingPlan = 'free';     // intent khi tạo user mới: 'free' | 'paid'
 let pauseFlag = false, stopFlag = false, runMode = 'idle';
 let stats = ns();
 let _resumeResolve = null;
 // Checklist state
-let clItems = [];     // flat list of { id, name, mimeType, parentId, depth, expanded, checked, indeterminate }
+let clItems = [];     // flat list of { id, name, mimeType, size, parentId, depth, expanded, checked, indeterminate }
 let clLoaded = false;
 // Drag-select state
 let _dragActive = false, _dragCheckValue = null;
@@ -38,6 +44,9 @@ let _pendingCopyResume = false;
 // Auth-expiry handling
 let _authExpiredHandled = false;
 let _resumeAfterReauth = null; // 'copy' if a copy run was interrupted by token expiry
+// Free quota tracking
+let _sessionCopiedMB = 0;      // MB copied in current copy session
+let _freeLimitTimer = null;    // countdown interval for free limit modal
 
 function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[] }; }
 
@@ -108,10 +117,26 @@ window.doReset = () => {
 };
 
 // ── AUTH ─────────────────────────────────────────────────────
-window.doLogin = async () => {
-  try { const res=await signInWithPopup(auth,provider); gToken=GoogleAuthProvider.credentialFromResult(res)?.accessToken; }
-  catch(e){ toast('Đăng nhập thất bại','err'); }
+// Đăng nhập gói Miễn phí — tự approved không cần admin duyệt
+window.doLoginFree = async () => {
+  _pendingPlan = 'free';
+  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+  try {
+    const res = await signInWithPopup(auth, provider);
+    gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
+  } catch(e) { toast('Đăng nhập thất bại','err'); }
 };
+
+// Đăng nhập gói Trọn đời — tạo user với status='pending', chờ admin xác nhận thanh toán
+window.doLoginPaid = async () => {
+  _pendingPlan = 'paid';
+  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+  try {
+    const res = await signInWithPopup(auth, provider);
+    gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
+  } catch(e) { toast('Đăng nhập thất bại','err'); }
+};
+
 window.doLogout = () => signOut(auth);
 window.reAuth   = async () => {
   try {
@@ -141,7 +166,6 @@ async function handleReauthSuccess(){
 }
 
 // Called whenever any Drive operation hits AUTH_EXPIRED (401 with an existing token).
-// Stops the current run, clears the stale token, and shows the full-screen overlay.
 function handleAuthExpired(){
   if (_authExpiredHandled) return;
   _authExpiredHandled = true;
@@ -154,14 +178,14 @@ function handleAuthExpired(){
 }
 
 onAuthStateChanged(auth, async u => {
-  if (!u){ gUser=null; gToken=null; sec('land'); return; }
+  if (!u){ gUser=null; gToken=null; gUserData=null; sec('land'); return; }
   gUser=u; sec('check');
   try {
     const isAdmin = u.email===ADMIN_EMAIL;
     if (!isAdmin) await ensureUser(u);
     const approved = isAdmin || await checkApproval(u);
     setNavUser(u);
-    if (approved){ sec('app'); checkResume(); }
+    if (approved){ sec('app'); checkResume(); updateFreeBanner(); }
     else sec('pend');
   } catch(e){ setNavUser(u); sec('pend'); }
 });
@@ -169,20 +193,46 @@ onAuthStateChanged(auth, async u => {
 async function ensureUser(u){
   const ref=doc(db,'users',u.uid), snap=await getDoc(ref);
   if (!snap.exists()){
-    await setDoc(ref,{email:u.email,displayName:u.displayName,photoURL:u.photoURL,approved:false,status:'pending',createdAt:serverTimestamp()});
-    sendRegEmail(u);
+    const isFree = _pendingPlan !== 'paid';
+    const userData = {
+      email: u.email, displayName: u.displayName, photoURL: u.photoURL,
+      plan: 'free',
+      freeUsedMB: 0,
+      freeResetAt: serverTimestamp(),
+      upgradeRequestedAt: null,
+      createdAt: serverTimestamp()
+    };
+    if (isFree) {
+      userData.approved = true;
+      userData.status = 'approved';
+    } else {
+      userData.approved = false;
+      userData.status = 'pending';
+      userData.upgradeRequestedAt = serverTimestamp();
+    }
+    await setDoc(ref, userData);
+    if (isFree) sendRegEmail(u);
+    else sendUpgradeRequestEmail(u);
   } else if(snap.data().status==='kicked'){
     notifyAdminKicked(u,snap.data().kickReason);
   }
 }
+
 async function checkApproval(u){
   const snap=await getDoc(doc(db,'users',u.uid));
   if (!snap.exists()) return false;
-  const d=snap.data(); return d.status!=='kicked'&&d.approved===true;
+  const d=snap.data();
+  gUserData = { id: u.uid, ...d };
+  return d.status!=='kicked'&&d.approved===true;
 }
+
 function sendRegEmail(u){
   if (!GAS_URL||GAS_URL==='PASTE_YOUR_GAS_URL_HERE') return;
   fetch(GAS_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'new_user',userEmail:u.email,userName:u.displayName||u.email})}).catch(()=>{});
+}
+function sendUpgradeRequestEmail(u){
+  if (!GAS_URL||GAS_URL==='PASTE_YOUR_GAS_URL_HERE') return;
+  fetch(GAS_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'upgrade_request',userEmail:u.email,userName:u.displayName||u.email})}).catch(()=>{});
 }
 function notifyAdminKicked(u,reason){
   if (!GAS_URL||GAS_URL==='PASTE_YOUR_GAS_URL_HERE') return;
@@ -228,7 +278,7 @@ async function fname(id){ try{return (await dget('/files/'+id,{fields:'name',sup
 async function listItems(folderId){
   let res=[],pt=null;
   do {
-    const p={q:"'"+folderId+"' in parents and trashed=false",pageSize:1000,fields:'nextPageToken,files(id,name,mimeType)',supportsAllDrives:true,includeItemsFromAllDrives:true};
+    const p={q:"'"+folderId+"' in parents and trashed=false",pageSize:1000,fields:'nextPageToken,files(id,name,mimeType,size)',supportsAllDrives:true,includeItemsFromAllDrives:true};
     if(pt) p.pageToken=pt;
     const r=await dget('/files',p); res.push(...(r.files||[])); pt=r.nextPageToken;
   } while(pt);
@@ -237,18 +287,21 @@ async function listItems(folderId){
 async function existNames(folderId){ return new Set((await listItems(folderId)).map(i=>i.name)); }
 async function copyFileSingle(fileId,destId){
   for(let i=0;i<4;i++){
-    await pausePoint(); if(stopFlag) return {ok:false,reason:'Đã dừng'};
-    try{await dpost('/files/'+fileId+'/copy',{parents:[destId]});return {ok:true};}
+    await pausePoint(); if(stopFlag) return {ok:false,reason:'Đã dừng',sizeMB:0};
+    try{
+      const resp=await dpost('/files/'+fileId+'/copy?fields=id,size&supportsAllDrives=true',{parents:[destId]});
+      return {ok:true,sizeMB:parseFloat(resp.size||0)/(1024*1024)};
+    }
     catch(e){
       if(isAuthExpiredErr(e)) throw e;
       const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
       if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*800);continue;}
-      if(c===403) return {ok:false,reason:'Không có quyền copy'};
-      if(c===404) return {ok:false,reason:'File không tìm thấy'};
-      return {ok:false,reason:e.message.slice(0,60)};
+      if(c===403) return {ok:false,reason:'Không có quyền copy',sizeMB:0};
+      if(c===404) return {ok:false,reason:'File không tìm thấy',sizeMB:0};
+      return {ok:false,reason:e.message.slice(0,60),sizeMB:0};
     }
   }
-  return {ok:false,reason:'Hết số lần thử'};
+  return {ok:false,reason:'Hết số lần thử',sizeMB:0};
 }
 async function mkFolder(name,parentId){
   const r=await dget('/files',{q:"'"+parentId+"' in parents and name='"+name.replace(/'/g,"\\'")+"' and mimeType='"+FMIME+"' and trashed=false",fields:'files(id)',supportsAllDrives:true,includeItemsFromAllDrives:true});
@@ -307,6 +360,7 @@ async function loadChecklist(srcId) {
     clItems = top.map(item => ({
       id: item.id, name: item.name,
       mimeType: item.mimeType,
+      size: item.size || 0,
       depth: 0,
       expanded: false,
       checked: true,
@@ -348,7 +402,6 @@ function getVisibleItems() {
 
 function buildClRow(item) {
   const isFolder = item.mimeType === FMIME;
-  const hasKids  = isFolder && item.children && item.children.length > 0;
   const indent   = item.depth * 20;
   const chkCls   = item.checked ? 'checked' : (item.indeterminate ? 'indeterminate' : '');
   const expandIco = isFolder
@@ -396,6 +449,7 @@ window.clToggleExpand = async (e, id) => {
       const children = await listItems(item.id);
       item.children = children.map(c => ({
         id:c.id, name:c.name, mimeType:c.mimeType,
+        size: c.size || 0,
         depth: item.depth+1, expanded:false,
         checked: item.checked, indeterminate:false,
         children: c.mimeType===FMIME ? null : [],
@@ -476,10 +530,7 @@ function getSelectedItems() {
   return clItems.filter(i => i.checked || i.indeterminate);
 }
 
-// ── GLOBAL PROGRESS COUNTERS (dynamic, no pre-count) ───────────
-// Instead of pre-scanning the whole tree to compute a denominator (slow),
-// the progress bar runs in "indeterminate" mode (animated, full-width sweep)
-// while items are processed, and only snaps to 100% when the run finishes.
+// ── GLOBAL PROGRESS COUNTERS (dynamic, no pre-scan) ───────────
 let progDone = 0;
 function progStart(){ progDone=0; setProgress(0,1, runMode==='scan'?'scanning':'running'); }
 function progInc(n){ progDone+=(n||1); setStatusCount(); }
@@ -535,19 +586,14 @@ async function startScan() {
   }
 }
 
-// How many "copy-test + delete" probes run in parallel, and how many
-// sibling folders are scanned concurrently. Higher = faster but more
-// load on the Drive API; these values balance speed and rate limits.
 const SCAN_FILE_CONCUR   = 8;
 const SCAN_FOLDER_CONCUR = 4;
 
-// Test whether a single file can be copied to destId (copy + immediately delete the test copy).
-// Throws on AUTH_EXPIRED so callers can stop the whole run.
 async function testFileCopy(item, destId){
   try{
     const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});
     await ddel(r.id);
-    return null; // no error
+    return null;
   } catch(e){
     if(isAuthExpiredErr(e)) throw e;
     const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
@@ -559,11 +605,9 @@ async function scanNodes(items, destId, path, depth, srcName) {
   const folderItems = items.filter(c=>c.mimeType===FMIME);
   const fileItems   = items.filter(c=>c.mimeType!==FMIME);
 
-  // Scan files (and shortcuts) in parallel batches
   const fileNodes = await scanFileNodes(fileItems, destId, path, depth, srcName);
   if(stopFlag) return [...fileNodes];
 
-  // Scan folders with limited concurrency
   const folderNodes = new Array(folderItems.length);
   let idx=0;
   async function worker(){
@@ -627,8 +671,6 @@ async function scanFileNodes(items,destId,path,depth,srcName){
 function cntErr(nodes){ let c=0; for(const n of nodes){if(n.error)c++;if(n.children?.length)c+=cntErr(n.children);} return c; }
 function hasErr(node){ if(node.error)return true; return (node.children||[]).some(hasErr); }
 
-// Split a scanned tree into two separate trees: nodes/branches that are fully OK,
-// and nodes/branches that contain at least one error (pruned to only the error-relevant parts).
 function splitScanTree(nodes){
   const okNodes=[], errNodes=[];
   for(const n of nodes){
@@ -638,9 +680,7 @@ function splitScanTree(nodes){
       if(!folderHasErr){
         okNodes.push({...n, children: childSplit.okNodes});
       } else {
-        // Build an error-branch copy: include this folder, but only its error-relevant children
         errNodes.push({...n, children: childSplit.errNodes});
-        // Any OK siblings under this folder are still fine on their own -> still show under OK tree
         if(childSplit.okNodes.length){
           okNodes.push({...n, error:null, children: childSplit.okNodes, _partial:true});
         }
@@ -663,14 +703,12 @@ function renderScanResult(tree,totalErr){
   const {okNodes, errNodes} = splitScanTree(tree);
   const okCount  = countTreeNodes(okNodes);
 
-  // ── Error card ──
   const errAllPaths=new Set();
   function epErr(nodes){nodes.forEach(n=>{if(n.type==='folder'){errAllPaths.add(n.path);epErr(n.children||[]);}}); }
   epErr(errNodes);
 
   let html = '<div class="tree-wrap"><div class="tree-head err-head"><span style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:7px"><svg class="ic16" style="color:var(--red)"><use href="#ic-warn"/></svg>'+totalErr+' mục bị lỗi quyền</span><span style="font-size:11px;font-weight:700;background:var(--red);color:#fff;padding:2px 8px;border-radius:999px">'+totalErr+'</span></div><div class="tree-body" id="scanErrTreeBody"></div><div class="tree-note"><svg class="ic" style="color:var(--text3);margin-right:4px"><use href="#ic-info"/></svg>Vào Drive nguồn → chuột phải → <b>Chia sẻ</b> → thêm email bạn quyền <b>Người chỉnh sửa</b></div></div>';
 
-  // ── OK card (if there are any fully-copyable items) ──
   if (okCount>0){
     const okAllPaths=new Set();
     function epOk(nodes){nodes.forEach(n=>{if(n.type==='folder'){okAllPaths.add(n.path);epOk(n.children||[]);}}); }
@@ -705,7 +743,6 @@ function isVideoItem(item){
   if (item.name && VIDEO_EXT.test(item.name)) return true;
   return false;
 }
-// Recursively count video files among a (possibly checklist-filtered) top-level item list
 async function countVideoFiles(items, clFilterChildren){
   let count=0;
   let workItems=items;
@@ -739,23 +776,20 @@ window.confirmVidWarn=()=>{
 };
 
 // ── COPY ─────────────────────────────────────────────────────
-// Video warning is now resolved live during the actual copy run (see videoGate below)
-// instead of via a separate full-tree pre-scan, which was the main cause of the long
-// lag and inconsistent "có lúc không" behaviour when starting a copy right after a scan.
-let _videoWarnShown = false;   // shown once per run
-let _videoWarnResolve = null;  // resolves when user confirms the modal
-let _videoSeenCount = 0;       // running tally of video files encountered this run
+let _videoWarnShown = false;
+let _videoWarnResolve = null;
+let _videoSeenCount = 0;
 
 window.startCopy = async (isResume) => {
   if (!gToken){ showNoAuth('Chưa cấp quyền Drive!','Bạn cần cấp quyền truy cập Google Drive trước khi sao chép.'); return; }
   const sv=document.getElementById('srcInput').value.trim();
   const dv=document.getElementById('destInput').value.trim();
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
+  // Kiểm tra giới hạn free trước khi copy (bỏ qua khi resume vì đã kiểm tra trước đó)
+  if (!isResume && !(await checkFreeLimit())) return;
   await _runCopyInternal(isResume);
 };
 
-// Called right before copying a video file. Shows the warning modal (once per run)
-// and waits for confirmation, unless the user has opted out via "Không hiển thị lại".
 function videoGate(item){
   _videoSeenCount++;
   if (localStorage.getItem(VIDWARN_KEY)==='1') return Promise.resolve();
@@ -775,7 +809,7 @@ async function _runCopyInternal(isResume) {
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
   stopFlag=false; pauseFlag=false; runMode='copy'; _authExpiredHandled=false;
-  if (!isResume) stats=ns();
+  if (!isResume){ stats=ns(); _sessionCopiedMB=0; }
   document.getElementById('logBox').innerHTML='';
   document.getElementById('scanResult').style.display='none';
   document.getElementById('statsRow').style.display='grid';
@@ -803,15 +837,25 @@ async function _runCopyInternal(isResume) {
 
     if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
 
-    // Track video count for the completion summary (best-effort, doesn't block on failure)
-    try { videoCountForCompletion = await countVideoFiles(top, clFilter); } catch(e){ if(isAuthExpiredErr(e)) throw e; videoCountForCompletion=0; }
-    if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
+    // Cảnh báo video cho user free (chỉ tìm top-level để nhanh)
+    if (gUserData?.plan==='free') {
+      const hasTopVideo = top.some(i => isVideoItem(i));
+      if (hasTopVideo) {
+        addLog('⚠ Phát hiện video — gói miễn phí sẽ bỏ qua file video','warn');
+        toast('Gói miễn phí bỏ qua video. Nâng cấp để copy toàn bộ','warn');
+      }
+    }
+
+    // Track video count for completion summary (chỉ cho paid users)
+    if (gUserData?.plan !== 'free') {
+      try { videoCountForCompletion = await countVideoFiles(top, clFilter); } catch(e){ if(isAuthExpiredErr(e)) throw e; videoCountForCompletion=0; }
+      if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
+    }
 
     addLog((isResume?'Tiếp tục sao chép':'Bắt đầu sao chép')+' ('+CONCUR+' luồng song song)...','info');
 
     const dex=await existNames(destId);
 
-    // Split top-level items into folders and files; run both with bounded concurrency.
     const topFolders=top.filter(i=>i.mimeType===FMIME);
     const topFiles  =top.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME);
 
@@ -822,9 +866,13 @@ async function _runCopyInternal(isResume) {
       await Promise.all(batch.map(async item=>{
         if(stopFlag) return; await pausePoint();
         if (dex.has(item.name)){addLog('Đã có: '+item.name,'skip');progInc();return;}
+        // Bỏ qua video cho free user
+        if(gUserData?.plan==='free'&&isVideoItem(item)){
+          addLog('Bỏ qua video (miễn phí): '+item.name,'skip'); progInc(); return;
+        }
         const res=await copyFileSingle(item.id,destId);
         const node={name:item.name,path:item.name,type:'file',depth:0,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-        if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
+        if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);}
         else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
         updStats(); saveSession();
         progInc(); setStatus('('+progDone+' mục) '+item.name);
@@ -866,7 +914,10 @@ async function _runCopyInternal(isResume) {
     if (!stopFlag){
       setStatus('Hoàn thành '+elapsed+'s');
       clearSession();
-      await saveHist(srcId,sn,destId,dn,elapsed);
+      // Lưu lịch sử chỉ cho paid user
+      if (gUserData?.plan !== 'free') await saveHist(srcId,sn,destId,dn,elapsed);
+      // Cộng dồn MB đã dùng cho free user
+      if (gUserData?.plan === 'free') await updateFreeUsedMB();
       showComplModal(elapsed, videoCountForCompletion);
     }
     else if(!_authExpiredHandled) setStatus('Đã dừng sao chép');
@@ -892,16 +943,19 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
     await Promise.all(files.slice(i,i+CONCUR).map(async item=>{
       if(stopFlag)return; await pausePoint();
       const fp=path?path+' > '+item.name:item.name;
+      // Bỏ qua video cho free user
+      if(gUserData?.plan==='free'&&isVideoItem(item)){
+        addLog('Bỏ qua video (miễn phí): '+item.name,'skip'); progInc(); return;
+      }
       const res=await copyFileSingle(item.id,destId);
       const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
+      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);}
       else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
       parentChildren.push(node); updStats(); saveSession();
       progInc(); setStatus('('+progDone+' mục) '+item.name);
     }));
   }
   if(stopFlag||!folders.length) return;
-  // Process sibling folders with bounded concurrency
   let idx=0;
   async function worker(){
     while(true){
@@ -923,7 +977,6 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
   await Promise.all(workers);
 }
 
-// Copy with checklist filter (for partially selected folders)
 async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem){
   await pausePoint(); if(stopFlag)return;
   const items=await listItems(srcId);
@@ -939,9 +992,13 @@ async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem
     await Promise.all(files.slice(i,i+CONCUR).map(async item=>{
       if(stopFlag)return; await pausePoint();
       const fp=path?path+' > '+item.name:item.name;
+      // Bỏ qua video cho free user
+      if(gUserData?.plan==='free'&&isVideoItem(item)){
+        addLog('Bỏ qua video (miễn phí): '+item.name,'skip'); progInc(); return;
+      }
       const res=await copyFileSingle(item.id,destId);
       const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');}
+      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);}
       else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
       parentChildren.push(node); updStats(); saveSession();
       progInc(); setStatus('('+progDone+' mục) '+item.name);
@@ -1016,7 +1073,6 @@ function checkResume(){
   const b=document.getElementById('resumeBanner');b.style.display='flex';
   document.getElementById('srcInput').value=s.sv||'';
   document.getElementById('destInput').value=s.dv||'';
-  // Trigger folder name preview for restored links
   if(s.sv) window.onInputChange('src');
   if(s.dv) window.onInputChange('dest');
 }
@@ -1071,6 +1127,131 @@ window.openModal=(type)=>{
   document.getElementById('modalOv').classList.add('on');
 };
 window.closeModal=()=>document.getElementById('modalOv').classList.remove('on');
+
+// ── FREE PLAN HELPERS ─────────────────────────────────────────
+function updateFreeBanner() {
+  const banner = document.getElementById('freeBanner');
+  if (!banner) return;
+  if (!gUserData || gUserData.plan !== 'free') {
+    banner.style.display = 'none';
+    return;
+  }
+  const usedMB = gUserData.freeUsedMB || 0;
+  const remainMB = Math.max(0, FREE_MB_LIMIT - usedMB).toFixed(0);
+  const resetAt = gUserData.freeResetAt?.toMillis ? gUserData.freeResetAt.toMillis() : Date.now();
+  const resetTime = new Date(resetAt + FREE_RESET_MS);
+  const resetStr = resetTime.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+  const el1 = document.getElementById('freeBannerMB');
+  const el2 = document.getElementById('freeBannerTimer');
+  if (el1) el1.textContent = remainMB;
+  if (el2) el2.textContent = resetStr;
+  banner.style.display = 'flex';
+}
+
+async function checkFreeLimit() {
+  if (!gUserData || gUserData.plan !== 'free') return true;
+  const now = Date.now();
+  const resetAt = gUserData.freeResetAt?.toMillis ? gUserData.freeResetAt.toMillis() : 0;
+  // Auto-reset nếu đã qua 5 giờ kể từ lần reset cuối
+  if (now - resetAt > FREE_RESET_MS) {
+    try {
+      await updateDoc(doc(db,'users',gUser.uid), {freeUsedMB:0, freeResetAt:serverTimestamp()});
+      gUserData.freeUsedMB = 0;
+      gUserData.freeResetAt = { toMillis: () => Date.now() };
+      updateFreeBanner();
+    } catch(e) { console.warn('checkFreeLimit reset', e); }
+    return true;
+  }
+  if ((gUserData.freeUsedMB || 0) >= FREE_MB_LIMIT) {
+    showFreeLimitModal();
+    return false;
+  }
+  return true;
+}
+
+async function updateFreeUsedMB() {
+  if (!gUserData || gUserData.plan !== 'free' || !gUser) return;
+  const newUsed = (gUserData.freeUsedMB || 0) + _sessionCopiedMB;
+  try {
+    await updateDoc(doc(db,'users',gUser.uid), {freeUsedMB: newUsed});
+    gUserData.freeUsedMB = newUsed;
+    updateFreeBanner();
+  } catch(e) { console.warn('updateFreeUsedMB', e); }
+}
+
+// Mở paymentModal cho user chưa đăng nhập (từ startModal)
+window.openPaymentForNew = () => {
+  const loginBtn    = document.getElementById('paymentLoginBtn');
+  const upgradeBtn  = document.getElementById('paymentUpgradeBtn');
+  if (loginBtn)   loginBtn.style.display   = 'block';
+  if (upgradeBtn) upgradeBtn.style.display = 'none';
+  document.getElementById('startModal')?.classList.remove('active');
+  document.getElementById('paymentModal')?.classList.add('active');
+};
+
+// Mở paymentModal cho free user muốn nâng cấp
+window.openUpgradeModal = () => {
+  const loginBtn    = document.getElementById('paymentLoginBtn');
+  const upgradeBtn  = document.getElementById('paymentUpgradeBtn');
+  if (loginBtn)   loginBtn.style.display   = 'none';
+  if (upgradeBtn) upgradeBtn.style.display = 'block';
+  document.getElementById('paymentModal')?.classList.add('active');
+};
+
+window.openUpgradeFromLimit = () => {
+  window.closeFreeLimitModal();
+  window.openUpgradeModal();
+};
+
+// Gửi yêu cầu nâng cấp (từ free user đã đăng nhập)
+window.doUpgradeRequest = async () => {
+  if (!gUserData || !gUser) return;
+  document.getElementById('paymentModal')?.classList.remove('active');
+  if (gUserData.upgradeRequestedAt) {
+    toast('Yêu cầu nâng cấp đã được gửi, admin đang xử lý','info');
+    return;
+  }
+  try {
+    await updateDoc(doc(db,'users',gUser.uid), {upgradeRequestedAt: serverTimestamp()});
+    gUserData.upgradeRequestedAt = { toMillis: () => Date.now() };
+    sendUpgradeRequestEmail(gUser);
+    toast('Đã gửi yêu cầu nâng cấp! Admin sẽ kích hoạt sau khi xác nhận thanh toán','ok');
+  } catch(e) { toast('Lỗi: '+e.message,'err'); }
+};
+
+function showFreeLimitModal() {
+  const modal = document.getElementById('freeLimitModal');
+  if (!modal) return;
+  updateFreeLimitCountdown();
+  modal.classList.add('active');
+  if (_freeLimitTimer) clearInterval(_freeLimitTimer);
+  _freeLimitTimer = setInterval(updateFreeLimitCountdown, 1000);
+}
+
+window.closeFreeLimitModal = () => {
+  const modal = document.getElementById('freeLimitModal');
+  if (modal) modal.classList.remove('active');
+  if (_freeLimitTimer) { clearInterval(_freeLimitTimer); _freeLimitTimer = null; }
+};
+
+function updateFreeLimitCountdown() {
+  if (!gUserData) return;
+  const resetAt = gUserData.freeResetAt?.toMillis ? gUserData.freeResetAt.toMillis() : Date.now();
+  const remaining = Math.max(0, resetAt + FREE_RESET_MS - Date.now());
+  const h = Math.floor(remaining / 3600000);
+  const m = Math.floor((remaining % 3600000) / 60000);
+  const s = Math.floor((remaining % 60000) / 1000);
+  const el = document.getElementById('freeLimitCountdown');
+  if (el) el.textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const elMB = document.getElementById('freeLimitUsedMB');
+  if (elMB) elMB.textContent = Math.round(gUserData.freeUsedMB||0);
+  if (remaining === 0) {
+    window.closeFreeLimitModal();
+    gUserData.freeUsedMB = 0;
+    updateFreeBanner();
+    toast('Đã hết thời gian chờ — bạn có thể sao chép tiếp!','ok');
+  }
+}
 
 // ── UI HELPERS ───────────────────────────────────────────────
 function sec(name, _noPush){
