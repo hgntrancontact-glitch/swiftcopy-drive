@@ -186,6 +186,7 @@ onAuthStateChanged(auth, async u => {
     const approved = isAdmin || await checkApproval(u);
     setNavUser(u);
     if (approved){ sec('app'); checkResume(); updateFreeBanner(); }
+    else if (gUserData?.status === 'kicked'){ await signOut(auth); }
     else sec('pend');
   } catch(e){ setNavUser(u); sec('pend'); }
 });
@@ -231,7 +232,7 @@ function _gasPost(payload){
   fetch(GAS_URL,{method:'POST',mode:'no-cors',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).catch(()=>{});
 }
 function sendRegEmail(u){
-  _gasPost({type:'new_user',userEmail:u.email,userName:u.displayName||u.email});
+  _gasPost({type:'new_registration',userEmail:u.email,userName:u.displayName||u.email,plan:'free'});
 }
 function sendUpgradeRequestEmail(u){
   _gasPost({type:'upgrade_request',userEmail:u.email,userName:u.displayName||u.email});

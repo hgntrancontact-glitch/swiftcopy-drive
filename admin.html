@@ -431,7 +431,7 @@ window.approveUser = async (uid, email, name) => {
       approved:true, status:'approved', approvedAt:serverTimestamp()
     });
     toast('✓ Đã kích hoạt!','ok');
-    await callGAS({ type: 'approve', toEmail: email, userName: name, siteUrl: SITE_URL });
+    await callGAS({ type: 'account_approved', toEmail: email, userName: name, siteUrl: SITE_URL });
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi: '+e.message,'err'); btns.forEach(b=>b.disabled=false); }
 };
@@ -468,7 +468,7 @@ window.doKick = async () => {
       kickReason:reason, kickedAt:serverTimestamp()
     });
     toast('✓ Đã kick người dùng','ok');
-    await callGAS({ type: 'kick', toEmail: _kickEmail, userName: _kickName, reason, siteUrl: SITE_URL });
+    await callGAS({ type: 'account_kicked', toEmail: _kickEmail, userName: _kickName, reason, siteUrl: SITE_URL });
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };
