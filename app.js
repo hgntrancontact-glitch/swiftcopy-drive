@@ -47,6 +47,7 @@ let _resumeAfterReauth = null; // 'copy' if a copy run was interrupted by token 
 // Free quota tracking
 let _sessionCopiedMB = 0;      // MB copied in current copy session
 let _freeLimitTimer = null;    // countdown interval for free limit modal
+let _kickPollTimer  = null;    // 30s interval to detect kick while in dashboard
 
 function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[] }; }
 
@@ -118,6 +119,29 @@ window.doReset = () => {
 
 // ── AUTH ─────────────────────────────────────────────────────
 // Đăng nhập gói Miễn phí — tự approved không cần admin duyệt
+window.doLogin = async () => {
+  _pendingPlan = 'free';
+  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+  try {
+    const res = await signInWithPopup(auth, provider);
+    gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
+  } catch(e) { toast('Đăng nhập thất bại','err'); }
+};
+window.openLoginModal = () => {
+  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+  document.getElementById('loginModal')?.classList.add('active');
+};
+window.openRegisterModal = () => {
+  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+  const s1=document.getElementById('registerStep1'), s2=document.getElementById('registerStep2');
+  if (s1) s1.style.display='block';
+  if (s2) s2.style.display='none';
+  document.getElementById('startModal')?.classList.add('active');
+};
+window.showRegisterStep2 = () => {
+  document.getElementById('registerStep1')?.style.display='none';
+  document.getElementById('registerStep2')?.style.display='block';
+};
 window.doLoginFree = async () => {
   _pendingPlan = 'free';
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
@@ -178,18 +202,42 @@ function handleAuthExpired(){
 }
 
 onAuthStateChanged(auth, async u => {
-  if (!u){ gUser=null; gToken=null; gUserData=null; sec('land'); return; }
+  if (!u){
+    gUser=null; gToken=null; gUserData=null;
+    if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
+    sec('land'); return;
+  }
   gUser=u; sec('check');
   try {
     const isAdmin = u.email===ADMIN_EMAIL;
     if (!isAdmin) await ensureUser(u);
     const approved = isAdmin || await checkApproval(u);
     setNavUser(u);
-    if (approved){ sec('app'); checkResume(); updateFreeBanner(); }
+    if (approved){
+      sec('app'); checkResume(); updateFreeBanner();
+      if (!isAdmin){
+        if (_kickPollTimer) clearInterval(_kickPollTimer);
+        _kickPollTimer = setInterval(pollKickStatus, 30000);
+      }
+    }
     else if (gUserData?.status === 'kicked'){ await signOut(auth); }
     else sec('pend');
   } catch(e){ setNavUser(u); sec('pend'); }
 });
+
+async function pollKickStatus(){
+  if (!gUser) return;
+  try {
+    const snap = await getDoc(doc(db,'users',gUser.uid));
+    if (!snap.exists() || snap.data().status !== 'approved' || !snap.data().approved){
+      if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
+      stopFlag=true; pauseFlag=false;
+      if (_resumeResolve){ _resumeResolve(); _resumeResolve=null; }
+      toast('Tài khoản đã bị thu hồi quyền truy cập','err');
+      await signOut(auth);
+    }
+  } catch(e){ console.warn('pollKickStatus',e); }
+}
 
 async function ensureUser(u){
   const ref=doc(db,'users',u.uid), snap=await getDoc(ref);
@@ -224,6 +272,13 @@ async function checkApproval(u){
   if (!snap.exists()) return false;
   const d=snap.data();
   gUserData = { id: u.uid, ...d };
+  // Migration: old free users may not have freeUsedMB / freeResetAt
+  if (d.plan==='free' && d.approved && (d.freeUsedMB===undefined || !d.freeResetAt)){
+    const upd={};
+    if (d.freeUsedMB===undefined){ upd.freeUsedMB=0; gUserData.freeUsedMB=0; }
+    if (!d.freeResetAt){ upd.freeResetAt=serverTimestamp(); gUserData.freeResetAt={toMillis:()=>Date.now()}; }
+    try{ await updateDoc(doc(db,'users',u.uid),upd); }catch(e){ console.warn('migration',e); }
+  }
   return d.status!=='kicked'&&d.approved===true;
 }
 
@@ -499,11 +554,35 @@ function findClItem(id) {
   return search(clItems);
 }
 
+function calcSelectedBytes(){
+  let total=0;
+  function walk(items){ for(const item of items){ if(item.mimeType!==FMIME&&(item.checked||item.indeterminate)) total+=parseFloat(item.size||0); if(item.children) walk(item.children); } }
+  walk(clItems); return total;
+}
+
 function updateClInfo() {
   const total    = clItems.length;
   const selected = clItems.filter(i => i.checked || i.indeterminate).length;
   document.getElementById('clTotal').textContent    = total;
   document.getElementById('clSelected').textContent = selected;
+
+  const sizeEl = document.getElementById('clSizeInfo');
+  if (!sizeEl) return;
+  if (!clLoaded || !total){ sizeEl.style.display='none'; return; }
+  sizeEl.style.display = 'block';
+  const mb = calcSelectedBytes() / (1024*1024);
+  const sizeStr = mb>=1024 ? (mb/1024).toFixed(2)+' GB' : mb.toFixed(0)+' MB';
+  if (gUserData?.plan==='free'){
+    const remainMB = Math.max(0, FREE_MB_LIMIT-(gUserData.freeUsedMB||0));
+    if (mb > remainMB){
+      const over = Math.ceil(mb-remainMB);
+      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b> &nbsp;<span style="color:#e67700;font-weight:700;">⚠ Vượt ${over}MB còn lại — <a href="#" onclick="openUpgradeModal();return false;" style="color:#d97706;text-decoration:underline">Nâng cấp gói</a></span>`;
+    } else {
+      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b> <span style="color:#adb5bd;">(còn ${Math.round(remainMB)}MB / 500MB)</span>`;
+    }
+  } else {
+    sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>`;
+  }
 }
 
 window.clSelectAll   = () => { clItems.forEach(i=>setItemCheck(i,true));  updateClInfo(); renderChecklist(); };

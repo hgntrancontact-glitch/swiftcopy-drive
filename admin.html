@@ -263,7 +263,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query,
-         orderBy, getDocs, updateDoc, serverTimestamp }
+         orderBy, getDocs, updateDoc, deleteDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
@@ -373,11 +373,13 @@ function renderUsers(filter){
 
     // Actions
     let actions = '';
+    const deleteBtn = `<button class="act-btn" style="background:#fff5f5;color:#fa5252;border:1px solid #ffe3e3;" onclick="confirmDeleteUser('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">🗑 Xóa</button>`;
     if (u.status==='kicked'){
       actions = `<div class="act-row">
         <button class="act-btn act-readd" onclick="openReaddModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
           <svg class="ic"><use href="#ic-plus"/></svg> Thêm lại
         </button>
+        ${deleteBtn}
       </div>`;
     } else if (u.approved){
       const upgradeBtn = (u.upgradeRequestedAt && u.plan!=='paid')
@@ -390,6 +392,7 @@ function renderUsers(filter){
         <button class="act-btn act-kick" onclick="openKickModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
           <svg class="ic"><use href="#ic-ban"/></svg> Kick
         </button>
+        ${deleteBtn}
       </div>`;
     } else {
       actions = `<div class="act-row">
@@ -399,6 +402,7 @@ function renderUsers(filter){
         <button class="act-btn act-kick" onclick="openKickModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
           <svg class="ic"><use href="#ic-ban"/></svg> Kick
         </button>
+        ${deleteBtn}
       </div>`;
     }
 
@@ -419,6 +423,18 @@ function renderUsers(filter){
 }
 
 function esc(s){ return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+window.confirmDeleteUser = (uid, email, name) => {
+  if (!confirm(`Xóa vĩnh viễn tài khoản "${name}" (${email})?\n\nHành động này KHÔNG THỂ hoàn tác.`)) return;
+  deleteUserById(uid, email);
+};
+async function deleteUserById(uid, email){
+  try {
+    await deleteDoc(doc(db,'users',uid));
+    toast(`✓ Đã xóa ${email}`,'ok');
+    await loadUsers(); await loadStats();
+  } catch(e){ toast('Lỗi xóa user: '+e.message,'err'); }
+}
 
 window.filterUsers = f => renderUsers(f);
 
