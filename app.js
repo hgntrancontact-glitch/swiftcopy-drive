@@ -14,7 +14,7 @@ const firebaseConfig = {
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
 const ADMIN_EMAIL = "hgntran.contact@gmail.com";
-const GAS_URL = 'PASTE_YOUR_GAS_URL_HERE'; // ← dán URL Google Apps Script sau khi deploy gas-email.js
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr_OJrX-kvV085UeOBQLPmOVnaZjWfrfAv8jCS2P7rV0ND7z8X6N_OQXRpn9r37C6LYA/exec'; // ← dán URL Google Apps Script sau khi deploy gas-email.js
 
 // Free plan limits
 const FREE_MB_LIMIT = 500;
