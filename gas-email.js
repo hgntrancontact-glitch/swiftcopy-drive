@@ -37,13 +37,13 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
 
     switch (data.type) {
-      case 'new_user':         handleNewUser(data);        break;
-      case 'kick_alert':       handleKickAlert(data);      break;
-      case 'approve':          handleApprove(data);        break;
-      case 'kick':             handleKick(data);           break;
-      case 'readd':            handleReadd(data);          break;
-      case 'upgrade_request':  handleUpgradeRequest(data); break;
-      case 'upgrade_approved': handleUpgradeApproved(data);break;
+      case 'new_registration':  handleNewUser(data);        break;
+      case 'kick_alert':        handleKickAlert(data);      break;
+      case 'account_approved':  handleApprove(data);        break;
+      case 'account_kicked':    handleKick(data);           break;
+      case 'account_readded':   handleReadd(data);          break;
+      case 'upgrade_request':   handleUpgradeRequest(data); break;
+      case 'upgrade_approved':  handleUpgradeApproved(data);break;
       default:
         throw new Error('Unknown type: ' + data.type);
     }
