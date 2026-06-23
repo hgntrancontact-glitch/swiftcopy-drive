@@ -254,4 +254,4 @@
         .feedback-area { margin-top: 1rem; }
         .feedback-area.hidden { display: none; }
 
-        #s-land, #s-check, #s-pend, #s-app { display:none; }
+        #s-land, #s-check, #s-pend, #s-app, #s-kicked { display:none; }
