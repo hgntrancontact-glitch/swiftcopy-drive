@@ -507,7 +507,7 @@ window.doReadd = async () => {
       readdedAt:serverTimestamp(), readdNote:note||''
     });
     toast('✓ Đã thêm lại người dùng','ok');
-    await callGAS({ type: 'readd', toEmail: _readdEmail, userName: _readdName, note, siteUrl: SITE_URL });
+    await callGAS({ type: 'account_readded', toEmail: _readdEmail, userName: _readdName, note, siteUrl: SITE_URL });
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };
