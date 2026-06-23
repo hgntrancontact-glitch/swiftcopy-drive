@@ -41,6 +41,8 @@ SwiftCopy.Drive/
 │   ├── dieu-khoan.txt  ← Nội dung "Điều khoản sử dụng" (plain text)
 │   ├── bao-mat.txt     ← Nội dung "Chính sách bảo mật" (plain text)
 │   └── hoan-tien.txt   ← Nội dung "Chính sách hoàn tiền" (plain text)
+├── api/
+│   └── email.js        ← Vercel serverless function — proxy email từ browser đến GAS (GAS_URL ẩn)
 ├── gas-email.js        ← Code Google Apps Script — deploy lên script.google.com để gửi email
 ├── vercel.json         ← Rewrite rules: /copy-drive → index.html; 3 legal routes → legal.html
 ├── zalo-qr.png         ← Ảnh QR Zalo hỗ trợ (400×400px, đã crop sạch)
@@ -99,28 +101,36 @@ Nhóm hàm chính:
 
 ---
 
-## Email system — Google Apps Script
+## Email system — Google Apps Script + Vercel Proxy
 
-Email được gửi qua GAS Web App (không còn dùng EmailJS). Endpoint là URL bí mật từ script.google.com.
+**Luồng gửi email:** Browser → `POST /api/email` (Vercel serverless) → `GAS_URL` (env var bí mật) → Google Apps Script → GmailApp.sendEmail
+
+**Tại sao có Vercel proxy (`api/email.js`):**
+- GAS_URL là bí mật, không được để lộ ra browser hay commit lên GitHub
+- Vercel function đọc `GAS_URL` từ environment variable, browser chỉ biết endpoint `/api/email`
+- Nếu `GAS_URL` chưa set, function trả `{ ok: true }` im lặng (không crash)
 
 **File GAS:** `gas-email.js` — dán vào https://script.google.com → Deploy → New deployment → Web app (Execute as: Me, Who has access: Anyone).
 
 **Cập nhật GAS_URL khi đổi endpoint:**
-- Trong `app.js`: sửa `const GAS_URL = '...'` ở đầu file (dòng 17)
-- Trong `admin.html`: sửa `const GAS_URL = '...'` trong `<script type="module">` (khoảng dòng 275)
-- Hai file phải dùng cùng một GAS_URL
-- **KHÔNG commit GAS_URL lên GitHub** — URL là bí mật (hoạt động như API key)
+- Vào **Vercel Dashboard** → Project → Settings → Environment Variables → sửa `GAS_URL`
+- Sau khi sửa env var: **phải Redeploy** (Deployments → latest → "..." → Redeploy) — env var mới không tự áp dụng cho deployment cũ
+- **KHÔNG** lưu GAS_URL trong `app.js`, `admin.html`, hay bất kỳ file nào commit lên GitHub
 
-**7 loại email GAS xử lý:**
+**⚠️ Bẫy hay gặp:** Thêm env var vào Vercel xong nhưng quên Redeploy → email vẫn không gửi được dù config đúng.
+
+**7 loại email GAS xử lý (type string phải khớp chính xác):**
 | type | Người nhận | Khi nào |
 |---|---|---|
-| `new_user` | Admin | User lần đầu đăng ký (free — tự approved) |
+| `new_registration` | Admin | User lần đầu đăng ký (free — tự approved) |
 | `kick_alert` | Admin | User bị kick đang cố đăng nhập lại |
-| `approve` | User | Admin bấm "Kích hoạt" (duyệt tài khoản mới pending) |
-| `kick` | User | Admin bấm "Kick" |
-| `readd` | User | Admin bấm "Thêm lại" |
+| `account_approved` | User | Admin bấm "Kích hoạt" (duyệt tài khoản mới pending) |
+| `account_kicked` | User | Admin bấm "Kick" |
+| `account_readded` | User | Admin bấm "Thêm lại" |
 | `upgrade_request` | Admin | Free user bấm "Tôi đã thanh toán" trong paymentModal |
 | `upgrade_approved` | User | Admin bấm "Duyệt nâng cấp" trong admin.html |
+
+**SITE_URL trong email:** `admin.html` khai báo `const SITE_URL = "https://swiftcopydrive.com"` và truyền qua payload `siteUrl`. GAS dùng `data.siteUrl || SITE_URL` (SITE_URL trong GAS chỉ là fallback).
 
 ---
 
@@ -224,13 +234,16 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Tràn ngang layout**: Grid item thiếu `min-w-0`. Luôn thêm `min-w-0` vào grid children.
 - **Animation Preview Dashboard lag khi mở modal**: fix bằng `anyModalOpen()` check trong `tick()`, và STEP_MS=250 (không để 90).
 - **Stats hiển thị dữ liệu phiên cũ sau Reset**: fix bằng gọi `updStats()` ngay sau `stats=ns()` trong `doReset()` và đầu `startScan()`.
+- **Email không gửi được dù GAS_URL đã set trong Vercel**: env var mới không áp dụng cho deployment cũ — phải Redeploy thủ công sau khi thêm/sửa env var. Kiểm tra bằng GAS "Nhật ký thực thi": nếu không có log mới → Vercel chưa reach GAS → chưa Redeploy.
 
 ---
 
 ## Trạng thái hiện tại (để tiếp tục đúng chỗ)
 
-- **Đang deploy**: Vercel — domain tạm thời là URL Vercel, sắp mua domain .com
-- **CI/CD**: Vercel tự động deploy khi push lên GitHub (repo vẫn giữ nguyên)
+- **Đang deploy**: Vercel (`swiftcopydrive.vercel.app`) — sắp mua domain `swiftcopydrive.com`
+- **CI/CD**: Vercel tự động deploy khi push lên GitHub
+- **Email system**: ĐÃ hoạt động — `GAS_URL` lưu trong Vercel env var, proxy qua `api/email.js`, confirmed working (kick/readd/approve/upgrade đều gửi được)
+- **SITE_URL trong email**: đã set `https://swiftcopydrive.com` trong `admin.html` — khi mua domain xong chỉ cần trỏ domain về Vercel, không cần sửa code
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
 - **Free/Paid system**: ĐÃ implement — Free tự approved, Paid qua admin duyệt, 500MB/5h limit
 - **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html (user báo đã chuyển → admin kiểm tra → bấm "Duyệt nâng cấp")
