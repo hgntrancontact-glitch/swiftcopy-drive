@@ -48,10 +48,11 @@ SwiftCopy.Drive/
 ├── gas-email.js        ← Code Google Apps Script — deploy lên script.google.com để gửi email
 ├── vercel.json         ← Rewrite rules: /copy-drive → index.html; 3 legal routes → legal.html
 ├── zalo-qr.png         ← Ảnh QR Zalo hỗ trợ (400×400px, đã crop sạch)
+├── og-image.png        ← Open Graph image 1200×630px — tạo bằng Python Pillow (gen script lưu ở scratchpad Claude, không commit vào repo)
 ├── favicon.svg         ← Logo SVG gốc
 ├── favicon-32.png      ← Favicon 32×32
 ├── favicon.ico         ← Favicon multi-size
-├── apple-touch-icon.png ← Icon iOS 180×180
+├── apple-touch-icon.png ← Icon iOS 180×180 — cũng dùng làm logo badge trong og-image.png
 └── CLAUDE.md           ← File này
 ```
 
@@ -429,6 +430,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"
 - **Review/FAQ**: dữ liệu tĩnh trong JS, chưa nối Firestore thật
 - **zalo-qr.png**: ảnh thật (đã crop), phải nằm cùng thư mục với index.html khi deploy
+- **og-image.png**: 1200×630px Open Graph image — tạo bằng Python Pillow, logo badge dùng `apple-touch-icon.png` thật (paste trực tiếp, không vẽ lại). Nếu cần tái tạo: yêu cầu Claude Code chạy lại gen script (lưu trong scratchpad phiên làm việc). OG tags trong `index.html` trỏ đến `og-image.png?v=N` với `?v=N` để bust cache Zalo/Facebook — tăng N mỗi lần cập nhật ảnh.
 
 ---
 
