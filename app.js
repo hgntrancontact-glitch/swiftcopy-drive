@@ -461,7 +461,7 @@ async function fname(id){ try{return (await dget('/files/'+id,{fields:'name',sup
 async function listItems(folderId){
   let res=[],pt=null;
   do {
-    const p={q:"'"+folderId+"' in parents and trashed=false",pageSize:1000,fields:'nextPageToken,files(id,name,mimeType,size)',supportsAllDrives:true,includeItemsFromAllDrives:true};
+    const p={q:"'"+folderId+"' in parents and trashed=false",pageSize:1000,fields:'nextPageToken,files(id,name,mimeType,size)',orderBy:'folder,name',supportsAllDrives:true,includeItemsFromAllDrives:true};
     if(pt) p.pageToken=pt;
     const r=await dget('/files',p); res.push(...(r.files||[])); pt=r.nextPageToken;
   } while(pt);
@@ -501,6 +501,11 @@ window.onInputChange = async (which) => {
   const el  = document.getElementById(previewId);
 
   clearTimeout(_previewTimers[which]);
+  // Reset checklist immediately when src input changes (before debounce resolves)
+  if (which === 'src') {
+    clItems = []; clLoaded = false;
+    document.getElementById('checklistWrap').style.display = 'none';
+  }
   if (!val){ el.style.display='none'; return; }
 
   // Show loading
@@ -515,8 +520,8 @@ window.onInputChange = async (which) => {
       if (!name){ el.className='folder-preview error'; el.innerHTML='<svg class="ic" style="color:var(--red)"><use href="#ic-warn"/></svg> Không tìm thấy thư mục'; return; }
       el.className='folder-preview';
       el.innerHTML='<svg class="ic16" style="color:var(--green)"><use href="#ic-folder"/></svg> <span style="color:var(--green)">'+escH(name)+'</span>';
-      // Load checklist only for src
-      if (which==='src' && !clLoaded) loadChecklist(id);
+      // Load checklist for src whenever a valid folder is resolved
+      if (which==='src') loadChecklist(id);
     } catch(e){
       if(isAuthExpiredErr(e)){
         el.className='folder-preview error';
@@ -986,14 +991,17 @@ window.confirmVidWarn=()=>{
 let _videoWarnShown = false;
 let _videoWarnResolve = null;
 let _videoSeenCount = 0;
+let _videoFilesCount = 0; // counted during copy, shown in completion modal
 
 window.startCopy = async (isResume) => {
   if (!gToken){ showNoAuth('Chưa cấp quyền Drive!','Bạn cần cấp quyền truy cập Google Drive trước khi sao chép.'); return; }
   const sv=document.getElementById('srcInput').value.trim();
   const dv=document.getElementById('destInput').value.trim();
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
+  // Set runMode + UI early so stop button is responsive immediately
+  if (!isResume) { stopFlag=false; setBtnMode('copy'); }
   // Kiểm tra giới hạn free trước khi copy (bỏ qua khi resume vì đã kiểm tra trước đó)
-  if (!isResume && !(await checkFreeLimit())) return;
+  if (!isResume && !(await checkFreeLimit())) { setBtnMode('idle'); return; }
   await _runCopyInternal(isResume);
 };
 
@@ -1024,7 +1032,7 @@ async function _runCopyInternal(isResume) {
   progStart();
 
   const t0=Date.now();
-  let videoCountForCompletion=0;
+  _videoFilesCount = 0;
   try {
     const srcId=fid(sv), destId=fid(dv);
     const sn=await fname(srcId), dn=await fname(destId);
@@ -1053,12 +1061,6 @@ async function _runCopyInternal(isResume) {
       }
     }
 
-    // Track video count for completion summary (chỉ cho paid users)
-    if (gUserData?.plan !== 'free') {
-      try { videoCountForCompletion = await countVideoFiles(top, clFilter); } catch(e){ if(isAuthExpiredErr(e)) throw e; videoCountForCompletion=0; }
-      if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
-    }
-
     addLog((isResume?'Tiếp tục sao chép':'Bắt đầu sao chép')+' ('+CONCUR+' luồng song song)...','info');
 
     const dex=await existNames(destId);
@@ -1079,7 +1081,7 @@ async function _runCopyInternal(isResume) {
         }
         const res=await copyFileSingle(item.id,destId);
         const node={name:item.name,path:item.name,type:'file',depth:0,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-        if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);}
+        if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
         else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
         updStats(); saveSession();
         progInc(); setStatus('('+progDone+' mục) '+item.name);
@@ -1125,7 +1127,7 @@ async function _runCopyInternal(isResume) {
       if (gUserData?.plan !== 'free') await saveHist(srcId,sn,destId,dn,elapsed);
       // Cộng dồn MB đã dùng cho free user
       if (gUserData?.plan === 'free') await updateFreeUsedMB();
-      showComplModal(elapsed, videoCountForCompletion);
+      showComplModal(elapsed, _videoFilesCount);
     }
     else if(!_authExpiredHandled) setStatus('Đã dừng sao chép');
   } catch(e){
@@ -1156,7 +1158,7 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
       }
       const res=await copyFileSingle(item.id,destId);
       const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);}
+      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
       else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
       parentChildren.push(node); updStats(); saveSession();
       progInc(); setStatus('('+progDone+' mục) '+item.name);
@@ -1205,7 +1207,7 @@ async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem
       }
       const res=await copyFileSingle(item.id,destId);
       const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);}
+      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
       else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
       parentChildren.push(node); updStats(); saveSession();
       progInc(); setStatus('('+progDone+' mục) '+item.name);
