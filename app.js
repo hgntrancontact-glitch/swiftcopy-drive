@@ -236,12 +236,12 @@ function getMaintenanceResult(mode, allowedEmails, userEmail){
   }
 }
 
-// Ẩn landing ngay khi module load — tránh flash trước khi onAuthStateChanged resolve
-sec('check');
+// Hiện landing ngay khi module load — unauthenticated users không cần qua #s-check
+sec('land');
 getMaintenance(); // bắt đầu fetch trước để cache sẵn khi onAuthStateChanged gọi lại
 
 onAuthStateChanged(auth, async u => {
-  sec('check'); // đảm bảo #s-check hiện trong khi await maintenance + auth
+  if (u) sec('check'); // chỉ hiện #s-check cho user đang có session Firebase
   const maint = await getMaintenance();
   // Backward compat: old docs use enabled:bool, new docs use mode:string
   const mode = maint.mode || (maint.enabled ? 'all' : 'off');
