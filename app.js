@@ -221,7 +221,12 @@ function getMaintenanceResult(mode, allowedEmails, userEmail){
   }
 }
 
+// Ẩn landing ngay khi module load — tránh flash trước khi onAuthStateChanged resolve
+sec('check');
+getMaintenance(); // bắt đầu fetch trước để cache sẵn khi onAuthStateChanged gọi lại
+
 onAuthStateChanged(auth, async u => {
+  sec('check'); // đảm bảo #s-check hiện trong khi await maintenance + auth
   const maint = await getMaintenance();
   // Backward compat: old docs use enabled:bool, new docs use mode:string
   const mode = maint.mode || (maint.enabled ? 'all' : 'off');
@@ -231,10 +236,11 @@ onAuthStateChanged(auth, async u => {
     gUser=null; gToken=null; gUserData=null;
     if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
     document.getElementById('planSelectModal')?.classList.remove('active');
-    if (getMaintenanceResult(mode, allowedEmails, null) === 'maintenance'){ sec('maintenance'); return; }
+    const mResult0 = getMaintenanceResult(mode, allowedEmails, null);
+    if (mResult0 === 'maintenance'){ sec('maintenance'); return; }
     sec('land'); return;
   }
-  gUser=u; sec('check');
+  gUser=u;
   const mResult = getMaintenanceResult(mode, allowedEmails, u.email);
   if (mResult === 'maintenance'){ sec('maintenance'); return; }
   if (mResult === 'landing')    { sec('land'); return; }

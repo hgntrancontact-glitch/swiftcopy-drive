@@ -115,7 +115,7 @@ Nhóm hàm chính:
 - **Kicked screen**: `pollKickStatus` — hiện `sec('kicked')` thay vì `signOut()` khi bị kick
 - **Readd welcome (new)**: `checkReaddWelcome` (gọi sau login), `closeReaddWelcome`
   - localStorage key: `swiftcopy_readd_{uid}` — đảm bảo modal chỉ hiện 1 lần
-- **Maintenance**: `getMaintenance()` (cached promise, doc `settings/maintenance`) + `getMaintenanceResult(mode, allowedEmails, userEmail)` — trả về `'maintenance'|'landing'|null`. Chỉ `allowedEmails` được bypass trong `app.js` — ADMIN_EMAIL không có xử lý đặc biệt ở đây. Backward compat với doc cũ dùng `enabled:bool`.
+- **Maintenance**: `getMaintenance()` (cached promise) + `getMaintenanceResult(mode, allowedEmails, userEmail)` → `'maintenance'|'landing'|null`. `sec('check')` và `getMaintenance()` được gọi ngay khi module load (trước `onAuthStateChanged`) để tránh flash landing. `onAuthStateChanged` cũng gọi `sec('check')` đầu tiên trước mọi await. Chỉ `allowedEmails` bypass — ADMIN_EMAIL không có xử lý đặc biệt trong `app.js`. Backward compat với `enabled:bool`.
 - **Drive API wrapper**: `dget`, `dpost`, `ddel`, `fid`, `fname`, `listItems`, `existNames`, `copyFileSingle`, `mkFolder` — có retry exponential backoff cho 429/500/503
 - **Auth expiry**: `isAuthExpiredErr`, `handleAuthExpired` — xử lý 401 giữa chừng, tự resume sau khi reauth
 - **Checklist**: `loadChecklist`, `renderChecklist` — cây thư mục lazy-load, checkbox 3 trạng thái
@@ -387,7 +387,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Kick screen**: ĐÃ fix — `pollKickStatus()` hiện `#s-kicked` (không signOut), user thấy lý do và phải bấm Đăng xuất
 - **Readd + welcome modal**: ĐÃ implement — `doReadd()` set plan='paid' + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login
 - **Admin email**: không còn xử lý đặc biệt trong `app.js` — hành vi hoàn toàn giống user thường. Đăng ký → chọn gói → chờ duyệt → vào dashboard. Doc tồn tại vĩnh viễn sau khi tạo. `admin.html` vẫn gate riêng bởi `ADMIN_EMAIL` constant trong file đó.
-- **Maintenance mode**: ĐÃ nâng cấp lên 5 chế độ — Firestore doc `settings/maintenance` schema: `{ mode: 'off'|'all'|'auth'|'dashboard'|'unregistered', allowedEmails: string[] }`. Giao diện quản lý bảo trì tách riêng vào `admin-maintenance.html` (nút "Bảo trì" trong nav của admin.html). `getMaintenanceResult()` trong `app.js` bypass chỉ dựa vào `allowedEmails` — ADMIN_EMAIL không có xử lý đặc biệt. Backward compat với doc cũ dùng `enabled:bool`.
+- **Maintenance mode**: ĐÃ nâng cấp + fix timing — 5 chế độ, trang riêng `admin-maintenance.html`. `sec('check')` và `getMaintenance()` gọi ngay khi module load để tránh flash. `onAuthStateChanged` check maintenance trước tất cả logic khác. `allowedEmails` bypass duy nhất — ADMIN_EMAIL không có xử lý đặc biệt trong app.js. `admin-maintenance.html` có status banner hiện trạng thái đang áp dụng và hint email admin để tự thêm vào bypass list.
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
 - **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html (user báo đã chuyển → admin kiểm tra → bấm "Duyệt nâng cấp")
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"

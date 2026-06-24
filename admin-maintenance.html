@@ -91,6 +91,11 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 <div id="s-panel">
   <div class="container">
 
+    <!-- STATUS BANNER — trạng thái đang áp dụng thực tế từ Firestore -->
+    <div id="maintStatusBanner" style="padding:14px 18px;border-radius:12px;margin-bottom:16px;font-size:13.5px;font-weight:700;border:1.5px solid var(--green-border);background:var(--green-light);color:var(--green);">
+      Trạng thái hiện tại: <span id="maintStatusLabel">Đang hoạt động bình thường</span>
+    </div>
+
     <div class="card">
       <div class="card-h">
         <span class="card-t">Chế độ bảo trì</span>
@@ -145,8 +150,9 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
         </div>
 
         <label class="modal-label">Email bypass bảo trì (mỗi dòng 1 email)</label>
-        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--text3);">
-          Để tự bypass, nhập email của bạn vào danh sách dưới đây.
+        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px;color:var(--text3);line-height:1.6;">
+          Email của bạn: <code id="adminEmailDisplay" style="font-size:12px;font-weight:700;color:var(--text2);background:var(--surface);padding:1px 6px;border-radius:4px;border:1px solid var(--border2);"></code><br>
+          Để tự bypass khi bảo trì bật, nhập email này vào danh sách dưới đây rồi lưu.
         </div>
         <textarea id="maintAllowedEmails" class="modal-textarea" placeholder="Nhập email được phép bypass, mỗi dòng 1 địa chỉ..." style="min-height:80px;margin-bottom:16px;"></textarea>
 
@@ -189,6 +195,8 @@ onAuthStateChanged(auth, async u => {
   if (!u){ window.location.href = 'admin.html'; return; }
   if (u.email !== ADMIN_EMAIL){ sec('denied'); return; }
   document.getElementById('adminEmailLabel').textContent = u.email;
+  const emailDisplay = document.getElementById('adminEmailDisplay');
+  if (emailDisplay) emailDisplay.textContent = u.email;
   await loadMaintenanceSettings();
   sec('panel');
 });
@@ -206,20 +214,34 @@ async function loadMaintenanceSettings(){
 
 function updateMaintUI(){
   const modeInfo = {
-    off:          { text:'Đang tắt',         bg:'var(--green-light)',   color:'var(--green)',  border:'var(--green-border)' },
-    all:          { text:'Tất cả bị chặn',   bg:'var(--red-light)',    color:'var(--red)',    border:'var(--red-border)' },
-    auth:         { text:'Chặn đăng nhập',   bg:'var(--orange-light)', color:'var(--orange)', border:'var(--orange-border)' },
-    dashboard:    { text:'Chặn dashboard',   bg:'var(--orange-light)', color:'var(--orange)', border:'var(--orange-border)' },
-    unregistered: { text:'Chặn chưa đăng ký', bg:'var(--blue-light)',  color:'var(--blue)',   border:'var(--blue-border)' },
+    off:          { badge:'Đang tắt',         bannerText:'Đang hoạt động bình thường',            bannerBg:'var(--green-light)',   bannerColor:'var(--green)',  bannerBorder:'var(--green-border)' },
+    all:          { badge:'Tất cả bị chặn',   bannerText:'Đang bảo trì: Tất cả',                  bannerBg:'var(--red-light)',    bannerColor:'var(--red)',    bannerBorder:'var(--red-border)' },
+    auth:         { badge:'Chặn đăng nhập',   bannerText:'Đang bảo trì: Đăng ký / Đăng nhập',    bannerBg:'var(--orange-light)', bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
+    dashboard:    { badge:'Chặn dashboard',   bannerText:'Đang bảo trì: Dashboard',                bannerBg:'var(--orange-light)', bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
+    unregistered: { badge:'Chặn chưa đăng ký', bannerText:'Đang bảo trì: Người chưa đăng ký',   bannerBg:'var(--yellow-light)', bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
   };
-  const badge = document.getElementById('maintCurrentBadge');
   const info = modeInfo[_maintMode] || modeInfo.off;
+
+  // Update header badge
+  const badge = document.getElementById('maintCurrentBadge');
   if (badge){
-    badge.textContent = info.text;
-    badge.style.background = info.bg;
-    badge.style.color = info.color;
-    badge.style.border = `1px solid ${info.border}`;
+    badge.textContent = info.badge;
+    badge.style.background = info.bannerBg;
+    badge.style.color = info.bannerColor;
+    badge.style.border = `1px solid ${info.bannerBorder}`;
   }
+
+  // Update status banner
+  const banner = document.getElementById('maintStatusBanner');
+  const label  = document.getElementById('maintStatusLabel');
+  if (banner && label){
+    label.textContent = info.bannerText;
+    banner.style.background   = info.bannerBg;
+    banner.style.color        = info.bannerColor;
+    banner.style.borderColor  = info.bannerBorder;
+  }
+
+  // Update mode cards
   ['off','all','auth','dashboard','unregistered'].forEach(m => {
     const card  = document.getElementById('modeCard-'+m);
     const radio = document.getElementById('modeRadio-'+m);
