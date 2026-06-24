@@ -213,6 +213,7 @@ onAuthStateChanged(auth, async u => {
     const approved = await checkApproval(u);
     setNavUser(u);
     if (approved){
+      document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
       sec('app'); checkResume(); updateFreeBanner(); checkReaddWelcome();
       if (_kickPollTimer) clearInterval(_kickPollTimer);
       _kickPollTimer = setInterval(pollKickStatus, 30000);
