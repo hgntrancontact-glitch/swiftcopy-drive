@@ -32,6 +32,7 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 .nav-badge{font-size:10px;font-weight:900;letter-spacing:.5px;padding:3px 10px;border:1.5px solid var(--yellow);border-radius:6px;color:var(--orange);background:var(--yellow-light)}
 .nav-right{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text3)}
 .nav-email{font-size:12px;color:var(--text3);font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border2);display:none;flex-shrink:0;background:var(--surface2)}
 .btn-sm{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);transition:.15s;display:inline-flex;align-items:center;gap:5px}
 .btn-sm:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
 
@@ -165,6 +166,7 @@ tbody tr:last-child td{border-bottom:none}
     <span class="nav-badge">ADMIN</span>
   </div>
   <div class="nav-right">
+    <img id="adminAvatar" class="nav-avatar" alt=""/>
     <span id="adminEmailLabel" class="nav-email"></span>
     <a href="admin-maintenance.html" class="btn-sm" style="text-decoration:none;">Bảo trì</a>
     <button class="btn-sm" onclick="doLogout()">
@@ -341,6 +343,8 @@ onAuthStateChanged(auth, u => {
   if (!u){ sec('login'); return; }
   if (u.email !== ADMIN_EMAIL){ sec('denied'); signOut(auth); return; }
   document.getElementById('adminEmailLabel').textContent = u.email;
+  const av = document.getElementById('adminAvatar');
+  if (av && u.photoURL){ av.src = u.photoURL; av.style.display='block'; av.onerror=()=>av.style.display='none'; }
   sec('panel'); loadStats(); loadUsers();
 });
 

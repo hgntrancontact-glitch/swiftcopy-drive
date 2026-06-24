@@ -29,6 +29,7 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 .nav-badge{font-size:10px;font-weight:900;letter-spacing:.5px;padding:3px 10px;border:1.5px solid var(--yellow);border-radius:6px;color:var(--orange);background:var(--yellow-light)}
 .nav-right{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text3)}
 .nav-email{font-size:12px;color:var(--text3);font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border2);display:none;flex-shrink:0;background:var(--surface2)}
 .btn-sm{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);transition:.15s;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
 .btn-sm:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
 
@@ -68,6 +69,7 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
     <span class="nav-badge">BẢO TRÌ</span>
   </div>
   <div class="nav-right">
+    <img id="adminAvatar" class="nav-avatar" alt=""/>
     <span id="adminEmailLabel" class="nav-email"></span>
     <a href="admin.html" class="btn-sm">← Quay lại Admin</a>
     <button class="btn-sm" onclick="doLogout()">Đăng xuất</button>
@@ -118,32 +120,24 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
           <div id="modeCard-all" onclick="selectMode('all')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
             <div id="modeRadio-all" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
             <div>
-              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì tất cả (all)</div>
-              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Cả người chưa đăng nhập lẫn đã đăng nhập đều thấy màn hình bảo trì (trừ email bypass).</div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì 1 — Toàn bộ</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Khóa tất cả mọi người — kể cả người đã đăng nhập. Dùng khi cần sửa cả Landing lẫn Dashboard.</div>
             </div>
           </div>
 
           <div id="modeCard-auth" onclick="selectMode('auth')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
             <div id="modeRadio-auth" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
             <div>
-              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì đăng ký / đăng nhập (auth)</div>
-              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa đăng nhập thấy bảo trì — người đã đăng nhập vào dashboard bình thường.</div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì 2 — Trang chủ</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa đăng nhập thấy bảo trì. Người đã đăng nhập vào Dashboard bình thường. Dùng khi sửa Landing.</div>
             </div>
           </div>
 
           <div id="modeCard-dashboard" onclick="selectMode('dashboard')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
             <div id="modeRadio-dashboard" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
             <div>
-              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì dashboard (dashboard)</div>
-              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa đăng nhập thấy landing bình thường — người đã đăng nhập vào dashboard thấy bảo trì.</div>
-            </div>
-          </div>
-
-          <div id="modeCard-unregistered" onclick="selectMode('unregistered')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
-            <div id="modeRadio-unregistered" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
-            <div>
-              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì với người chưa đăng ký (unregistered)</div>
-              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa đăng nhập thấy bảo trì hoàn toàn — người đã đăng nhập chỉ thấy landing (không vào dashboard).</div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì 3 — Dashboard</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa có tài khoản thấy Landing và đăng ký được. Người đã đăng nhập thấy bảo trì. Dùng khi sửa Dashboard.</div>
             </div>
           </div>
 
@@ -195,6 +189,8 @@ onAuthStateChanged(auth, async u => {
   if (!u){ window.location.href = 'admin.html'; return; }
   if (u.email !== ADMIN_EMAIL){ sec('denied'); return; }
   document.getElementById('adminEmailLabel').textContent = u.email;
+  const av = document.getElementById('adminAvatar');
+  if (av && u.photoURL){ av.src = u.photoURL; av.style.display='block'; av.onerror=()=>av.style.display='none'; }
   const emailDisplay = document.getElementById('adminEmailDisplay');
   if (emailDisplay) emailDisplay.textContent = u.email;
   await loadMaintenanceSettings();
@@ -214,11 +210,10 @@ async function loadMaintenanceSettings(){
 
 function updateMaintUI(){
   const modeInfo = {
-    off:          { badge:'Đang tắt',         bannerText:'Đang hoạt động bình thường',            bannerBg:'var(--green-light)',   bannerColor:'var(--green)',  bannerBorder:'var(--green-border)' },
-    all:          { badge:'Tất cả bị chặn',   bannerText:'Đang bảo trì: Tất cả',                  bannerBg:'var(--red-light)',    bannerColor:'var(--red)',    bannerBorder:'var(--red-border)' },
-    auth:         { badge:'Chặn đăng nhập',   bannerText:'Đang bảo trì: Đăng ký / Đăng nhập',    bannerBg:'var(--orange-light)', bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
-    dashboard:    { badge:'Chặn dashboard',   bannerText:'Đang bảo trì: Dashboard',                bannerBg:'var(--orange-light)', bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
-    unregistered: { badge:'Chặn chưa đăng ký', bannerText:'Đang bảo trì: Người chưa đăng ký',   bannerBg:'var(--yellow-light)', bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
+    off:       { badge:'Đang tắt',          bannerText:'Đang hoạt động bình thường',              bannerBg:'var(--green-light)',   bannerColor:'var(--green)',  bannerBorder:'var(--green-border)' },
+    all:       { badge:'Bảo trì 1 — Toàn bộ', bannerText:'Đang bảo trì: Toàn bộ — khóa tất cả', bannerBg:'var(--red-light)',    bannerColor:'var(--red)',    bannerBorder:'var(--red-border)' },
+    auth:      { badge:'Bảo trì 2 — Trang chủ', bannerText:'Đang bảo trì: Trang chủ — chặn người chưa đăng nhập', bannerBg:'var(--orange-light)', bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
+    dashboard: { badge:'Bảo trì 3 — Dashboard', bannerText:'Đang bảo trì: Dashboard — chặn người đã đăng nhập',   bannerBg:'var(--orange-light)', bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
   };
   const info = modeInfo[_maintMode] || modeInfo.off;
 
@@ -242,7 +237,7 @@ function updateMaintUI(){
   }
 
   // Update mode cards
-  ['off','all','auth','dashboard','unregistered'].forEach(m => {
+  ['off','all','auth','dashboard'].forEach(m => {
     const card  = document.getElementById('modeCard-'+m);
     const radio = document.getElementById('modeRadio-'+m);
     if (!card || !radio) return;

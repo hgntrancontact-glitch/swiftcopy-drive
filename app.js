@@ -213,11 +213,10 @@ function getMaintenanceResult(mode, allowedEmails, userEmail){
   if (!mode || mode === 'off') return null;
   if (userEmail && (allowedEmails||[]).includes(userEmail)) return null;
   switch (mode) {
-    case 'all':          return 'maintenance';
-    case 'auth':         return userEmail ? null : 'maintenance';
-    case 'dashboard':    return userEmail ? 'maintenance' : null;
-    case 'unregistered': return userEmail ? 'landing' : 'maintenance';
-    default:             return null;
+    case 'all':       return 'maintenance';
+    case 'auth':      return userEmail ? null : 'maintenance';
+    case 'dashboard': return userEmail ? 'maintenance' : null;
+    default:          return null;
   }
 }
 

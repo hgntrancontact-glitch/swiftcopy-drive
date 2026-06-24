@@ -204,18 +204,17 @@ Mỗi document trong collection `users` có các field sau:
 
 ```
 {
-  mode: 'off' | 'all' | 'auth' | 'dashboard' | 'unregistered',
+  mode: 'off' | 'all' | 'auth' | 'dashboard',
   allowedEmails: string[]   // bypass trong app.js; ADMIN_EMAIL tự thêm vào đây nếu muốn bypass
 }
 ```
 
-| mode | Chưa đăng nhập | Đã đăng nhập |
-|---|---|---|
-| `off` | landing | dashboard |
-| `all` | maintenance | maintenance |
-| `auth` | maintenance | dashboard |
-| `dashboard` | landing | maintenance |
-| `unregistered` | maintenance | landing (không vào dashboard) |
+| mode | Tên hiển thị | Chưa đăng nhập | Đã đăng nhập |
+|---|---|---|---|
+| `off` | Tắt bảo trì | landing | dashboard |
+| `all` | Bảo trì 1 — Toàn bộ | maintenance | maintenance |
+| `auth` | Bảo trì 2 — Trang chủ | maintenance | dashboard |
+| `dashboard` | Bảo trì 3 — Dashboard | landing | maintenance |
 
 Chỉ `allowedEmails` bypass trong `app.js` (index.html). ADMIN_EMAIL không có bypass đặc biệt trong app.js — muốn bypass thì thêm email vào allowedEmails. ADMIN_EMAIL chỉ gate `admin.html` và `admin-maintenance.html`.
 
