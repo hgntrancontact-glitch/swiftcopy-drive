@@ -202,7 +202,7 @@ function getMaintenance(){
   if (!_maintenancePromise){
     _maintenancePromise = getDoc(doc(db,'settings','maintenance'))
       .then(snap => snap.exists() ? snap.data() : { mode:'off' })
-      .catch(() => ({ mode:'off' }));
+      .catch(e => { console.error('[Maintenance] Firestore read failed (check Security Rules):', e.code, e.message); return { mode:'off' }; });
   }
   return _maintenancePromise;
 }

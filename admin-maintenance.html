@@ -101,21 +101,21 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
     <div class="card">
       <div class="card-h">
         <span class="card-t">Chế độ bảo trì</span>
-        <span id="maintCurrentBadge" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:999px;border:1px solid var(--green-border);background:var(--green-light);color:var(--green);">Đang tắt</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="maintCurrentBadge" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:999px;border:1px solid var(--green-border);background:var(--green-light);color:var(--green);">Đang tắt</span>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:700;color:var(--text2);user-select:none;">
+            <div id="maintToggle" onclick="toggleMaintenance()" style="width:40px;height:22px;border-radius:999px;background:var(--border2);position:relative;cursor:pointer;transition:.2s;flex-shrink:0;">
+              <div id="maintToggleKnob" style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
+            </div>
+            <span id="maintToggleLabel">Tắt</span>
+          </label>
+        </div>
       </div>
       <div style="padding:20px;">
 
-        <label class="modal-label" style="margin-bottom:10px;">Chọn chế độ</label>
+        <label class="modal-label" style="margin-bottom:10px;">Chọn chế độ bảo trì</label>
 
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
-
-          <div id="modeCard-off" onclick="selectMode('off')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
-            <div id="modeRadio-off" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
-            <div>
-              <div style="font-size:13px;font-weight:700;color:var(--text);">Tắt bảo trì (off)</div>
-              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Mọi thứ hoạt động bình thường, không ai bị chặn.</div>
-            </div>
-          </div>
 
           <div id="modeCard-all" onclick="selectMode('all')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
             <div id="modeRadio-all" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
@@ -184,6 +184,7 @@ const auth     = getAuth(fbApp);
 const db       = getFirestore(fbApp);
 
 let _maintMode = 'off';
+let _lastActiveMode = 'all'; // nhớ mode cuối khi toggle tắt rồi bật lại
 
 onAuthStateChanged(auth, async u => {
   if (!u){ window.location.href = 'admin.html'; return; }
@@ -203,47 +204,61 @@ async function loadMaintenanceSettings(){
     const data = snap.exists() ? snap.data() : { mode:'off', allowedEmails:[] };
     // Backward compat: old docs use enabled:bool
     _maintMode = data.mode || (data.enabled ? 'all' : 'off');
+    if (_maintMode !== 'off') _lastActiveMode = _maintMode;
     document.getElementById('maintAllowedEmails').value = (data.allowedEmails||[]).join('\n');
     updateMaintUI();
   } catch(e){ console.error('maintenance load',e); }
 }
 
 function updateMaintUI(){
+  const isOn = _maintMode !== 'off';
   const modeInfo = {
-    off:       { badge:'Đang tắt',          bannerText:'Đang hoạt động bình thường',              bannerBg:'var(--green-light)',   bannerColor:'var(--green)',  bannerBorder:'var(--green-border)' },
-    all:       { badge:'Bảo trì 1 — Toàn bộ', bannerText:'Đang bảo trì: Toàn bộ — khóa tất cả', bannerBg:'var(--red-light)',    bannerColor:'var(--red)',    bannerBorder:'var(--red-border)' },
-    auth:      { badge:'Bảo trì 2 — Trang chủ', bannerText:'Đang bảo trì: Trang chủ — chặn người chưa đăng nhập', bannerBg:'var(--orange-light)', bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
-    dashboard: { badge:'Bảo trì 3 — Dashboard', bannerText:'Đang bảo trì: Dashboard — chặn người đã đăng nhập',   bannerBg:'var(--orange-light)', bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
+    off:       { badge:'Đang tắt',               bannerText:'Đang hoạt động bình thường',                                 bannerBg:'var(--green-light)',   bannerColor:'var(--green)',  bannerBorder:'var(--green-border)' },
+    all:       { badge:'Bảo trì 1 — Toàn bộ',   bannerText:'Đang bảo trì: Toàn bộ — khóa tất cả',                       bannerBg:'var(--red-light)',     bannerColor:'var(--red)',    bannerBorder:'var(--red-border)' },
+    auth:      { badge:'Bảo trì 2 — Trang chủ', bannerText:'Đang bảo trì: Trang chủ — chặn người chưa đăng nhập',        bannerBg:'var(--orange-light)',  bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
+    dashboard: { badge:'Bảo trì 3 — Dashboard',  bannerText:'Đang bảo trì: Dashboard — chặn người đã đăng nhập',          bannerBg:'var(--orange-light)',  bannerColor:'var(--orange)', bannerBorder:'var(--orange-border)' },
   };
   const info = modeInfo[_maintMode] || modeInfo.off;
+
+  // Update toggle
+  const tog     = document.getElementById('maintToggle');
+  const knob    = document.getElementById('maintToggleKnob');
+  const togLbl  = document.getElementById('maintToggleLabel');
+  if (tog && knob){
+    tog.style.background  = isOn ? 'var(--red-mid)' : 'var(--border2)';
+    knob.style.left       = isOn ? '21px' : '3px';
+    if (togLbl) togLbl.textContent = isOn ? 'Bật' : 'Tắt';
+  }
 
   // Update header badge
   const badge = document.getElementById('maintCurrentBadge');
   if (badge){
     badge.textContent = info.badge;
     badge.style.background = info.bannerBg;
-    badge.style.color = info.bannerColor;
-    badge.style.border = `1px solid ${info.bannerBorder}`;
+    badge.style.color      = info.bannerColor;
+    badge.style.border     = `1px solid ${info.bannerBorder}`;
   }
 
   // Update status banner
   const banner = document.getElementById('maintStatusBanner');
   const label  = document.getElementById('maintStatusLabel');
   if (banner && label){
-    label.textContent = info.bannerText;
+    label.textContent      = info.bannerText;
     banner.style.background   = info.bannerBg;
     banner.style.color        = info.bannerColor;
     banner.style.borderColor  = info.bannerBorder;
   }
 
-  // Update mode cards
-  ['off','all','auth','dashboard'].forEach(m => {
+  // Update mode cards (only 3 maintenance modes, no 'off' card)
+  ['all','auth','dashboard'].forEach(m => {
     const card  = document.getElementById('modeCard-'+m);
     const radio = document.getElementById('modeRadio-'+m);
     if (!card || !radio) return;
     const sel = m === _maintMode;
     card.style.borderColor  = sel ? 'var(--yellow)' : 'var(--border)';
     card.style.background   = sel ? 'var(--yellow-light)' : 'var(--surface)';
+    card.style.opacity      = isOn ? '1' : '0.5';
+    card.style.pointerEvents = isOn ? 'auto' : 'none';
     radio.style.borderColor = sel ? 'var(--orange)' : 'var(--border2)';
     radio.innerHTML = sel ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--orange);"></div>` : '';
   });
@@ -251,6 +266,17 @@ function updateMaintUI(){
 
 window.selectMode = (mode) => {
   _maintMode = mode;
+  updateMaintUI();
+};
+
+window.toggleMaintenance = () => {
+  if (_maintMode === 'off'){
+    // Bật: chọn mode 'all' mặc định (hoặc mode cuối trước đó)
+    _maintMode = _lastActiveMode || 'all';
+  } else {
+    _lastActiveMode = _maintMode;
+    _maintMode = 'off';
+  }
   updateMaintUI();
 };
 
