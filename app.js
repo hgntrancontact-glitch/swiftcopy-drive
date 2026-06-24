@@ -196,13 +196,14 @@ function handleAuthExpired(){
   showNoAuth('Phiên cấp quyền đã hết hạn','Quyền truy cập Google Drive đã hết hạn sau một thời gian. Vui lòng cấp quyền lại để tiếp tục.');
 }
 
-// Maintenance check — fetched once, cached as promise
+// Maintenance check — fetched via Vercel serverless (service account) so it works for
+// unauthenticated users too, bypassing Firestore Security Rules entirely.
 let _maintenancePromise = null;
 function getMaintenance(){
   if (!_maintenancePromise){
-    _maintenancePromise = getDoc(doc(db,'settings','maintenance'))
-      .then(snap => snap.exists() ? snap.data() : { mode:'off' })
-      .catch(e => { console.error('[Maintenance] Firestore read failed (check Security Rules):', e.code, e.message); return { mode:'off' }; });
+    _maintenancePromise = fetch('/api/maintenance')
+      .then(r => r.ok ? r.json() : { mode:'off', allowedEmails:[] })
+      .catch(() => ({ mode:'off', allowedEmails:[] }));
   }
   return _maintenancePromise;
 }
