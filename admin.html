@@ -208,6 +208,26 @@ tbody tr:last-child td{border-bottom:none}
       <div class="stat-box blue"   onclick="filterUsers('upgrade')">  <div class="n" id="sUpgrade">—</div><div class="l">Chờ nâng cấp</div></div>
     </div>
 
+    <!-- MAINTENANCE CARD -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-h">
+        <span class="card-t">🔧 Chế độ bảo trì</span>
+      </div>
+      <div style="padding:20px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+          <div id="maintToggleWrap" style="position:relative;width:44px;height:24px;background:#dee2e6;border-radius:12px;transition:.2s;cursor:pointer;flex-shrink:0;" onclick="toggleMaintenance()">
+            <div id="maintToggleKnob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
+          </div>
+          <span id="maintToggleLabel" style="font-size:13px;font-weight:700;color:var(--text2);">Tắt</span>
+          <span id="maintStatus" style="font-size:12px;color:var(--text3);">Web đang hoạt động bình thường</span>
+        </div>
+        <label class="modal-label">Email được phép truy cập lúc bảo trì (mỗi dòng 1 email)</label>
+        <textarea id="maintAllowedEmails" class="modal-textarea" placeholder="Nhập email được phép vào, mỗi dòng 1 địa chỉ..." style="min-height:90px;margin-top:6px;"></textarea>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px;margin-bottom:14px;">Email admin (<code>hgntran.contact@gmail.com</code>) luôn được phép, không cần nhập.</div>
+        <button onclick="saveMaintAllowedEmails()" style="padding:8px 18px;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border2);background:var(--text);color:#fff;transition:.15s;">Lưu danh sách email</button>
+      </div>
+    </div>
+
     <!-- USERS TABLE -->
     <div class="card">
       <div class="card-h">
@@ -340,7 +360,7 @@ onAuthStateChanged(auth, u => {
   if (!u){ sec('login'); return; }
   if (u.email !== ADMIN_EMAIL){ sec('denied'); signOut(auth); return; }
   document.getElementById('adminEmailLabel').textContent = u.email;
-  sec('panel'); loadStats(); loadUsers();
+  sec('panel'); loadStats(); loadUsers(); loadMaintenanceSettings();
 });
 
 
@@ -563,6 +583,54 @@ window.doReadd = async () => {
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };
 
+
+// ── MAINTENANCE ──────────────────────────────────────────────
+let _maintEnabled = false;
+
+async function loadMaintenanceSettings(){
+  try {
+    const snap = await getDoc(doc(db,'settings','maintenance'));
+    const data = snap.exists() ? snap.data() : { enabled:false, allowedEmails:[] };
+    _maintEnabled = data.enabled || false;
+    document.getElementById('maintAllowedEmails').value = (data.allowedEmails||[]).join('\n');
+    updateMaintUI();
+  } catch(e){ console.error('maintenance load',e); }
+}
+
+function updateMaintUI(){
+  const wrap  = document.getElementById('maintToggleWrap');
+  const knob  = document.getElementById('maintToggleKnob');
+  const label = document.getElementById('maintToggleLabel');
+  const status= document.getElementById('maintStatus');
+  if (_maintEnabled){
+    wrap.style.background='var(--red)'; knob.style.left='23px';
+    label.textContent='BẬT'; label.style.color='var(--red)';
+    status.textContent='⚠️ Web đang ở chế độ bảo trì'; status.style.color='var(--red)';
+  } else {
+    wrap.style.background='#dee2e6'; knob.style.left='3px';
+    label.textContent='Tắt'; label.style.color='var(--text2)';
+    status.textContent='Web đang hoạt động bình thường'; status.style.color='var(--text3)';
+  }
+}
+
+window.toggleMaintenance = async () => {
+  const prev = _maintEnabled;
+  _maintEnabled = !_maintEnabled;
+  updateMaintUI();
+  try {
+    const emails = (document.getElementById('maintAllowedEmails').value||'').split('\n').map(e=>e.trim()).filter(Boolean);
+    await setDoc(doc(db,'settings','maintenance'),{ enabled:_maintEnabled, allowedEmails:emails });
+    toast(_maintEnabled ? '⚠️ Đã bật chế độ bảo trì' : '✓ Đã tắt chế độ bảo trì', _maintEnabled?'warn':'ok');
+  } catch(e){ toast('Lỗi: '+e.message,'err'); _maintEnabled=prev; updateMaintUI(); }
+};
+
+window.saveMaintAllowedEmails = async () => {
+  const emails = (document.getElementById('maintAllowedEmails').value||'').split('\n').map(e=>e.trim()).filter(Boolean);
+  try {
+    await setDoc(doc(db,'settings','maintenance'),{ enabled:_maintEnabled, allowedEmails:emails });
+    toast('✓ Đã lưu danh sách email','ok');
+  } catch(e){ toast('Lỗi: '+e.message,'err'); }
+};
 
 function sec(name){ ['login','denied','panel'].forEach(s=>{ const el=document.getElementById('s-'+s); if(el) el.style.display=s===name?'block':'none'; }); }
 

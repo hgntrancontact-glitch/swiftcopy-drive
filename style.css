@@ -254,4 +254,5 @@
         .feedback-area { margin-top: 1rem; }
         .feedback-area.hidden { display: none; }
 
-        #s-land, #s-check, #s-pend, #s-app, #s-kicked { display:none; }
+        #s-land, #s-check, #s-pend, #s-app, #s-kicked, #s-maintenance { display:none; }
+        @keyframes logoWobble { 0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(5deg)} }

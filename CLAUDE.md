@@ -94,7 +94,7 @@ pollKickStatus() (30s interval khi đang ở sec='app'):
 ### HTML (~600 dòng — chỉ còn HTML thuần)
 - `<head>`: Tailwind CDN, favicon, `<link rel="stylesheet" href="style.css">`
 - SVG sprite: icon dùng lại qua `<use href="#ic-...">`
-- 5 section: `#s-land` (landing), `#s-check` (đang kiểm tra auth), `#s-pend` (chờ duyệt), `#s-app` (dashboard thật), `#s-kicked` (bị kick — hiển thị lý do, nút Đăng xuất)
+- 6 section: `#s-land` (landing), `#s-check` (đang kiểm tra auth), `#s-pend` (chờ duyệt), `#s-app` (dashboard thật), `#s-kicked` (bị kick — hiển thị lý do, nút Đăng xuất), `#s-maintenance` (bảo trì — hiện cho user không được phép khi maintenance bật)
 - **Modals auth/plan**: `#loginModal` (premium design, Google OAuth + email hint), `#planSelectModal` (chọn gói Free/Paid sau login), `#paymentModal` (thông tin chuyển khoản), `#paymentConfirmModal` (xác nhận đã chuyển — bước trung gian trước confirmPayment), `#readdWelcomeModal` (chào mừng user được admin thêm lại)
 - **Modals app**: `#modalOv`, `#vidWarnOv`, `#complOv`, `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal` (gộp list + form), `#reviewListModal` (giữ lại nhưng không gọi từ UI), `#faqModal`, `#policyModal` (dùng chung cho 3 chính sách), `#policyAndReviewModal` (hub từ header), `#pvFullscreenOverlay`, `#freeLimitModal`
 - **Banner/badge dashboard**: `#freeBanner` (render innerHTML động — 3 trạng thái), `#premiumBadge` (vàng #c9a84c, crown icon — hiện khi plan=paid)
@@ -113,6 +113,7 @@ Nhóm hàm chính:
 - **Kicked screen**: `pollKickStatus` — hiện `sec('kicked')` thay vì `signOut()` khi bị kick
 - **Readd welcome (new)**: `checkReaddWelcome` (gọi sau login), `closeReaddWelcome`
   - localStorage key: `swiftcopy_readd_{uid}` — đảm bảo modal chỉ hiện 1 lần
+- **Maintenance**: `getMaintenance()` (cached promise, doc `settings/maintenance`) — check trong `onAuthStateChanged`, cho phép ADMIN_EMAIL và `allowedEmails` list bypass
 - **Drive API wrapper**: `dget`, `dpost`, `ddel`, `fid`, `fname`, `listItems`, `existNames`, `copyFileSingle`, `mkFolder` — có retry exponential backoff cho 429/500/503
 - **Auth expiry**: `isAuthExpiredErr`, `handleAuthExpired` — xử lý 401 giữa chừng, tự resume sau khi reauth
 - **Checklist**: `loadChecklist`, `renderChecklist` — cây thư mục lazy-load, checkbox 3 trạng thái
@@ -333,6 +334,8 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **pollKickStatus gọi signOut() làm mất token giữa chừng**: đã fix — `pollKickStatus()` chỉ gọi `sec('kicked')` và clear interval, KHÔNG gọi `signOut()`. User được đẩy về `#s-kicked` và phải bấm "Đăng xuất" để thật sự logout.
 - **Readd user không set plan='paid'**: đã fix trong `admin.html` — `doReadd()` luôn kèm `plan:'paid'` khi updateDoc.
 - **`serverTimestamp()` trong gUserData gây crash khi read `.toMillis()`**: Firestore FieldValue không có `.toMillis()` ngay khi optimistic write. Luôn dùng optional chaining `gUserData.freeResetAt?.toMillis?.()` hoặc fallback `Date.now()`.
+- **Google Docs/Sheets/Slides không có `size` field → NaN trong tổng dung lượng**: Drive API trả `undefined` cho native format. Fix: luôn dùng `parseInt(item.size) || 0` thay vì `parseFloat(item.size || 0)` — áp dụng ở cả 3 điểm lưu size vào clItems và 1 điểm tính tổng trong `calcSelectedBytes()`.
+- **Race condition: modal mở → Firebase resolve → sec('app') nhưng modal vẫn active**: Fix bằng cách gọi `document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'))` ngay trước `sec('app')` trong `onAuthStateChanged`.
 - **Admin email bị reset doc sau logout → về planSelectModal dù đã approved**: Lỗi do có logic `deleteDoc` trong `onAuthStateChanged` và `doLogout`. Đã xóa hoàn toàn — admin email không có xử lý đặc biệt nào trong app.js.
 - **Email nhập vào loginModal bị bỏ qua**: Đã fix bằng `provider.setCustomParameters({ login_hint: email })` trong `doLogin()` — Google sẽ pre-fill đúng tài khoản.
 - **Cảnh báo Google chưa xác minh làm user thoát**: Đã fix bằng `#loginWarnView` — màn hình trung gian giải thích + hướng dẫn 2 bước + checkbox xác nhận trước khi popup Google mở.
@@ -355,6 +358,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Kick screen**: ĐÃ fix — `pollKickStatus()` hiện `#s-kicked` (không signOut), user thấy lý do và phải bấm Đăng xuất
 - **Readd + welcome modal**: ĐÃ implement — `doReadd()` set plan='paid' + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login
 - **Admin email**: không còn xử lý đặc biệt trong `app.js` — hành vi hoàn toàn giống user thường. Đăng ký → chọn gói → chờ duyệt → vào dashboard. Doc tồn tại vĩnh viễn sau khi tạo. `admin.html` vẫn gate riêng bởi `ADMIN_EMAIL` constant trong file đó.
+- **Maintenance mode**: ĐÃ implement — Firestore doc `settings/maintenance` (`enabled: bool`, `allowedEmails: string[]`). Admin bật/tắt từ `admin.html`. `getMaintenance()` cached promise trong `app.js`. ADMIN_EMAIL luôn bypass. User chưa đăng nhập khi maintenance bật → màn hình bảo trì (không thể login).
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
 - **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html (user báo đã chuyển → admin kiểm tra → bấm "Duyệt nâng cấp")
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"

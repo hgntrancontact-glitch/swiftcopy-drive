@@ -14,6 +14,7 @@ const firebaseConfig = {
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
 // GAS_URL đã chuyển vào Vercel env var — xem api/email.js
+const ADMIN_EMAIL = "hgntran.contact@gmail.com";
 
 // Free plan limits
 const FREE_MB_LIMIT = 500;
@@ -190,14 +191,31 @@ function handleAuthExpired(){
   showNoAuth('Phiên cấp quyền đã hết hạn','Quyền truy cập Google Drive đã hết hạn sau một thời gian. Vui lòng cấp quyền lại để tiếp tục.');
 }
 
+// Maintenance check — fetched once, cached as promise
+let _maintenancePromise = null;
+function getMaintenance(){
+  if (!_maintenancePromise){
+    _maintenancePromise = getDoc(doc(db,'settings','maintenance'))
+      .then(snap => snap.exists() ? snap.data() : { enabled:false })
+      .catch(() => ({ enabled:false }));
+  }
+  return _maintenancePromise;
+}
+
 onAuthStateChanged(auth, async u => {
+  const maint = await getMaintenance();
   if (!u){
     gUser=null; gToken=null; gUserData=null;
     if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
     document.getElementById('planSelectModal')?.classList.remove('active');
+    if (maint.enabled){ sec('maintenance'); return; }
     sec('land'); return;
   }
   gUser=u; sec('check');
+  if (maint.enabled){
+    const allowed = maint.allowedEmails || [];
+    if (u.email !== ADMIN_EMAIL && !allowed.includes(u.email)){ sec('maintenance'); return; }
+  }
   try {
     // Kiểm tra document tồn tại chưa
     const docSnap = await getDoc(doc(db,'users',u.uid));
@@ -427,7 +445,7 @@ async function copyFileSingle(fileId,destId){
     await pausePoint(); if(stopFlag) return {ok:false,reason:'Đã dừng',sizeMB:0};
     try{
       const resp=await dpost('/files/'+fileId+'/copy?fields=id,size&supportsAllDrives=true',{parents:[destId]});
-      return {ok:true,sizeMB:parseFloat(resp.size||0)/(1024*1024)};
+      return {ok:true,sizeMB:(parseInt(resp.size)||0)/(1024*1024)};
     }
     catch(e){
       if(isAuthExpiredErr(e)) throw e;
@@ -497,7 +515,7 @@ async function loadChecklist(srcId) {
     clItems = top.map(item => ({
       id: item.id, name: item.name,
       mimeType: item.mimeType,
-      size: item.size || 0,
+      size: parseInt(item.size) || 0,
       depth: 0,
       expanded: false,
       checked: true,
@@ -586,7 +604,7 @@ window.clToggleExpand = async (e, id) => {
       const children = await listItems(item.id);
       item.children = children.map(c => ({
         id:c.id, name:c.name, mimeType:c.mimeType,
-        size: c.size || 0,
+        size: parseInt(c.size) || 0,
         depth: item.depth+1, expanded:false,
         checked: item.checked, indeterminate:false,
         children: c.mimeType===FMIME ? null : [],
@@ -636,7 +654,7 @@ function findClItem(id) {
 
 function calcSelectedBytes(){
   let total=0;
-  function walk(items){ for(const item of items){ if(item.mimeType!==FMIME&&(item.checked||item.indeterminate)) total+=parseFloat(item.size||0); if(item.children) walk(item.children); } }
+  function walk(items){ for(const item of items){ if(item.mimeType!==FMIME&&(item.checked||item.indeterminate)) total+=(parseInt(item.size)||0); if(item.children) walk(item.children); } }
   walk(clItems); return total;
 }
 
@@ -1437,7 +1455,7 @@ function updateFreeLimitCountdown() {
 
 // ── UI HELPERS ───────────────────────────────────────────────
 function sec(name, _noPush){
-  ['land','check','pend','kicked','app'].forEach(s=>{const el=document.getElementById('s-'+s);if(el)el.style.display=s===name?'block':'none';});
+  ['land','check','pend','kicked','app','maintenance'].forEach(s=>{const el=document.getElementById('s-'+s);if(el)el.style.display=s===name?'block':'none';});
   const nr=document.getElementById('navRight');if(nr)nr.style.display=name==='app'?'flex':'none';
   const ng=document.getElementById('navGuest');if(ng)ng.style.display=name==='app'?'none':'flex';
   if(!_noPush){
