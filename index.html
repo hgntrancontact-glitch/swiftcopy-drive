@@ -462,7 +462,7 @@
             <button id="btnResume" class="flex-1 text-center py-2.5 text-[12px] font-bold rounded-xl border-2 border-[#c3fae8] text-[#099268] bg-[#e6fcf5] hover:bg-[#099268] hover:text-white hover:border-[#099268] active:scale-95 transition-all select-none cursor-pointer" onclick="doResume()" style="display:none">Tiếp tục</button>
             <button id="btnReset" class="px-4 text-center py-2.5 text-[12px] font-bold rounded-xl bg-[#212529] text-white hover:bg-black active:scale-95 transition-all select-none cursor-pointer" onclick="doReset()">Reset</button>
           </div>
-          <div class="mt-2 text-right"><span id="actionStatus" class="text-[10px] text-[#868e96] font-mono"></span></div>
+          <div class="mt-2 text-right" style="display:none"><span id="actionStatus" class="text-[10px] text-[#868e96] font-mono"></span></div>
         </div>
 
         <!-- PROGRESS CARD -->
@@ -478,6 +478,7 @@
             <div class="mb-4 flex-shrink-0">
               <div id="statusLbl" class="status-lbl mb-1.5">Chưa bắt đầu</div>
               <div class="prog-track"><div id="progFill" class="prog-fill" style="width:0%"></div></div>
+              <div id="progInfo" style="display:none;margin-top:5px;font-size:12px;font-weight:600;line-height:1.4;"></div>
             </div>
 
             <div id="statsRow" class="grid grid-cols-3 gap-3 mb-4 flex-shrink-0">
