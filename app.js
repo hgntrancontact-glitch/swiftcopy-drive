@@ -483,17 +483,64 @@ async function listItems(folderId){
   return res;
 }
 async function existNames(folderId){ return new Set((await listItems(folderId)).map(i=>i.name)); }
-async function copyFileSingle(fileId,destId){
+async function copyFileSingle(item,destId){
+  // Video files: download + re-upload to force immediate transcoding.
+  // files.copy puts videos in Google's low-priority queue → 360p for days/weeks.
+  // Re-upload triggers fresh processing just like a brand-new upload.
+  if(isVideoItem(item)) return copyVideoReUpload(item,destId);
   for(let i=0;i<4;i++){
     await pausePoint(); if(stopFlag) return {ok:false,reason:'Đã dừng',sizeMB:0};
     try{
-      const resp=await dpost('/files/'+fileId+'/copy?fields=id,size&supportsAllDrives=true',{parents:[destId]});
+      const resp=await dpost('/files/'+item.id+'/copy?fields=id,size&supportsAllDrives=true',{parents:[destId]});
       return {ok:true,sizeMB:(parseInt(resp.size)||0)/(1024*1024)};
     }
     catch(e){
       if(isAuthExpiredErr(e)) throw e;
       const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
       if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*800);continue;}
+      if(c===403) return {ok:false,reason:'Không có quyền copy',sizeMB:0};
+      if(c===404) return {ok:false,reason:'File không tìm thấy',sizeMB:0};
+      return {ok:false,reason:e.message.slice(0,60),sizeMB:0};
+    }
+  }
+  return {ok:false,reason:'Hết số lần thử',sizeMB:0};
+}
+
+async function copyVideoReUpload(item,destId){
+  addLog('Tải xuống+ghi video: '+item.name,'info');
+  for(let attempt=0;attempt<4;attempt++){
+    await pausePoint(); if(stopFlag) return {ok:false,reason:'Đã dừng',sizeMB:0};
+    try{
+      if(!gToken) throw new Error('NO_TOKEN');
+      // 1. Download video content from source
+      const dlRes=await fetch(BASE+'/files/'+item.id+'?alt=media&supportsAllDrives=true',
+        {headers:{Authorization:'Bearer '+gToken}});
+      if(dlRes.status===401) throw new Error('AUTH_EXPIRED: video dl');
+      if(!dlRes.ok){const t=await dlRes.text();throw new Error('Drive '+dlRes.status+': '+t.slice(0,80));}
+      const blob=await dlRes.blob();
+      // 2. Re-upload to destination (multipart upload)
+      const mime=item.mimeType||'application/octet-stream';
+      const meta=JSON.stringify({name:item.name,parents:[destId],mimeType:mime});
+      const boundary='swiftcopy_vid_'+Date.now().toString(36);
+      const CRLF='\r\n';
+      const upBody=new Blob([
+        '--'+boundary+CRLF+'Content-Type: application/json; charset=UTF-8'+CRLF+CRLF+meta+CRLF,
+        '--'+boundary+CRLF+'Content-Type: '+mime+CRLF+CRLF,
+        blob,
+        CRLF+'--'+boundary+'--'
+      ]);
+      const upRes=await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,size',
+        {method:'POST',headers:{Authorization:'Bearer '+gToken,'Content-Type':'multipart/related; boundary='+boundary},body:upBody});
+      if(upRes.status===401) throw new Error('AUTH_EXPIRED: video ul');
+      if(!upRes.ok){const t=await upRes.text();throw new Error('Drive '+upRes.status+': '+t.slice(0,80));}
+      const resp=await upRes.json();
+      return {ok:true,sizeMB:(parseInt(resp.size)||0)/(1024*1024)};
+    }
+    catch(e){
+      if(isAuthExpiredErr(e)) throw e;
+      const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
+      if([429,500,503].includes(c)){await sleep(Math.pow(2,attempt)*800);continue;}
       if(c===403) return {ok:false,reason:'Không có quyền copy',sizeMB:0};
       if(c===404) return {ok:false,reason:'File không tìm thấy',sizeMB:0};
       return {ok:false,reason:e.message.slice(0,60),sizeMB:0};
@@ -1184,7 +1231,7 @@ async function _runCopyInternal(isResume) {
         if(gUserData?.plan==='free'&&isVideoItem(item)){
           addLog('Bỏ qua video (miễn phí): '+item.name,'skip'); progInc(); updateProgInfo(item.name); return;
         }
-        const res=await copyFileSingle(item.id,destId);
+        const res=await copyFileSingle(item,destId);
         const node={name:item.name,path:item.name,type:'file',depth:0,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
         if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
         else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
@@ -1261,7 +1308,7 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
       if(gUserData?.plan==='free'&&isVideoItem(item)){
         addLog('Bỏ qua video (miễn phí): '+item.name,'skip'); progInc(); updateProgInfo(item.name); return;
       }
-      const res=await copyFileSingle(item.id,destId);
+      const res=await copyFileSingle(item,destId);
       const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
       if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
       else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
@@ -1310,7 +1357,7 @@ async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem
       if(gUserData?.plan==='free'&&isVideoItem(item)){
         addLog('Bỏ qua video (miễn phí): '+item.name,'skip'); progInc(); updateProgInfo(item.name); return;
       }
-      const res=await copyFileSingle(item.id,destId);
+      const res=await copyFileSingle(item,destId);
       const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
       if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
       else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
