@@ -43,7 +43,8 @@ SwiftCopy.Drive/
 │   ├── bao-mat.txt     ← Nội dung "Chính sách bảo mật" (plain text)
 │   └── hoan-tien.txt   ← Nội dung "Chính sách hoàn tiền" (plain text)
 ├── api/
-│   └── email.js        ← Vercel serverless function — proxy email từ browser đến GAS (GAS_URL ẩn)
+│   ├── email.js        ← Vercel serverless function — proxy email từ browser đến GAS (GAS_URL ẩn)
+│   └── maintenance.js  ← Vercel serverless function — đọc settings/maintenance từ Firestore bằng service account (bypass Security Rules)
 ├── gas-email.js        ← Code Google Apps Script — deploy lên script.google.com để gửi email
 ├── vercel.json         ← Rewrite rules: /copy-drive → index.html; 3 legal routes → legal.html
 ├── zalo-qr.png         ← Ảnh QR Zalo hỗ trợ (400×400px, đã crop sạch)
@@ -115,7 +116,7 @@ Nhóm hàm chính:
 - **Kicked screen**: `pollKickStatus` — hiện `sec('kicked')` thay vì `signOut()` khi bị kick
 - **Readd welcome (new)**: `checkReaddWelcome` (gọi sau login), `closeReaddWelcome`
   - localStorage key: `swiftcopy_readd_{uid}` — đảm bảo modal chỉ hiện 1 lần
-- **Maintenance**: `getMaintenance()` (cached promise) + `getMaintenanceResult(mode, allowedEmails, userEmail)` → `'maintenance'|'landing'|null`. `sec('check')` và `getMaintenance()` được gọi ngay khi module load (trước `onAuthStateChanged`) để tránh flash landing. `onAuthStateChanged` cũng gọi `sec('check')` đầu tiên trước mọi await. Chỉ `allowedEmails` bypass — ADMIN_EMAIL không có xử lý đặc biệt trong `app.js`. Backward compat với `enabled:bool`.
+- **Maintenance**: `getMaintenance()` (cached promise, gọi `/api/maintenance` — Vercel function dùng service account) + `getMaintenanceResult(mode, allowedEmails, userEmail)` → `'maintenance'|'landing'|null`. `sec('check')` và `getMaintenance()` gọi ngay khi module load. `onAuthStateChanged` gọi `sec('check')` trước mọi await. Chỉ `allowedEmails` bypass — ADMIN_EMAIL không có xử lý đặc biệt trong `app.js`. **QUAN TRỌNG: KHÔNG đọc Firestore trực tiếp từ browser cho `settings/maintenance`** — phải luôn qua `/api/maintenance` vì người chưa đăng nhập bị Security Rules chặn.
 - **Drive API wrapper**: `dget`, `dpost`, `ddel`, `fid`, `fname`, `listItems`, `existNames`, `copyFileSingle`, `mkFolder` — có retry exponential backoff cho 429/500/503
 - **Auth expiry**: `isAuthExpiredErr`, `handleAuthExpired` — xử lý 401 giữa chừng, tự resume sau khi reauth
 - **Checklist**: `loadChecklist`, `renderChecklist` — cây thư mục lazy-load, checkbox 3 trạng thái
@@ -162,6 +163,29 @@ Nhóm hàm chính:
 - **KHÔNG** lưu GAS_URL trong `app.js`, `admin.html`, hay bất kỳ file nào commit lên GitHub
 
 **⚠️ Bẫy hay gặp:** Thêm env var vào Vercel xong nhưng quên Redeploy → email vẫn không gửi được dù config đúng.
+
+---
+
+## Maintenance system — Vercel Proxy (api/maintenance.js)
+
+**Luồng đọc maintenance:** Browser → `GET /api/maintenance` (Vercel serverless) → Firestore REST API (dùng service account JWT) → trả `{ mode, allowedEmails }`
+
+**Tại sao KHÔNG đọc Firestore trực tiếp từ browser:**
+- Firestore Security Rules chặn người chưa đăng nhập đọc collection `settings`
+- Nếu đọc trực tiếp: người chưa đăng nhập bị lỗi permission → catch trả `{ mode:'off' }` → Bảo trì 1 và 2 không bao giờ hoạt động với incognito/tài khoản mới
+- `api/maintenance.js` chạy server-side, dùng service account → bypass Security Rules hoàn toàn
+
+**Vercel env vars bắt buộc cho maintenance:**
+| Var | Lấy từ đâu |
+|---|---|
+| `FIREBASE_CLIENT_EMAIL` | Firebase Console → Project Settings → Service accounts → Generate new private key → field `client_email` |
+| `FIREBASE_PRIVATE_KEY` | Cùng file JSON → field `private_key` (paste nguyên chuỗi kể cả `\n` bên trong) |
+
+**Nếu env vars chưa set:** `/api/maintenance` trả `{ mode:'off' }` im lặng (maintenance tắt, app hoạt động bình thường — không crash).
+
+**⚠️ Bẫy hay gặp:** Thêm `FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` vào Vercel xong nhưng quên Redeploy → maintenance vẫn không hoạt động.
+
+**File service account JSON:** KHÔNG commit lên GitHub, KHÔNG để trong thư mục project. Chỉ dùng để lấy 2 giá trị trên, xong xóa đi.
 
 **7 loại email GAS xử lý (type string phải khớp chính xác):**
 | type | Người nhận | Khi nào |
@@ -367,6 +391,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Admin email bị reset doc sau logout → về planSelectModal dù đã approved**: Lỗi do có logic `deleteDoc` trong `onAuthStateChanged` và `doLogout`. Đã xóa hoàn toàn — admin email không có xử lý đặc biệt nào trong app.js.
 - **Email nhập vào loginModal bị bỏ qua**: Đã fix bằng `provider.setCustomParameters({ login_hint: email })` trong `doLogin()` — Google sẽ pre-fill đúng tài khoản.
 - **Cảnh báo Google chưa xác minh làm user thoát**: Đã fix bằng `#loginWarnView` — màn hình trung gian giải thích + hướng dẫn 2 bước + checkbox xác nhận trước khi popup Google mở.
+- **[CHẨN ĐOÁN SAI — BÀI HỌC QUAN TRỌNG] Maintenance không hoạt động cho người chưa đăng nhập (Bảo trì 1 & 2)**: Triệu chứng: incognito và tài khoản chưa đăng ký vẫn thấy landing thay vì trang bảo trì. Chẩn đoán ban đầu SAI: cứ đề nghị sửa Firestore Security Rules trong Firebase Console thay vì tìm giải pháp code. Nguyên nhân thật: `getMaintenance()` đọc Firestore trực tiếp từ browser → Security Rules chặn người chưa auth → catch trả `{ mode:'off' }` → maintenance không bao giờ áp dụng. Fix đúng: tạo `api/maintenance.js` (Vercel serverless + service account JWT) → đọc Firestore server-side → bypass Security Rules hoàn toàn → tất cả 3 mode hoạt động cho mọi loại user. **Quy tắc rút ra: bất kỳ Firestore collection nào cần đọc bởi người CHƯA đăng nhập → PHẢI đọc qua Vercel server-side function, KHÔNG đọc trực tiếp từ browser.**
 
 ---
 
@@ -386,7 +411,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Kick screen**: ĐÃ fix — `pollKickStatus()` hiện `#s-kicked` (không signOut), user thấy lý do và phải bấm Đăng xuất
 - **Readd + welcome modal**: ĐÃ implement — `doReadd()` set plan='paid' + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login
 - **Admin email**: không còn xử lý đặc biệt trong `app.js` — hành vi hoàn toàn giống user thường. Đăng ký → chọn gói → chờ duyệt → vào dashboard. Doc tồn tại vĩnh viễn sau khi tạo. `admin.html` vẫn gate riêng bởi `ADMIN_EMAIL` constant trong file đó.
-- **Maintenance mode**: ĐÃ nâng cấp + fix timing — 5 chế độ, trang riêng `admin-maintenance.html`. `sec('check')` và `getMaintenance()` gọi ngay khi module load để tránh flash. `onAuthStateChanged` check maintenance trước tất cả logic khác. `allowedEmails` bypass duy nhất — ADMIN_EMAIL không có xử lý đặc biệt trong app.js. `admin-maintenance.html` có status banner hiện trạng thái đang áp dụng và hint email admin để tự thêm vào bypass list.
+- **Maintenance mode**: ĐÃ fix hoàn toàn — 3 chế độ (all/auth/dashboard) + off, trang riêng `admin-maintenance.html`. `getMaintenance()` gọi `/api/maintenance` (Vercel function + service account) thay vì Firestore trực tiếp → hoạt động đúng cho cả người chưa đăng nhập. Toggle bật/tắt trong card header, nhớ mode cuối qua `_lastActiveMode`. Vercel env vars cần có: `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`.
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
 - **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html (user báo đã chuyển → admin kiểm tra → bấm "Duyệt nâng cấp")
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"
