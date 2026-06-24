@@ -143,10 +143,15 @@ window.hideLoginWarn = () => {
   if (lv) lv.style.display = 'block';
   if (wv) wv.style.display = 'none';
 };
-window.openLoginModal = () => {
+let _loginMode = 'register';
+window.openLoginModal = (mode = 'register') => {
+  _loginMode = mode;
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   document.getElementById('loginModal')?.classList.add('active');
   window.hideLoginWarn();
+};
+window.handleLoginContinue = () => {
+  if (_loginMode === 'login') { doLogin(); } else { showLoginWarn(); }
 };
 // openRegisterModal giờ chỉ mở loginModal — plan selection xảy ra sau login
 window.openRegisterModal = () => window.openLoginModal();

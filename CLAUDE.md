@@ -62,9 +62,10 @@ SwiftCopy.Drive/
 ## Luồng Auth mới (sau khi implement 7 task)
 
 ```
-Landing → openLoginModal() → #loginModal (2 view: loginView + loginWarnView)
-  → showLoginWarn() → #loginWarnView (cảnh báo Google chưa xét duyệt)
+Landing → openLoginModal(mode) → #loginModal (2 view: loginView + loginWarnView)
+  _loginMode='register' (nút "Đăng ký dùng thử") → handleLoginContinue() → showLoginWarn() → #loginWarnView
     → tick checkbox → doLogin() → signInWithPopup (với login_hint nếu đã nhập email) → onAuthStateChanged
+  _loginMode='login' (nút "Đăng nhập") → handleLoginContinue() → doLogin() TRỰC TIẾP (không qua cảnh báo)
     → check Firestore doc exists?
       NO  → showPlanSelect() → #planSelectModal
               "Dùng miễn phí"     → createFreeUser()        → approved=true, plan='free' → sec('app')
@@ -240,6 +241,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000;    // 5 giờ
 | Biến | Mô tả |
 |---|---|
 | `gUserData` | Full Firestore user document (set bởi `checkApproval()`) |
+| `_loginMode` | `'register'` hoặc `'login'` — set bởi `openLoginModal(mode)`, dùng bởi `handleLoginContinue()` để quyết định có hiện `#loginWarnView` hay gọi `doLogin()` trực tiếp |
 | `_paymentContext` | `'new'` hoặc `'upgrade'` — `confirmPayment()` dùng để quyết định gọi `createPaidPendingUser()` hay `_doUpgradeRequestInternal()` |
 | `_sessionCopiedMB` | MB đã copy trong phiên hiện tại, cộng vào `freeUsedMB` khi copy xong |
 | `_freeLimitTimer` | `setInterval` ID cho countdown trong `#freeLimitModal` |
