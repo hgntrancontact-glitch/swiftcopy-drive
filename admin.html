@@ -4,7 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>SwiftCopy.Drive — Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<meta property="og:title" content="SwiftCopy.Drive — Admin quản lý user">
+<meta property="og:description" content="Ứng dụng admin quản lý user">
+<meta property="og:image" content="https://swiftcopydrive.vercel.app/og-image.png">
+<meta property="og:url" content="https://swiftcopydrive.vercel.app/admin.html">
+<meta property="og:type" content="website">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -20,14 +24,14 @@
   --shadow:0 1px 4px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
   --shadow2:0 4px 20px rgba(0,0,0,.08);
 }
-body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
 
 svg.ic{width:14px;height:14px;display:inline-block;vertical-align:middle;flex-shrink:0}
 svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-shrink:0}
 
 .nav{background:var(--surface);border-bottom:2px solid var(--yellow);height:60px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
 .nav-brand{display:flex;align-items:center;gap:12px}
-.nav-logo{font-family:'Nunito',sans-serif;font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.4px}
+.nav-logo{font-family:inherit;font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.4px}
 .nav-logo .dot{color:var(--red-mid)}
 .nav-badge{font-size:10px;font-weight:900;letter-spacing:.5px;padding:3px 10px;border:1.5px solid var(--yellow);border-radius:6px;color:var(--orange);background:var(--yellow-light)}
 .nav-right{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text3)}
@@ -40,7 +44,7 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 
 .center{min-height:calc(100vh - 54px);display:flex;align-items:center;justify-content:center;padding:40px 20px}
 .auth-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:48px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shadow2)}
-.auth-card h2{font-family:'Nunito',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px}
+.auth-card h2{font-family:inherit;font-size:22px;font-weight:800;margin-bottom:8px}
 .auth-card p{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:24px}
 .btn-google{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r2);padding:12px 24px;font-size:14px;font-weight:700;color:var(--text);cursor:pointer;box-shadow:var(--shadow);transition:.2s;font-family:inherit}
 .btn-google:hover{box-shadow:var(--shadow2);transform:translateY(-1px)}
@@ -52,7 +56,7 @@ svg.ic16{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-
 .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:22px}
 .stat-box{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:20px 14px;text-align:center;cursor:pointer;transition:.2s;box-shadow:var(--shadow)}
 .stat-box:hover{box-shadow:var(--shadow2);transform:translateY(-2px)}
-.stat-box .n{font-family:'Nunito',sans-serif;font-size:32px;font-weight:800;line-height:1;margin-bottom:5px}
+.stat-box .n{font-family:inherit;font-size:32px;font-weight:800;line-height:1;margin-bottom:5px}
 .stat-box .l{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
 .stat-box.blue{border-color:var(--blue-border);background:var(--blue-light)}.stat-box.blue .n{color:var(--blue)}
 .stat-box.green{border-color:var(--green-border);background:var(--green-light)}.stat-box.green .n{color:var(--green)}
@@ -125,7 +129,7 @@ tbody tr:last-child td{border-bottom:none}
 /* MODAL */
 .modal{background:var(--surface);border-radius:18px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.18);border:1.5px solid var(--border)}
 .modal-h{padding:16px 20px;border-bottom:1.5px solid var(--border);background:var(--surface2);border-radius:17px 17px 0 0}
-.modal-h h3{font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;color:var(--text)}
+.modal-h h3{font-family:inherit;font-size:16px;font-weight:800;color:var(--text)}
 .modal-b{padding:20px}
 .modal-b p{font-size:13.5px;color:var(--text2);line-height:1.7;margin-bottom:14px}
 .modal-label{display:block;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
@@ -157,7 +161,7 @@ tbody tr:last-child td{border-bottom:none}
 
 <nav class="nav">
   <div class="nav-brand">
-    <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="border-radius:9px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.1)">
+    <svg width="40" height="40" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="border-radius:12px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.1)">
       <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
       <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
       <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>

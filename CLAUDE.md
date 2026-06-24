@@ -350,7 +350,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 | Dark | `#212529` | Nền header modal, nút dark, text heading |
 | Success | `#099268` / `#20c997` | Thành công, approved |
 | Border | `#e9ecef` / `#f1f3f5` | Card border, divider |
-| Font | Nunito (heading 800) + Nunito Sans (body) |
+| Font | Nunito (heading 800) + Nunito Sans (body) — chỉ áp dụng cho `legal.html`; `index.html` dùng Tailwind `font-sans` (system font); `admin.html` dùng system font stack (đồng bộ với user) |
 
 ### Dashboard user (#s-app)
 - **Cards**: `rounded-2xl` + `p-5 md:p-6` + `shadow-sm hover:shadow-md transition-shadow`
@@ -361,7 +361,8 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Premium badge**: dark `#111110` bg + gold `#c9a84c` border 1.5px + box-shadow amber nhẹ + icon badge + divider dọc + feature summary
 
 ### Admin panel (admin.html)
-- **Nav**: height 60px, có logo SVG (cùng SVG với index.html), badge "ADMIN" vàng
+- **Nav**: height 60px, logo SVG 40×40px `border-radius:12px` (giống index.html), badge "ADMIN" vàng
+- **Font**: system font stack (không dùng Google Fonts Nunito) — đồng bộ với user side; OG tags có đầy đủ
 - **Stats boxes**: `padding:20px 14px`, số `font-size:32px`
 - **Table**: `padding:13px 18px`, avatar 38×38px + border 2px, u-name 13.5px
 - **Badges**: có `.badge-dot` tròn 6×6 màu tương ứng ở trước text
