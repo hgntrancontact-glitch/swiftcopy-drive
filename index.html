@@ -257,13 +257,13 @@
             </div>
             <div>
                 <h3 class="font-bold text-black text-[17.5px] mb-3 tracking-tight">Tính năng</h3>
-                <ul class="text-[15px] text-[#6c757d] space-y-2">
-                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Sao chép tốc độ cực nhanh</li>
-                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Kiểm tra Drive lỗi trước</li>
-                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Chọn lọc mục muốn copy</li>
-                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Theo dõi hành trình sao chép</li>
-                    <li><span class="text-[#2b8a3e] font-bold mr-1">✔</span> Tự động sao chép tiếp nếu mất mạng</li>
-                </ul>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:11px;flex-shrink:0;">✔</span>Sao chép tốc độ cực nhanh</span>
+                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:11px;flex-shrink:0;">✔</span>Kiểm tra Drive lỗi trước</span>
+                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:11px;flex-shrink:0;">✔</span>Chọn lọc mục muốn copy</span>
+                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:11px;flex-shrink:0;">✔</span>Theo dõi hành trình sao chép</span>
+                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:11px;flex-shrink:0;">✔</span>Tự động copy tiếp nếu mất mạng, treo máy</span>
+                </div>
             </div>
             <div>
                 <h3 class="font-bold text-black text-[17.5px] mb-3 tracking-tight">Liên hệ</h3>
@@ -442,6 +442,7 @@
                   <button class="btn-ghost" onclick="clDeselectAll()">Bỏ chọn</button>
                 </div>
               </div>
+              <div id="srcTotalSize" style="display:none;font-size:11px;padding:4px 8px;color:#868e96;background:#fafafa;border-bottom:1px solid #f1f3f5;font-weight:600;"></div>
               <div id="clSizeInfo" style="display:none;font-size:12px;padding:5px 8px;color:#495057;background:#f8f9fa;border-bottom:1px solid #f1f3f5;"></div>
               <div class="checklist-body" id="checklistBody"
                 onmousedown="dragStart(event)"

@@ -135,7 +135,7 @@ window.doReset = () => {
 window.doLogin = async () => {
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   const hint = document.getElementById('loginEmailHint')?.value?.trim() || '';
-  provider.setCustomParameters(hint ? { login_hint: hint } : {});
+  provider.setCustomParameters({ prompt: 'select_account', ...(hint ? { login_hint: hint } : {}) });
   try {
     const res = await signInWithPopup(auth, provider);
     gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
@@ -173,6 +173,7 @@ window.openRegisterModal = () => window.openLoginModal();
 window.doLogout = () => signOut(auth);
 window.reAuth   = async () => {
   try {
+    provider.setCustomParameters({ prompt: 'consent' });
     const res=await signInWithPopup(auth,provider);
     gToken=GoogleAuthProvider.credentialFromResult(res)?.accessToken;
     showAuthOK();
@@ -573,6 +574,7 @@ async function loadChecklist(srcId) {
     clLoaded = true;
     renderChecklist();
     updateClInfo();
+    updateSrcTotalInfo();
   } catch(e) {
     if(isAuthExpiredErr(e)){ body.innerHTML = '<div class="cl-empty">Phiên cấp quyền đã hết hạn</div>'; handleAuthExpired(); return; }
     body.innerHTML = '<div class="cl-empty">Lỗi tải danh sách: '+escH(e.message)+'</div>';
@@ -705,6 +707,12 @@ function calcSelectedBytes(){
   walk(clItems); return total;
 }
 
+function countNativeSelected(){
+  let n=0;
+  function walk(items){ for(const item of items){ if(item.mimeType!==FMIME&&item.mimeType!==SMIME&&item.mimeType.startsWith('application/vnd.google-apps.')&&(item.checked||item.indeterminate)) n++; if(item.children) walk(item.children); } }
+  walk(clItems); return n;
+}
+
 function updateClInfo() {
   const total    = clItems.length;
   const selected = clItems.filter(i => i.checked || i.indeterminate).length;
@@ -715,19 +723,42 @@ function updateClInfo() {
   if (!sizeEl) return;
   if (!clLoaded || !total){ sizeEl.style.display='none'; return; }
   sizeEl.style.display = 'block';
-  const mb = calcSelectedBytes() / (1024*1024);
-  const sizeStr = mb>=1024 ? (mb/1024).toFixed(2)+' GB' : mb.toFixed(0)+' MB';
+  const rawMb = calcSelectedBytes() / (1024*1024);
+  const mb = isNaN(rawMb) ? 0 : rawMb;
+  const sizeStr = mb>=1024 ? (mb/1024).toFixed(2)+' GB' : mb.toFixed(1)+' MB';
+  const native = countNativeSelected();
+  const nativeTip = native>0 ? ` <span style="color:#adb5bd;font-size:11px">(+${native} Google Docs/Sheets/Slides)</span>` : '';
   if (gUserData?.plan==='free'){
     const remainMB = Math.max(0, FREE_MB_LIMIT-(gUserData.freeUsedMB||0));
     if (mb > remainMB){
       const over = Math.ceil(mb-remainMB);
-      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b> &nbsp;<span style="color:#e67700;font-weight:700;">⚠ Vượt ${over}MB còn lại — <a href="#" onclick="openUpgradeModal();return false;" style="color:#d97706;text-decoration:underline">Nâng cấp gói</a></span>`;
+      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${nativeTip} &nbsp;<span style="color:#e67700;font-weight:700;">⚠ Vượt ${over}MB còn lại — <a href="#" onclick="openUpgradeModal();return false;" style="color:#d97706;text-decoration:underline">Nâng cấp gói</a></span>`;
     } else {
-      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b> <span style="color:#adb5bd;">(còn ${Math.round(remainMB)}MB / 500MB)</span>`;
+      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${nativeTip} <span style="color:#adb5bd;">(còn ${Math.round(remainMB)}MB / 500MB)</span>`;
     }
   } else {
-    sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>`;
+    sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${nativeTip}`;
   }
+}
+
+function updateSrcTotalInfo() {
+  const el = document.getElementById('srcTotalSize');
+  if (!el || !clLoaded) return;
+  let totalBytes=0, nativeCount=0, folderCount=0;
+  for (const item of clItems) {
+    if (item.mimeType===FMIME){ folderCount++; continue; }
+    if (item.mimeType===SMIME) continue;
+    if (item.mimeType.startsWith('application/vnd.google-apps.')){ nativeCount++; continue; }
+    totalBytes += item.size || 0;
+  }
+  const mb = totalBytes/(1024*1024);
+  const sizeStr = mb>=1024 ? (mb/1024).toFixed(2)+' GB' : mb.toFixed(1)+' MB';
+  const parts = [];
+  if (totalBytes>0 || (!nativeCount && !folderCount)) parts.push('~'+sizeStr);
+  if (nativeCount>0) parts.push(nativeCount+' Google file');
+  if (folderCount>0) parts.push(folderCount+' thư mục');
+  el.textContent = 'Thư mục nguồn: '+parts.join(' · ');
+  el.style.display = 'block';
 }
 
 window.clSelectAll   = () => { clItems.forEach(i=>setItemCheck(i,true));  updateClInfo(); renderChecklist(); };
