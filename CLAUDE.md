@@ -114,7 +114,7 @@ Nhóm hàm chính:
 - **Kicked screen**: `pollKickStatus` — hiện `sec('kicked')` thay vì `signOut()` khi bị kick
 - **Readd welcome (new)**: `checkReaddWelcome` (gọi sau login), `closeReaddWelcome`
   - localStorage key: `swiftcopy_readd_{uid}` — đảm bảo modal chỉ hiện 1 lần
-- **Maintenance**: `getMaintenance()` (cached promise, doc `settings/maintenance`) — check trong `onAuthStateChanged`, cho phép ADMIN_EMAIL và `allowedEmails` list bypass
+- **Maintenance**: `getMaintenance()` (cached promise, doc `settings/maintenance`) + `getMaintenanceResult(mode, allowedEmails, userEmail)` — trả về `'maintenance'|'landing'|null`. ADMIN_EMAIL và `allowedEmails` luôn bypass. Backward compat với doc cũ dùng `enabled:bool`.
 - **Drive API wrapper**: `dget`, `dpost`, `ddel`, `fid`, `fname`, `listItems`, `existNames`, `copyFileSingle`, `mkFolder` — có retry exponential backoff cho 429/500/503
 - **Auth expiry**: `isAuthExpiredErr`, `handleAuthExpired` — xử lý 401 giữa chừng, tự resume sau khi reauth
 - **Checklist**: `loadChecklist`, `renderChecklist` — cây thư mục lazy-load, checkbox 3 trạng thái
@@ -198,6 +198,32 @@ Mỗi document trong collection `users` có các field sau:
 | `readdedAt` | Timestamp | (optional) Set bởi admin.html `doReadd()` — trigger `#readdWelcomeModal` 1 lần duy nhất |
 | `readdNote` | string | (optional) Ghi chú admin khi thêm lại |
 | `kickReason` | string | (optional) Lý do kick — hiện trong `#s-kicked` và email |
+
+### Firestore schema — settings/maintenance
+
+```
+{
+  mode: 'off' | 'all' | 'auth' | 'dashboard' | 'unregistered',
+  allowedEmails: string[]   // luôn bypass, kể cả ADMIN_EMAIL không cần liệt kê
+}
+```
+
+| mode | Chưa đăng nhập | Đã đăng nhập |
+|---|---|---|
+| `off` | landing | dashboard |
+| `all` | maintenance | maintenance |
+| `auth` | maintenance | dashboard |
+| `dashboard` | landing | maintenance |
+| `unregistered` | maintenance | landing (không vào dashboard) |
+
+ADMIN_EMAIL và `allowedEmails` luôn bypass → không bị chặn dù mode là gì.
+
+**Hàm `getMaintenanceResult(mode, allowedEmails, userEmail)`** — trả về:
+- `'maintenance'` → hiện `#s-maintenance`
+- `'landing'` → hiện `#s-land` (không đi sâu hơn)
+- `null` → không chặn, chạy luồng bình thường
+
+Backward compat: doc cũ có `enabled:bool` thay vì `mode:string` → `mode = data.mode || (data.enabled ? 'all' : 'off')`
 
 **Quy tắc tạo user mới (qua `#planSelectModal` sau login):**
 - **Gói Free** (bấm "Dùng miễn phí"): `createFreeUser()` → `approved=true, status='approved', plan='free'` — vào app ngay
@@ -360,7 +386,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Kick screen**: ĐÃ fix — `pollKickStatus()` hiện `#s-kicked` (không signOut), user thấy lý do và phải bấm Đăng xuất
 - **Readd + welcome modal**: ĐÃ implement — `doReadd()` set plan='paid' + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login
 - **Admin email**: không còn xử lý đặc biệt trong `app.js` — hành vi hoàn toàn giống user thường. Đăng ký → chọn gói → chờ duyệt → vào dashboard. Doc tồn tại vĩnh viễn sau khi tạo. `admin.html` vẫn gate riêng bởi `ADMIN_EMAIL` constant trong file đó.
-- **Maintenance mode**: ĐÃ implement — Firestore doc `settings/maintenance` (`enabled: bool`, `allowedEmails: string[]`). Admin bật/tắt từ `admin.html`. `getMaintenance()` cached promise trong `app.js`. ADMIN_EMAIL luôn bypass. User chưa đăng nhập khi maintenance bật → màn hình bảo trì (không thể login).
+- **Maintenance mode**: ĐÃ nâng cấp lên 5 chế độ — Firestore doc `settings/maintenance` schema mới: `{ mode: 'off'|'all'|'auth'|'dashboard'|'unregistered', allowedEmails: string[] }`. Admin chọn chế độ từ card UI trong `admin.html`. `getMaintenanceResult()` trong `app.js` quyết định show `'maintenance'`, `'landing'`, hoặc `null` tùy mode và trạng thái đăng nhập. Backward compat với doc cũ dùng `enabled:bool` (map → `'all'` nếu true).
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
 - **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html (user báo đã chuyển → admin kiểm tra → bấm "Duyệt nâng cấp")
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"

@@ -201,26 +201,44 @@ let _maintenancePromise = null;
 function getMaintenance(){
   if (!_maintenancePromise){
     _maintenancePromise = getDoc(doc(db,'settings','maintenance'))
-      .then(snap => snap.exists() ? snap.data() : { enabled:false })
-      .catch(() => ({ enabled:false }));
+      .then(snap => snap.exists() ? snap.data() : { mode:'off' })
+      .catch(() => ({ mode:'off' }));
   }
   return _maintenancePromise;
 }
 
+// Returns 'maintenance' | 'landing' | null
+// userEmail = null means not logged in
+function getMaintenanceResult(mode, allowedEmails, userEmail){
+  if (!mode || mode === 'off') return null;
+  if (userEmail === ADMIN_EMAIL) return null;
+  if (userEmail && (allowedEmails||[]).includes(userEmail)) return null;
+  switch (mode) {
+    case 'all':          return 'maintenance';
+    case 'auth':         return userEmail ? null : 'maintenance';
+    case 'dashboard':    return userEmail ? 'maintenance' : null;
+    case 'unregistered': return userEmail ? 'landing' : 'maintenance';
+    default:             return null;
+  }
+}
+
 onAuthStateChanged(auth, async u => {
   const maint = await getMaintenance();
+  // Backward compat: old docs use enabled:bool, new docs use mode:string
+  const mode = maint.mode || (maint.enabled ? 'all' : 'off');
+  const allowedEmails = maint.allowedEmails || [];
+
   if (!u){
     gUser=null; gToken=null; gUserData=null;
     if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
     document.getElementById('planSelectModal')?.classList.remove('active');
-    if (maint.enabled){ sec('maintenance'); return; }
+    if (getMaintenanceResult(mode, allowedEmails, null) === 'maintenance'){ sec('maintenance'); return; }
     sec('land'); return;
   }
   gUser=u; sec('check');
-  if (maint.enabled){
-    const allowed = maint.allowedEmails || [];
-    if (u.email !== ADMIN_EMAIL && !allowed.includes(u.email)){ sec('maintenance'); return; }
-  }
+  const mResult = getMaintenanceResult(mode, allowedEmails, u.email);
+  if (mResult === 'maintenance'){ sec('maintenance'); return; }
+  if (mResult === 'landing')    { sec('land'); return; }
   try {
     // Kiểm tra document tồn tại chưa
     const docSnap = await getDoc(doc(db,'users',u.uid));

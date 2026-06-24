@@ -212,19 +212,66 @@ tbody tr:last-child td{border-bottom:none}
     <div class="card" style="margin-bottom:16px;">
       <div class="card-h">
         <span class="card-t">🔧 Chế độ bảo trì</span>
+        <span id="maintCurrentBadge" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:999px;border:1px solid var(--green-border);background:var(--green-light);color:var(--green);">Đang tắt</span>
       </div>
       <div style="padding:20px;">
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
-          <div id="maintToggleWrap" style="position:relative;width:44px;height:24px;background:#dee2e6;border-radius:12px;transition:.2s;cursor:pointer;flex-shrink:0;" onclick="toggleMaintenance()">
-            <div id="maintToggleKnob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
+
+        <label class="modal-label" style="margin-bottom:10px;">Chọn chế độ bảo trì</label>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+
+          <div id="modeCard-off" onclick="selectMode('off')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
+            <div id="modeRadio-off" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">✅ Tắt bảo trì (off)</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Mọi thứ hoạt động bình thường, không ai bị chặn.</div>
+            </div>
           </div>
-          <span id="maintToggleLabel" style="font-size:13px;font-weight:700;color:var(--text2);">Tắt</span>
-          <span id="maintStatus" style="font-size:12px;color:var(--text3);">Web đang hoạt động bình thường</span>
+
+          <div id="modeCard-all" onclick="selectMode('all')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
+            <div id="modeRadio-all" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">🔒 Bảo trì tất cả (all)</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Cả người chưa đăng nhập lẫn đã đăng nhập đều thấy màn hình bảo trì (trừ email bypass).</div>
+            </div>
+          </div>
+
+          <div id="modeCard-auth" onclick="selectMode('auth')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
+            <div id="modeRadio-auth" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">🔐 Bảo trì đăng ký/đăng nhập (auth)</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa đăng nhập thấy bảo trì — người đã đăng nhập vào dashboard bình thường.</div>
+            </div>
+          </div>
+
+          <div id="modeCard-dashboard" onclick="selectMode('dashboard')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
+            <div id="modeRadio-dashboard" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">📊 Bảo trì dashboard (dashboard)</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa đăng nhập thấy landing bình thường — người đã đăng nhập vào dashboard thấy bảo trì.</div>
+            </div>
+          </div>
+
+          <div id="modeCard-unregistered" onclick="selectMode('unregistered')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
+            <div id="modeRadio-unregistered" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">👤 Bảo trì với người chưa đăng ký (unregistered)</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa đăng nhập thấy bảo trì hoàn toàn — người đã đăng nhập chỉ thấy landing (không vào dashboard).</div>
+            </div>
+          </div>
+
         </div>
-        <label class="modal-label">Email được phép truy cập lúc bảo trì (mỗi dòng 1 email)</label>
-        <textarea id="maintAllowedEmails" class="modal-textarea" placeholder="Nhập email được phép vào, mỗi dòng 1 địa chỉ..." style="min-height:90px;margin-top:6px;"></textarea>
-        <div style="font-size:11px;color:var(--text3);margin-top:6px;margin-bottom:14px;">Email admin (<code>hgntran.contact@gmail.com</code>) luôn truy cập được <b>trang admin</b>. Muốn bypass bảo trì trên app chính, hãy tự thêm email vào danh sách trên.</div>
-        <button onclick="saveMaintAllowedEmails()" style="padding:8px 18px;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border2);background:var(--text);color:#fff;transition:.15s;">Lưu danh sách email</button>
+
+        <label class="modal-label">Email bypass bảo trì (mỗi dòng 1 email)</label>
+        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--text3);display:flex;align-items:center;gap:6px;">
+          🔑 <code>hgntran.contact@gmail.com</code> — admin, luôn bypass mọi chế độ (không cần nhập)
+        </div>
+        <textarea id="maintAllowedEmails" class="modal-textarea" placeholder="Nhập email được phép bypass, mỗi dòng 1 địa chỉ..." style="min-height:80px;margin-bottom:16px;"></textarea>
+
+        <button onclick="saveMaintenance()" style="padding:8px 20px;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;background:var(--text);color:#fff;transition:.15s;display:inline-flex;align-items:center;gap:6px;">
+          💾 Lưu & Áp dụng
+        </button>
+
       </div>
     </div>
 
@@ -585,51 +632,64 @@ window.doReadd = async () => {
 
 
 // ── MAINTENANCE ──────────────────────────────────────────────
-let _maintEnabled = false;
+let _maintMode = 'off';
 
 async function loadMaintenanceSettings(){
   try {
     const snap = await getDoc(doc(db,'settings','maintenance'));
-    const data = snap.exists() ? snap.data() : { enabled:false, allowedEmails:[] };
-    _maintEnabled = data.enabled || false;
+    const data = snap.exists() ? snap.data() : { mode:'off', allowedEmails:[] };
+    // Backward compat: old docs use enabled:bool
+    _maintMode = data.mode || (data.enabled ? 'all' : 'off');
     document.getElementById('maintAllowedEmails').value = (data.allowedEmails||[]).join('\n');
     updateMaintUI();
   } catch(e){ console.error('maintenance load',e); }
 }
 
 function updateMaintUI(){
-  const wrap  = document.getElementById('maintToggleWrap');
-  const knob  = document.getElementById('maintToggleKnob');
-  const label = document.getElementById('maintToggleLabel');
-  const status= document.getElementById('maintStatus');
-  if (_maintEnabled){
-    wrap.style.background='var(--red)'; knob.style.left='23px';
-    label.textContent='BẬT'; label.style.color='var(--red)';
-    status.textContent='⚠️ Web đang ở chế độ bảo trì'; status.style.color='var(--red)';
-  } else {
-    wrap.style.background='#dee2e6'; knob.style.left='3px';
-    label.textContent='Tắt'; label.style.color='var(--text2)';
-    status.textContent='Web đang hoạt động bình thường'; status.style.color='var(--text3)';
+  const modeInfo = {
+    off:          { text:'Đang tắt',              bg:'var(--green-light)',   color:'var(--green)',  border:'var(--green-border)' },
+    all:          { text:'⚠ Tất cả bị chặn',    bg:'var(--red-light)',    color:'var(--red)',    border:'var(--red-border)' },
+    auth:         { text:'🔐 Chặn đăng nhập',    bg:'var(--orange-light)', color:'var(--orange)', border:'var(--orange-border)' },
+    dashboard:    { text:'📊 Chặn dashboard',     bg:'var(--orange-light)', color:'var(--orange)', border:'var(--orange-border)' },
+    unregistered: { text:'👤 Chặn chưa đăng ký', bg:'var(--blue-light)',   color:'var(--blue)',   border:'var(--blue-border)' },
+  };
+  const badge = document.getElementById('maintCurrentBadge');
+  const info = modeInfo[_maintMode] || modeInfo.off;
+  if (badge){
+    badge.textContent = info.text;
+    badge.style.background = info.bg;
+    badge.style.color = info.color;
+    badge.style.border = `1px solid ${info.border}`;
   }
+  ['off','all','auth','dashboard','unregistered'].forEach(m => {
+    const card  = document.getElementById('modeCard-'+m);
+    const radio = document.getElementById('modeRadio-'+m);
+    if (!card || !radio) return;
+    const sel = m === _maintMode;
+    card.style.borderColor  = sel ? 'var(--yellow)' : 'var(--border)';
+    card.style.background   = sel ? 'var(--yellow-light)' : 'var(--surface)';
+    radio.style.borderColor = sel ? 'var(--orange)' : 'var(--border2)';
+    radio.innerHTML = sel ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--orange);"></div>` : '';
+  });
 }
 
-window.toggleMaintenance = async () => {
-  const prev = _maintEnabled;
-  _maintEnabled = !_maintEnabled;
+window.selectMode = (mode) => {
+  _maintMode = mode;
   updateMaintUI();
-  try {
-    const emails = (document.getElementById('maintAllowedEmails').value||'').split('\n').map(e=>e.trim()).filter(Boolean);
-    await setDoc(doc(db,'settings','maintenance'),{ enabled:_maintEnabled, allowedEmails:emails });
-    toast(_maintEnabled ? '⚠️ Đã bật chế độ bảo trì' : '✓ Đã tắt chế độ bảo trì', _maintEnabled?'warn':'ok');
-  } catch(e){ toast('Lỗi: '+e.message,'err'); _maintEnabled=prev; updateMaintUI(); }
 };
 
-window.saveMaintAllowedEmails = async () => {
-  const emails = (document.getElementById('maintAllowedEmails').value||'').split('\n').map(e=>e.trim()).filter(Boolean);
+window.saveMaintenance = async () => {
+  const emails = (document.getElementById('maintAllowedEmails').value||'')
+    .split('\n').map(e=>e.trim()).filter(Boolean);
+  const btn = document.querySelector('[onclick="saveMaintenance()"]');
+  if (btn){ btn.disabled=true; btn.textContent='Đang lưu...'; }
   try {
-    await setDoc(doc(db,'settings','maintenance'),{ enabled:_maintEnabled, allowedEmails:emails });
-    toast('✓ Đã lưu danh sách email','ok');
+    await setDoc(doc(db,'settings','maintenance'),{ mode:_maintMode, allowedEmails:emails });
+    toast(_maintMode==='off' ? '✓ Đã tắt bảo trì' : '⚠ Chế độ bảo trì đã áp dụng', _maintMode==='off'?'ok':'warn');
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
+  finally {
+    if (btn){ btn.disabled=false; btn.innerHTML='💾 Lưu & Áp dụng'; }
+  }
 };
 
 function sec(name){ ['login','denied','panel'].forEach(s=>{ const el=document.getElementById('s-'+s); if(el) el.style.display=s===name?'block':'none'; }); }
