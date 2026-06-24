@@ -211,7 +211,6 @@ function getMaintenance(){
 // userEmail = null means not logged in
 function getMaintenanceResult(mode, allowedEmails, userEmail){
   if (!mode || mode === 'off') return null;
-  if (userEmail === ADMIN_EMAIL) return null;
   if (userEmail && (allowedEmails||[]).includes(userEmail)) return null;
   switch (mode) {
     case 'all':          return 'maintenance';

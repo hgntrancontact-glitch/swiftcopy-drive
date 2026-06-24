@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SwiftCopy.Drive — Bảo trì</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f9f9f7;--surface:#fff;--surface2:#f4f4f1;
+  --border:#e8e8e3;--border2:#d8d8d0;
+  --text:#111110;--text2:#555550;--text3:#999990;
+  --yellow:#f5c518;--yellow-dark:#d4a800;--yellow-light:#fffbea;
+  --red:#c0392b;--red-mid:#e8291c;--red-light:#fff0ee;--red-border:#ffd0cc;
+  --green:#1a9950;--green-light:#edfaf3;--green-border:#b8e8cd;
+  --blue:#1d6ece;--blue-light:#edf4ff;--blue-border:#b8d4f8;
+  --orange:#d97706;--orange-light:#fffbea;--orange-border:#f0d060;
+  --r:10px;--r2:14px;
+  --shadow:0 1px 4px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
+  --shadow2:0 4px 20px rgba(0,0,0,.08);
+}
+body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+.nav{background:var(--surface);border-bottom:2px solid var(--yellow);height:60px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
+.nav-brand{display:flex;align-items:center;gap:12px}
+.nav-logo{font-family:'Nunito',sans-serif;font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.4px}
+.nav-logo .dot{color:var(--red-mid)}
+.nav-badge{font-size:10px;font-weight:900;letter-spacing:.5px;padding:3px 10px;border:1.5px solid var(--yellow);border-radius:6px;color:var(--orange);background:var(--yellow-light)}
+.nav-right{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text3)}
+.nav-email{font-size:12px;color:var(--text3);font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn-sm{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);transition:.15s;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
+.btn-sm:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+
+#s-loading{display:none}
+#s-denied{display:none}
+#s-panel{display:none}
+
+.center{min-height:calc(100vh - 60px);display:flex;align-items:center;justify-content:center;padding:40px 20px}
+
+.container{max-width:700px;margin:0 auto;padding:24px 20px}
+
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px}
+.card-h{padding:14px 20px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
+.card-t{font-size:13.5px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+
+.modal-label{display:block;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.modal-textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border2);border-radius:10px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface2);resize:vertical;min-height:80px;outline:none;transition:.15s;line-height:1.6}
+.modal-textarea:focus{border-color:var(--text);background:var(--surface)}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--text);color:#fff;font-size:12px;font-weight:700;padding:9px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:999;box-shadow:var(--shadow2)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.warn{background:var(--yellow-dark);color:var(--text)}
+.toast.err{background:var(--red-mid)}
+.toast.ok{background:var(--green)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <svg width="36" height="36" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="border-radius:9px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.1)">
+      <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
+      <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
+      <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="nav-logo">SwiftCopy<span class="dot">.</span>Drive</span>
+    <span class="nav-badge">BẢO TRÌ</span>
+  </div>
+  <div class="nav-right">
+    <span id="adminEmailLabel" class="nav-email"></span>
+    <a href="admin.html" class="btn-sm">← Quay lại Admin</a>
+    <button class="btn-sm" onclick="doLogout()">Đăng xuất</button>
+  </div>
+</nav>
+
+<div id="s-loading">
+  <div class="center" style="color:var(--text3);font-size:14px;">Đang tải...</div>
+</div>
+
+<div id="s-denied">
+  <div class="center">
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:48px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shadow2)">
+      <div style="font-size:32px;margin-bottom:18px;color:var(--red)">Không có quyền</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:18px;">Tài khoản này không phải admin.</p>
+      <a href="admin.html" class="btn-sm" style="display:inline-flex;">← Về trang Admin</a>
+    </div>
+  </div>
+</div>
+
+<div id="s-panel">
+  <div class="container">
+
+    <div class="card">
+      <div class="card-h">
+        <span class="card-t">Chế độ bảo trì</span>
+        <span id="maintCurrentBadge" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:999px;border:1px solid var(--green-border);background:var(--green-light);color:var(--green);">Đang tắt</span>
+      </div>
+      <div style="padding:20px;">
+
+        <label class="modal-label" style="margin-bottom:10px;">Chọn chế độ</label>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+
+          <div id="modeCard-off" onclick="selectMode('off')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
+            <div id="modeRadio-off" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">Tắt bảo trì (off)</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Mọi thứ hoạt động bình thường, không ai bị chặn.</div>
+            </div>
+          </div>
+
+          <div id="modeCard-all" onclick="selectMode('all')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
+            <div id="modeRadio-all" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì tất cả (all)</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Cả người chưa đăng nhập lẫn đã đăng nhập đều thấy màn hình bảo trì (trừ email bypass).</div>
+            </div>
+          </div>
+
+          <div id="modeCard-auth" onclick="selectMode('auth')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
+            <div id="modeRadio-auth" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì đăng ký / đăng nhập (auth)</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa đăng nhập thấy bảo trì — người đã đăng nhập vào dashboard bình thường.</div>
+            </div>
+          </div>
+
+          <div id="modeCard-dashboard" onclick="selectMode('dashboard')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
+            <div id="modeRadio-dashboard" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì dashboard (dashboard)</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa đăng nhập thấy landing bình thường — người đã đăng nhập vào dashboard thấy bảo trì.</div>
+            </div>
+          </div>
+
+          <div id="modeCard-unregistered" onclick="selectMode('unregistered')" style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;transition:.15s;">
+            <div id="modeRadio-unregistered" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:#fff;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">Bảo trì với người chưa đăng ký (unregistered)</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5;">Người chưa đăng nhập thấy bảo trì hoàn toàn — người đã đăng nhập chỉ thấy landing (không vào dashboard).</div>
+            </div>
+          </div>
+
+        </div>
+
+        <label class="modal-label">Email bypass bảo trì (mỗi dòng 1 email)</label>
+        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--text3);">
+          Để tự bypass, nhập email của bạn vào danh sách dưới đây.
+        </div>
+        <textarea id="maintAllowedEmails" class="modal-textarea" placeholder="Nhập email được phép bypass, mỗi dòng 1 địa chỉ..." style="min-height:80px;margin-bottom:16px;"></textarea>
+
+        <button onclick="saveMaintenance()" style="padding:8px 20px;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;background:var(--text);color:#fff;transition:.15s;display:inline-flex;align-items:center;gap:6px;">
+          Lưu &amp; Áp dụng
+        </button>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDu5D6bB-FxJl2E71Ls17GwHVtqZV0FwF8",
+  authDomain: "swiftcopy-drive.firebaseapp.com",
+  projectId: "swiftcopy-drive",
+  storageBucket: "swiftcopy-drive.firebasestorage.app",
+  messagingSenderId: "477488339991",
+  appId: "1:477488339991:web:7d47100631b846b1189052"
+};
+const ADMIN_EMAIL = "hgntran.contact@gmail.com";
+
+const fbApp    = initializeApp(firebaseConfig);
+const auth     = getAuth(fbApp);
+const db       = getFirestore(fbApp);
+
+let _maintMode = 'off';
+
+onAuthStateChanged(auth, async u => {
+  if (!u){ window.location.href = 'admin.html'; return; }
+  if (u.email !== ADMIN_EMAIL){ sec('denied'); return; }
+  document.getElementById('adminEmailLabel').textContent = u.email;
+  await loadMaintenanceSettings();
+  sec('panel');
+});
+
+async function loadMaintenanceSettings(){
+  try {
+    const snap = await getDoc(doc(db,'settings','maintenance'));
+    const data = snap.exists() ? snap.data() : { mode:'off', allowedEmails:[] };
+    // Backward compat: old docs use enabled:bool
+    _maintMode = data.mode || (data.enabled ? 'all' : 'off');
+    document.getElementById('maintAllowedEmails').value = (data.allowedEmails||[]).join('\n');
+    updateMaintUI();
+  } catch(e){ console.error('maintenance load',e); }
+}
+
+function updateMaintUI(){
+  const modeInfo = {
+    off:          { text:'Đang tắt',         bg:'var(--green-light)',   color:'var(--green)',  border:'var(--green-border)' },
+    all:          { text:'Tất cả bị chặn',   bg:'var(--red-light)',    color:'var(--red)',    border:'var(--red-border)' },
+    auth:         { text:'Chặn đăng nhập',   bg:'var(--orange-light)', color:'var(--orange)', border:'var(--orange-border)' },
+    dashboard:    { text:'Chặn dashboard',   bg:'var(--orange-light)', color:'var(--orange)', border:'var(--orange-border)' },
+    unregistered: { text:'Chặn chưa đăng ký', bg:'var(--blue-light)',  color:'var(--blue)',   border:'var(--blue-border)' },
+  };
+  const badge = document.getElementById('maintCurrentBadge');
+  const info = modeInfo[_maintMode] || modeInfo.off;
+  if (badge){
+    badge.textContent = info.text;
+    badge.style.background = info.bg;
+    badge.style.color = info.color;
+    badge.style.border = `1px solid ${info.border}`;
+  }
+  ['off','all','auth','dashboard','unregistered'].forEach(m => {
+    const card  = document.getElementById('modeCard-'+m);
+    const radio = document.getElementById('modeRadio-'+m);
+    if (!card || !radio) return;
+    const sel = m === _maintMode;
+    card.style.borderColor  = sel ? 'var(--yellow)' : 'var(--border)';
+    card.style.background   = sel ? 'var(--yellow-light)' : 'var(--surface)';
+    radio.style.borderColor = sel ? 'var(--orange)' : 'var(--border2)';
+    radio.innerHTML = sel ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--orange);"></div>` : '';
+  });
+}
+
+window.selectMode = (mode) => {
+  _maintMode = mode;
+  updateMaintUI();
+};
+
+window.saveMaintenance = async () => {
+  const emails = (document.getElementById('maintAllowedEmails').value||'')
+    .split('\n').map(e=>e.trim()).filter(Boolean);
+  const btn = document.querySelector('[onclick="saveMaintenance()"]');
+  if (btn){ btn.disabled=true; btn.textContent='Đang lưu...'; }
+  try {
+    await setDoc(doc(db,'settings','maintenance'),{ mode:_maintMode, allowedEmails:emails });
+    toast(_maintMode==='off' ? '✓ Đã tắt bảo trì' : '⚠ Chế độ bảo trì đã áp dụng', _maintMode==='off'?'ok':'warn');
+  } catch(e){ toast('Lỗi: '+e.message,'err'); }
+  finally {
+    if (btn){ btn.disabled=false; btn.textContent='Lưu & Áp dụng'; }
+  }
+};
+
+function sec(name){
+  ['loading','denied','panel'].forEach(s=>{
+    const el = document.getElementById('s-'+s);
+    if (el) el.style.display = s===name ? 'block' : 'none';
+  });
+}
+
+function toast(msg, type='ok'){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast on '+(type||'');
+  setTimeout(()=>t.classList.remove('on'), 3000);
+}
+
+window.doLogout = () => signOut(auth).then(()=>{ window.location.href='admin.html'; });
+</script>
+</body>
+</html>
