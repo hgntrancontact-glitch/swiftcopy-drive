@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, serverTimestamp }
+import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, collection, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -14,7 +14,6 @@ const firebaseConfig = {
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
 // GAS_URL đã chuyển vào Vercel env var — xem api/email.js
-const ADMIN_EMAIL = "hgntran.contact@gmail.com"; // luôn reset doc khi đăng nhập lại để test
 
 // Free plan limits
 const FREE_MB_LIMIT = 500;
@@ -29,8 +28,6 @@ provider.addScope('https://www.googleapis.com/auth/drive');
 let gUser = null, gToken = null;
 let gUserData = null;          // full Firestore user document
 let _paymentContext = null;    // 'new' | 'upgrade' — context khi mở paymentModal
-let _loginMode = 'register';   // 'register' | 'login' — set trước khi mở loginModal
-let _adminBypassActive = false; // true khi admin dùng bypass login (không có Firestore doc)
 let pauseFlag = false, stopFlag = false, runMode = 'idle';
 let stats = ns();
 let _resumeResolve = null;
@@ -122,26 +119,38 @@ window.doReset = () => {
 // ── AUTH ─────────────────────────────────────────────────────
 window.doLogin = async () => {
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+  const hint = document.getElementById('loginEmailHint')?.value?.trim() || '';
+  provider.setCustomParameters(hint ? { login_hint: hint } : {});
   try {
     const res = await signInWithPopup(auth, provider);
     gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
   } catch(e) { toast('Đăng nhập thất bại','err'); }
 };
-window.openLoginModal = (mode = 'register') => {
-  _loginMode = mode;
+window.showLoginWarn = () => {
+  const lv = document.getElementById('loginView');
+  const wv = document.getElementById('loginWarnView');
+  if (lv) lv.style.display = 'none';
+  if (wv) wv.style.display = 'block';
+  const cb = document.getElementById('loginWarnCheck');
+  const btn = document.getElementById('loginWarnBtn');
+  if (cb) cb.checked = false;
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+};
+window.hideLoginWarn = () => {
+  const lv = document.getElementById('loginView');
+  const wv = document.getElementById('loginWarnView');
+  if (lv) lv.style.display = 'block';
+  if (wv) wv.style.display = 'none';
+};
+window.openLoginModal = () => {
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   document.getElementById('loginModal')?.classList.add('active');
+  window.hideLoginWarn();
 };
 // openRegisterModal giờ chỉ mở loginModal — plan selection xảy ra sau login
-window.openRegisterModal = () => window.openLoginModal('register');
+window.openRegisterModal = () => window.openLoginModal();
 
-window.doLogout = async () => {
-  _adminBypassActive = false;
-  if (gUser?.email === ADMIN_EMAIL) {
-    try { await deleteDoc(doc(db,'users',gUser.uid)); } catch(e){}
-  }
-  await signOut(auth);
-};
+window.doLogout = () => signOut(auth);
 window.reAuth   = async () => {
   try {
     const res=await signInWithPopup(auth,provider);
@@ -192,28 +201,6 @@ onAuthStateChanged(auth, async u => {
   try {
     // Kiểm tra document tồn tại chưa
     const docSnap = await getDoc(doc(db,'users',u.uid));
-    // Admin email: xử lý 2 mode
-    if (u.email === ADMIN_EMAIL) {
-      setNavUser(u);
-      const mode = _loginMode;
-      _loginMode = 'register'; // reset sau khi dùng
-      if (mode === 'login') {
-        // Bypass mode: vào dashboard ngay, không cần Firestore doc
-        _adminBypassActive = true;
-        gUserData = {
-          id: u.uid, email: u.email, displayName: u.displayName || u.email,
-          photoURL: u.photoURL || '', plan: 'paid', approved: true, status: 'approved',
-          freeUsedMB: 0, freeResetAt: { toMillis: () => Date.now() }
-        };
-        sec('app'); updateFreeBanner();
-      } else {
-        // Register mode: xóa doc → planSelectModal như user mới
-        _adminBypassActive = false;
-        if (docSnap.exists()) await deleteDoc(doc(db,'users',u.uid));
-        showPlanSelect();
-      }
-      return;
-    }
     if (!docSnap.exists()){
       // User mới — hiện modal chọn gói, KHÔNG tạo doc ngay
       setNavUser(u);
@@ -240,7 +227,7 @@ onAuthStateChanged(auth, async u => {
 });
 
 async function pollKickStatus(){
-  if (!gUser || _adminBypassActive) return;
+  if (!gUser) return;
   try {
     const snap = await getDoc(doc(db,'users',gUser.uid));
     if (!snap.exists() || snap.data().status !== 'approved' || !snap.data().approved){

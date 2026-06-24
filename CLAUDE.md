@@ -62,8 +62,9 @@ SwiftCopy.Drive/
 ## Luồng Auth mới (sau khi implement 7 task)
 
 ```
-Landing → openLoginModal() → #loginModal (premium design)
-  → doLogin() → signInWithPopup → onAuthStateChanged
+Landing → openLoginModal() → #loginModal (2 view: loginView + loginWarnView)
+  → showLoginWarn() → #loginWarnView (cảnh báo Google chưa xét duyệt)
+    → tick checkbox → doLogin() → signInWithPopup (với login_hint nếu đã nhập email) → onAuthStateChanged
     → check Firestore doc exists?
       NO  → showPlanSelect() → #planSelectModal
               "Dùng miễn phí"     → createFreeUser()        → approved=true, plan='free' → sec('app')
@@ -332,6 +333,9 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **pollKickStatus gọi signOut() làm mất token giữa chừng**: đã fix — `pollKickStatus()` chỉ gọi `sec('kicked')` và clear interval, KHÔNG gọi `signOut()`. User được đẩy về `#s-kicked` và phải bấm "Đăng xuất" để thật sự logout.
 - **Readd user không set plan='paid'**: đã fix trong `admin.html` — `doReadd()` luôn kèm `plan:'paid'` khi updateDoc.
 - **`serverTimestamp()` trong gUserData gây crash khi read `.toMillis()`**: Firestore FieldValue không có `.toMillis()` ngay khi optimistic write. Luôn dùng optional chaining `gUserData.freeResetAt?.toMillis?.()` hoặc fallback `Date.now()`.
+- **Admin email bị reset doc sau logout → về planSelectModal dù đã approved**: Lỗi do có logic `deleteDoc` trong `onAuthStateChanged` và `doLogout`. Đã xóa hoàn toàn — admin email không có xử lý đặc biệt nào trong app.js.
+- **Email nhập vào loginModal bị bỏ qua**: Đã fix bằng `provider.setCustomParameters({ login_hint: email })` trong `doLogin()` — Google sẽ pre-fill đúng tài khoản.
+- **Cảnh báo Google chưa xác minh làm user thoát**: Đã fix bằng `#loginWarnView` — màn hình trung gian giải thích + hướng dẫn 2 bước + checkbox xác nhận trước khi popup Google mở.
 
 ---
 
@@ -342,14 +346,15 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Email system**: ĐÃ hoạt động — `GAS_URL` lưu trong Vercel env var, proxy qua `api/email.js`, confirmed working (kick/readd/approve/upgrade đều gửi được)
 - **SITE_URL trong email**: đã set `https://swiftcopydrive.com` trong `admin.html` — khi mua domain xong chỉ cần trỏ domain về Vercel, không cần sửa code
 - **Auth flow**: ĐÃ implement luồng mới — #loginModal premium + #planSelectModal (chọn Free/Paid sau login), #startModal đã bị xóa
-- **loginModal UI**: tiêu đề "Đăng ký", backdrop `rgba(0,0,0,0.85)` không blur — tạo cảm giác tập trung
-- **planSelectModal UI**: backdrop `rgba(0,0,0,0.82)` không blur; cột Trọn đời nền `#fffdf5` (kem vàng nhạt)
+- **loginModal UI**: tiêu đề "Đăng ký", backdrop `rgba(0,0,0,0.85)` không blur — tạo cảm giác tập trung; có 2 view: `#loginView` (form mặc định) + `#loginWarnView` (cảnh báo Google chưa xét duyệt — hiện trước khi gọi popup)
+- **login_hint**: khi user nhập email vào `#loginEmailHint` và nhấn "Tiếp tục →", email được truyền vào `provider.setCustomParameters({ login_hint })` để Google pre-fill tài khoản đúng
+- **planSelectModal UI**: backdrop `rgba(0,0,0,0.55)` + `blur(10px)`; cột Trọn đời nền `#fffdf5` (kem vàng nhạt)
 - **paymentModal UI**: bố cục 2 cột (QR 185×185px bên trái + thông tin ngân hàng bên phải), max-width 520px; ô hướng dẫn: `border-left: 3px solid #c9a84c`, nền `#f8f9fa`, tiêu đề `#212529 700`, text bước `#495057`, highlight `#a07820 600`
-- **premiumBadge icon**: đổi từ emoji 👑 sang SVG outline icon (chart-line/zigzag) stroke `#c9a84c`
+- **premiumBadge icon**: SVG outline crown (vương miện 3 răng + ngang band), polygon + line, stroke `#c9a84c`
 - **Premium badge**: ĐÃ implement — `#premiumBadge` hiện khi plan=paid, thay freeBanner
 - **Kick screen**: ĐÃ fix — `pollKickStatus()` hiện `#s-kicked` (không signOut), user thấy lý do và phải bấm Đăng xuất
 - **Readd + welcome modal**: ĐÃ implement — `doReadd()` set plan='paid' + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login
-- **Admin email là email test**: `hgntran.contact@gmail.com` — mỗi lần đăng xuất và đăng nhập lại vào app chính, Firestore doc bị xóa tự động → luôn về `planSelectModal` như user mới. Dùng để test toàn bộ luồng: Free, Paid-pending, kick, approve. Khi đang đăng nhập trong phiên thì hoạt động bình thường (approved → dashboard). `admin.html` vẫn gate riêng, không bị ảnh hưởng.
+- **Admin email**: không còn xử lý đặc biệt trong `app.js` — hành vi hoàn toàn giống user thường. Đăng ký → chọn gói → chờ duyệt → vào dashboard. Doc tồn tại vĩnh viễn sau khi tạo. `admin.html` vẫn gate riêng bởi `ADMIN_EMAIL` constant trong file đó.
 - **Firestore Security Rules**: CHƯA siết — đây là rủi ro bảo mật cao nhất, cần làm trước khi mở rộng user base
 - **Cổng thanh toán**: chưa có, duyệt thủ công qua admin.html (user báo đã chuyển → admin kiểm tra → bấm "Duyệt nâng cấp")
 - **Đa ngôn ngữ VI/EN**: chưa implement, bấm VI/EN hiện popup "Tính năng chưa hỗ trợ"
