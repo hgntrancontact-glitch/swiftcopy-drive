@@ -49,6 +49,11 @@ let _sessionCopiedMB = 0;      // MB copied in current copy session
 let _freeLimitTimer = null;    // countdown interval for free limit modal
 let _kickPollTimer  = null;    // 30s interval to detect kick while in dashboard
 
+// Page detection — true khi đang ở dashboard.html (/copy-drive), false khi ở index.html (/)
+const IS_DASHBOARD = !!document.getElementById('s-app');
+// Login mode truyền qua URL param khi redirect từ landing sang dashboard
+let _urlLoginMode = IS_DASHBOARD ? (new URLSearchParams(location.search).get('m') || null) : null;
+
 function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[] }; }
 
 // ── OVERLAY ─────────────────────────────────────────────────
@@ -159,6 +164,11 @@ window.hideLoginWarn = () => {
 };
 let _loginMode = 'register';
 window.openLoginModal = (mode = 'register') => {
+  if (!IS_DASHBOARD) {
+    // Landing page — loginModal ở dashboard.html, redirect sang /copy-drive
+    window.location.href = '/copy-drive?m=' + (mode || 'register');
+    return;
+  }
   _loginMode = mode;
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   document.getElementById('loginModal')?.classList.add('active');
@@ -236,12 +246,25 @@ function getMaintenanceResult(mode, allowedEmails, userEmail){
   }
 }
 
-// Hiện landing ngay khi module load — unauthenticated users không cần qua #s-check
-sec('land');
+// Khởi tạo UI theo page context
+if (IS_DASHBOARD) sec('check', true); // dashboard: hiện spinner trong khi chờ Firebase
+else              sec('land',  true); // landing: hiện s-land ngay (không chờ Firebase)
 getMaintenance(); // bắt đầu fetch trước để cache sẵn khi onAuthStateChanged gọi lại
 
 onAuthStateChanged(auth, async u => {
-  if (u) sec('check'); // chỉ hiện #s-check cho user đang có session Firebase
+  // ── LANDING (index.html) ────────────────────────────────────────────────
+  if (!IS_DASHBOARD) {
+    if (u) { window.location.href = '/copy-drive'; return; } // logged-in → go to dashboard
+    const maint = await getMaintenance();
+    const mode = maint.mode || (maint.enabled ? 'all' : 'off');
+    const mResult0 = getMaintenanceResult(mode, maint.allowedEmails || [], null);
+    if (mResult0 === 'maintenance') { sec('maintenance'); return; }
+    sec('land');
+    return;
+  }
+
+  // ── DASHBOARD (dashboard.html) ──────────────────────────────────────────
+  if (u) sec('check'); // hiện spinner trong khi await bên dưới
   const maint = await getMaintenance();
   // Backward compat: old docs use enabled:bool, new docs use mode:string
   const mode = maint.mode || (maint.enabled ? 'all' : 'off');
@@ -253,12 +276,18 @@ onAuthStateChanged(auth, async u => {
     document.getElementById('planSelectModal')?.classList.remove('active');
     const mResult0 = getMaintenanceResult(mode, allowedEmails, null);
     if (mResult0 === 'maintenance'){ sec('maintenance'); return; }
-    sec('land'); return;
+    // Không có user trên dashboard → mở loginModal (ở lại dashboard)
+    ['check','pend','kicked','app','maintenance'].forEach(s=>{
+      const el=document.getElementById('s-'+s); if(el) el.style.display='none';
+    });
+    if (_urlLoginMode && location.search) history.replaceState(null,'','/copy-drive');
+    window.openLoginModal(_urlLoginMode || 'login');
+    return;
   }
   gUser=u;
   const mResult = getMaintenanceResult(mode, allowedEmails, u.email);
   if (mResult === 'maintenance'){ sec('maintenance'); return; }
-  if (mResult === 'landing')    { sec('land'); return; }
+  if (mResult === 'landing')    { window.location.href = '/'; return; }
   try {
     // Kiểm tra document tồn tại chưa
     const docSnap = await getDoc(doc(db,'users',u.uid));
@@ -268,19 +297,12 @@ onAuthStateChanged(auth, async u => {
       showPlanSelect();
       return;
     }
-    // Nếu user bấm "Đăng ký" nhưng tài khoản đã tồn tại → báo lỗi, không vào dashboard
+    // Nếu user bấm "Đăng ký" nhưng tài khoản đã tồn tại → báo lỗi, ở lại dashboard
     if (_loginMode === 'register') {
+      _urlLoginMode = 'login'; // chuyển sang login mode khi null handler mở lại modal
       await signOut(auth);
-      sec('land');
-      setTimeout(() => {
-        toast('Tài khoản này đã được đăng ký. Vui lòng nhấn Đăng nhập để tiếp tục.', 'err');
-        const loginBtn = document.getElementById('btnGoLogin');
-        if (loginBtn) {
-          loginBtn.classList.add('shake-hint');
-          setTimeout(() => loginBtn.classList.remove('shake-hint'), 600);
-        }
-      }, 150);
-      return;
+      setTimeout(() => toast('Tài khoản này đã được đăng ký. Vui lòng chọn Đăng nhập.', 'err'), 150);
+      return; // onAuthStateChanged(null) sẽ mở loginModal('login')
     }
     // User cũ bị kick → thông báo admin
     const d = docSnap.data();
@@ -349,7 +371,14 @@ function notifyAdminKicked(u,reason){
 
 // ── PLAN SELECTION (sau Google auth, user chưa có Firestore doc) ─────────
 function showPlanSelect(){
-  sec('land'); // hiện landing page phía sau modal thay vì spinner
+  // Trên dashboard: ẩn spinner, để modal overlay phủ nền
+  if (IS_DASHBOARD) {
+    ['check','pend','kicked','app','maintenance'].forEach(s=>{
+      const el=document.getElementById('s-'+s); if(el) el.style.display='none';
+    });
+  } else {
+    sec('land'); // landing: hiện landing page phía sau modal
+  }
   document.getElementById('planSelectModal')?.classList.add('active');
 }
 window.closePlanSelect = async () => {
@@ -376,7 +405,7 @@ window.createFreeUser = async () => {
     sec('app'); checkResume(); updateFreeBanner();
     if (_kickPollTimer) clearInterval(_kickPollTimer);
     _kickPollTimer = setInterval(pollKickStatus, 30000);
-  } catch(e){ toast('Lỗi tạo tài khoản: '+e.message,'err'); sec('land'); await signOut(auth); }
+  } catch(e){ toast('Lỗi tạo tài khoản: '+e.message,'err'); await signOut(auth); if(!IS_DASHBOARD) sec('land'); }
 };
 
 // Mở paymentModal từ planSelectModal (user mới, chưa có doc)
@@ -1701,22 +1730,34 @@ function updateFreeLimitCountdown() {
 
 // ── UI HELPERS ───────────────────────────────────────────────
 function sec(name, _noPush){
+  // Cross-page navigation
+  if (!IS_DASHBOARD && !['land','maintenance'].includes(name)){
+    // Landing page: chỉ xử lý 'land' và 'maintenance' — các section khác ở dashboard
+    if (!_noPush) window.location.href = '/copy-drive';
+    return;
+  }
+  if (IS_DASHBOARD && name === 'land' && !_noPush){
+    // Dashboard page: sec('land') = redirect về landing
+    window.location.href = '/';
+    return;
+  }
   ['land','check','pend','kicked','app','maintenance'].forEach(s=>{const el=document.getElementById('s-'+s);if(el)el.style.display=s===name?'block':'none';});
   const nr=document.getElementById('navRight');if(nr)nr.style.display=name==='app'?'flex':'none';
   const ng=document.getElementById('navGuest');if(ng)ng.style.display=name==='app'?'none':'flex';
   if(!_noPush){
     if(name==='app'&&location.pathname!=='/copy-drive') history.pushState(null,'','/copy-drive');
-    else if((name==='land'||name==='pend')&&location.pathname!=='/') history.pushState(null,'','/');
+    else if(name==='pend'&&location.pathname!=='/') history.pushState(null,'','/');
   }
 }
 
 // ── CLIENT-SIDE ROUTING ──────────────────────────────────────
 window.addEventListener('popstate',()=>{
+  if(!IS_DASHBOARD){ sec('land',true); return; }
   if(location.pathname==='/copy-drive'){
     if(gUser) sec('app',true);
-    else{ history.replaceState(null,'','/'); sec('land',true); }
+    else window.openLoginModal('login');
   } else {
-    sec('land',true);
+    window.location.href = '/';
   }
 });
 function setNavUser(u){

@@ -31,9 +31,10 @@ Web app cho phép sao chép thư mục Google Drive (kể cả Shared Drive) san
 
 ```
 SwiftCopy.Drive/
-├── index.html          ← App chính (~585 dòng): landing + dashboard người dùng (HTML thuần)
+├── index.html          ← Landing page (~434 dòng): chỉ #s-land + #s-maintenance + utility modals (FAQ, Policy, Earn, Lang, Reviews)
+├── dashboard.html      ← Dashboard app (~810 dòng): #s-check, #s-pend, #s-kicked, #s-app, #s-maintenance + tất cả auth/copy modals
 ├── style.css           ← Toàn bộ CSS tùy biến (tách từ index.html)
-├── app.js              ← Firebase, Drive API, copy logic (ES module, ~1159 dòng)
+├── app.js              ← Firebase, Drive API, copy logic (ES module, ~1800 dòng); dùng chung cho cả 2 page, phát hiện page qua IS_DASHBOARD
 ├── ui.js               ← Modal, FAQ, review, preview animation (~330 dòng)
 ├── admin.html          ← Trang quản trị: duyệt user, kick, re-add; nút "Bảo trì" → admin-maintenance.html
 ├── admin-maintenance.html ← Trang bảo trì riêng: chọn mode, allowedEmails, lưu Firestore
@@ -47,7 +48,7 @@ SwiftCopy.Drive/
 │   └── maintenance.js  ← Vercel serverless function — đọc settings/maintenance từ Firestore bằng service account (bypass Security Rules)
 ├── firestore.rules     ← Firestore Security Rules — paste vào Firebase Console → Firestore → Rules
 ├── gas-email.js        ← Code Google Apps Script — deploy lên script.google.com để gửi email
-├── vercel.json         ← Rewrite rules: /copy-drive → index.html; 3 legal routes → legal.html
+├── vercel.json         ← Rewrite rules: /copy-drive → dashboard.html; 3 legal routes → legal.html
 ├── zalo-qr.png         ← Ảnh QR Zalo hỗ trợ (400×400px, đã crop sạch)
 ├── og-image.png        ← Open Graph image 1200×630px — tạo bằng Python Pillow (gen script lưu ở scratchpad Claude, không commit vào repo)
 ├── favicon.svg         ← Logo SVG gốc
@@ -59,7 +60,17 @@ SwiftCopy.Drive/
 
 **Khi cập nhật nội dung chính sách:** chỉ cần sửa file `.txt` tương ứng trong `legal/` — KHÔNG đụng vào code `legal.html`.
 
-**`index.html`, `admin.html`, `admin-maintenance.html` độc lập hoàn toàn** — không import lẫn nhau, không share component. Nếu sửa config chung (firebaseConfig, ADMIN_EMAIL) phải sửa ở CẢ BA file.
+**`index.html` và `dashboard.html` đều load `app.js` + `ui.js`** — app.js phát hiện context qua `IS_DASHBOARD = !!document.getElementById('s-app')`.
+- **index.html** không có noAuthBackdrop, không có loginModal/planSelectModal/paymentModal — chỉ landing + utility modals.
+- **dashboard.html** không có #s-land — chỉ app sections + tất cả auth/copy modals.
+- Nếu sửa config chung (firebaseConfig, ADMIN_EMAIL) phải sửa ở `index.html`, `dashboard.html`, `admin.html`, `admin-maintenance.html`.
+
+**Luồng điều hướng giữa 2 trang:**
+- Landing "Đăng ký/Đăng nhập" button → `openLoginModal(mode)` → redirect `/copy-drive?m=register|login`
+- Dashboard nhận URL param `?m` → mở loginModal đúng mode → xóa param khỏi URL
+- User đăng nhập thành công → sec('app') hiện dashboard
+- Logout/kick trên dashboard → sec('land') → redirect `/`
+- User đã login truy cập landing → redirect `/copy-drive`
 
 ---
 
@@ -94,16 +105,28 @@ pollKickStatus() (30s interval khi đang ở sec='app'):
 
 ---
 
-## Cấu trúc bên trong index.html (sau khi tách file)
+## Cấu trúc bên trong index.html và dashboard.html
 
-### HTML (~600 dòng — chỉ còn HTML thuần)
+### index.html (~434 dòng — landing page thuần)
 - `<head>`: Tailwind CDN, favicon, `<link rel="stylesheet" href="style.css">`
 - SVG sprite: icon dùng lại qua `<use href="#ic-...">`
-- 6 section: `#s-land` (landing), `#s-check` (đang kiểm tra auth), `#s-pend` (chờ duyệt), `#s-app` (dashboard thật), `#s-kicked` (bị kick — hiển thị lý do, nút Đăng xuất), `#s-maintenance` (bảo trì — hiện cho user không được phép khi maintenance bật)
-- **Modals auth/plan**: `#loginModal` (premium design, Google OAuth + email hint), `#planSelectModal` (chọn gói Free/Paid sau login), `#paymentModal` (thông tin chuyển khoản), `#paymentConfirmModal` (xác nhận đã chuyển — bước trung gian trước confirmPayment), `#readdWelcomeModal` (chào mừng user được admin thêm lại)
-- **Modals app**: `#modalOv`, `#vidWarnOv` (dead code — không gọi từ đâu), `#videoWarnModal` (modal cảnh báo video paid — xem bên dưới), `#complOv`, `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal` (gộp list + form), `#reviewListModal` (giữ lại nhưng không gọi từ UI), `#faqModal`, `#policyModal` (dùng chung cho 3 chính sách), `#policyAndReviewModal` (hub từ header), `#pvFullscreenOverlay`, `#freeLimitModal`
-- **Banner/badge dashboard**: `#freeBanner` (render innerHTML động — 3 trạng thái), `#premiumBadge` (vàng #c9a84c, crown icon — hiện khi plan=paid)
-- Preview Dashboard: `id="pvCard"` — animation minh hoạ cho khách chưa đăng nhập
+- Header: navGuest (bell, help, earn, VI/EN) — navRight ẩn (chỉ show khi IS_DASHBOARD)
+- 2 section: `#s-land` (landing page với hero + pvCard + footer), `#s-maintenance`
+- **Utility modals** (dùng chung từ header/footer): `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal`, `#reviewListModal`, `#faqModal`, `#policyModal`, `#policyAndReviewModal`, `#pvFullscreenOverlay`
+- Cuối body: `<script type="module" src="app.js"></script>` + `<script src="ui.js"></script>`
+
+**KHÔNG có** trong index.html: noAuthBackdrop, loginModal, planSelectModal, paymentModal, s-check, s-app, complOv, v.v.
+
+### dashboard.html (~810 dòng — app page)
+- `<head>`: giống index.html
+- SVG sprite (giống index.html)
+- **noAuthBackdrop + noAuthPanel + authSuccessToast** — overlay reauth Drive (chỉ cần trong dashboard)
+- Header (giống index.html — navGuest và navRight đều present, JS quản lý visibility)
+- 5 section: `#s-check`, `#s-pend`, `#s-kicked`, `#s-app`, `#s-maintenance`
+- **Modals auth/plan**: `#loginModal`, `#planSelectModal`, `#paymentModal`, `#paymentConfirmModal`, `#readdWelcomeModal`
+- **Modals app**: `#modalOv`, `#vidWarnOv` (dead code), `#videoWarnModal`, `#complOv`, `#freeLimitModal`
+- **Utility modals** (duplicate từ index.html — cần cho header dashboard): `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal`, `#reviewListModal`, `#faqModal`, `#policyModal`, `#policyAndReviewModal`
+- **Banner/badge dashboard** (trong #s-app): `#freeBanner`, `#premiumBadge`
 - Cuối body: `<script type="module" src="app.js"></script>` + `<script src="ui.js"></script>`
 
 **Lưu ý `#startModal` đã bị xóa hoàn toàn** — thay bằng `#loginModal` + `#planSelectModal`.
@@ -413,6 +436,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 
 ## Trạng thái hiện tại (để tiếp tục đúng chỗ)
 
+- **Landing/Dashboard split**: ĐÃ tách — `index.html` (~434 dòng) chỉ còn landing (`#s-land`); `dashboard.html` (~810 dòng) chứa toàn bộ app (`#s-check/pend/kicked/app/maintenance` + tất cả auth/copy modals). `app.js` dùng `IS_DASHBOARD = !!document.getElementById('s-app')` để phân biệt context; `sec()` tự navigate cross-page. Landing "Đăng ký/Đăng nhập" → redirect `/copy-drive?m=register|login`; dashboard đọc `?m` param để mở loginModal đúng mode. `/copy-drive` → `dashboard.html` trong `vercel.json`. `index.html.bak` đã xóa sau khi verify.
 - **Đang deploy**: Vercel (`swiftcopydrive.vercel.app`) — sắp mua domain `swiftcopydrive.com`
 - **CI/CD**: Vercel tự động deploy khi push lên GitHub
 - **Email system**: ĐÃ hoạt động — `GAS_URL` lưu trong Vercel env var, proxy qua `api/email.js`, confirmed working (kick/readd/approve/upgrade đều gửi được)
@@ -446,7 +470,7 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 ## Khi nhận task mới
 
 1. Đọc CLAUDE.md này trước (đã xong nếu bạn đang đọc đây).
-2. Đọc phần code liên quan (`index.html`, `app.js`, `ui.js`, `style.css`) trước khi sửa.
+2. Đọc phần code liên quan (`index.html`, `dashboard.html`, `app.js`, `ui.js`, `style.css`) trước khi sửa. Nếu task ảnh hưởng UI dùng chung (header, utility modals), kiểm tra cả 2 HTML file.
 3. Sau khi sửa: kiểm tra JS syntax, kiểm tra duplicate ID, kiểm tra tag balance `<div>`.
 4. Không giải trình dài dòng — làm xong báo cáo ngắn gọn những gì đã thay đổi và tại sao.
 5. Nếu task ảnh hưởng đến cả `admin.html`, nêu rõ và sửa cả hai file.
