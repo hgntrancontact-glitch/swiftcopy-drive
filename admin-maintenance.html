@@ -83,9 +83,11 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 <div id="s-denied">
   <div class="center">
     <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r2);padding:48px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shadow2)">
-      <div style="font-size:32px;margin-bottom:18px;color:var(--red)">Không có quyền</div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:18px;">Tài khoản này không phải admin.</p>
-      <a href="admin.html" class="btn-sm" style="display:inline-flex;">← Về trang Admin</a>
+      <div style="font-size:44px;margin-bottom:16px">🚫</div>
+      <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:10px">Không có quyền truy cập</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:4px;">Tài khoản <strong id="deniedEmailMaint" style="color:var(--red);word-break:break-all"></strong></p>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:24px;">không phải admin.</p>
+      <button class="btn-sm" onclick="doLogout()" style="padding:8px 20px;font-size:13px">Đăng xuất và thử lại</button>
     </div>
   </div>
 </div>
@@ -188,7 +190,11 @@ let _lastActiveMode = 'all'; // nhớ mode cuối khi toggle tắt rồi bật l
 
 onAuthStateChanged(auth, async u => {
   if (!u){ window.location.href = 'admin.html'; return; }
-  if (u.email !== ADMIN_EMAIL){ sec('denied'); return; }
+  if (u.email !== ADMIN_EMAIL){
+    const el = document.getElementById('deniedEmailMaint');
+    if (el) el.textContent = u.email;
+    sec('denied'); return;
+  }
   document.getElementById('adminEmailLabel').textContent = u.email;
   const av = document.getElementById('adminAvatar');
   if (av && u.photoURL){ av.src = u.photoURL; av.style.display='block'; av.onerror=()=>av.style.display='none'; }
