@@ -61,16 +61,17 @@ SwiftCopy.Drive/
 **Khi cập nhật nội dung chính sách:** chỉ cần sửa file `.txt` tương ứng trong `legal/` — KHÔNG đụng vào code `legal.html`.
 
 **`index.html` và `dashboard.html` đều load `app.js` + `ui.js`** — app.js phát hiện context qua `IS_DASHBOARD = !!document.getElementById('s-app')`.
-- **index.html** không có noAuthBackdrop, không có loginModal/planSelectModal/paymentModal — chỉ landing + utility modals.
-- **dashboard.html** không có #s-land — chỉ app sections + tất cả auth/copy modals.
+- **index.html** xử lý toàn bộ auth flow: loginModal, planSelectModal, paymentModal, paymentConfirmModal, readdWelcomeModal đều nằm ở đây. Không có noAuthBackdrop/s-check/s-app.
+- **dashboard.html** chỉ chứa app sections (#s-check/pend/kicked/app/maintenance), copy modals (modalOv/complOv/videoWarnModal/freeLimitModal), và paymentModal/paymentConfirmModal (cho upgrade flow từ freeBanner). Không có loginModal/planSelectModal/readdWelcomeModal.
 - Nếu sửa config chung (firebaseConfig, ADMIN_EMAIL) phải sửa ở `index.html`, `dashboard.html`, `admin.html`, `admin-maintenance.html`.
 
 **Luồng điều hướng giữa 2 trang:**
-- Landing "Đăng ký/Đăng nhập" button → `openLoginModal(mode)` → redirect `/copy-drive?m=register|login`
-- Dashboard nhận URL param `?m` → mở loginModal đúng mode → xóa param khỏi URL
-- User đăng nhập thành công → sec('app') hiện dashboard
-- Logout/kick trên dashboard → sec('land') → redirect `/`
+- Landing "Đăng ký/Đăng nhập" → `openLoginModal(mode)` → mở loginModal NGAY TRÊN index.html, URL vẫn là `/`
+- Google OAuth xong → onAuthStateChanged trên landing → planSelectModal (nếu user mới) hoặc redirect /copy-drive (nếu đã có doc)
+- Chỉ sau khi hoàn tất flow (doc Firestore tạo xong) → redirect `/copy-drive`
 - User đã login truy cập landing → redirect `/copy-drive`
+- Dashboard không có user → redirect `/`
+- Logout từ dashboard → onAuthStateChanged(null) → redirect `/`
 
 ---
 
@@ -107,27 +108,30 @@ pollKickStatus() (30s interval khi đang ở sec='app'):
 
 ## Cấu trúc bên trong index.html và dashboard.html
 
-### index.html (~434 dòng — landing page thuần)
+### index.html (~621 dòng — landing + toàn bộ auth modals)
 - `<head>`: Tailwind CDN, favicon, `<link rel="stylesheet" href="style.css">`
 - SVG sprite: icon dùng lại qua `<use href="#ic-...">`
 - Header: navGuest (bell, help, earn, VI/EN) — navRight ẩn (chỉ show khi IS_DASHBOARD)
 - 2 section: `#s-land` (landing page với hero + pvCard + footer), `#s-maintenance`
-- **Utility modals** (dùng chung từ header/footer): `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal`, `#reviewListModal`, `#faqModal`, `#policyModal`, `#policyAndReviewModal`, `#pvFullscreenOverlay`
+- **Utility modals**: `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal`, `#reviewListModal`, `#faqModal`, `#policyModal`, `#policyAndReviewModal`, `#pvFullscreenOverlay`
+- **Auth/plan modals** (xử lý full registration flow trên landing): `#loginModal`, `#planSelectModal`, `#paymentModal`, `#paymentConfirmModal`, `#readdWelcomeModal`
 - Cuối body: `<script type="module" src="app.js"></script>` + `<script src="ui.js"></script>`
 
-**KHÔNG có** trong index.html: noAuthBackdrop, loginModal, planSelectModal, paymentModal, s-check, s-app, complOv, v.v.
+**KHÔNG có** trong index.html: noAuthBackdrop, s-check, s-app, s-pend, s-kicked, complOv, freeLimitModal, videoWarnModal.
 
-### dashboard.html (~810 dòng — app page)
+### dashboard.html (~684 dòng — app page thuần)
 - `<head>`: giống index.html
 - SVG sprite (giống index.html)
 - **noAuthBackdrop + noAuthPanel + authSuccessToast** — overlay reauth Drive (chỉ cần trong dashboard)
 - Header (giống index.html — navGuest và navRight đều present, JS quản lý visibility)
 - 5 section: `#s-check`, `#s-pend`, `#s-kicked`, `#s-app`, `#s-maintenance`
-- **Modals auth/plan**: `#loginModal`, `#planSelectModal`, `#paymentModal`, `#paymentConfirmModal`, `#readdWelcomeModal`
-- **Modals app**: `#modalOv`, `#vidWarnOv` (dead code), `#videoWarnModal`, `#complOv`, `#freeLimitModal`
+- **Modals copy**: `#modalOv`, `#vidWarnOv` (dead code), `#videoWarnModal`, `#complOv`, `#freeLimitModal`
+- **Modals upgrade** (free → paid từ dashboard): `#paymentModal`, `#paymentConfirmModal`
 - **Utility modals** (duplicate từ index.html — cần cho header dashboard): `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal`, `#reviewListModal`, `#faqModal`, `#policyModal`, `#policyAndReviewModal`
 - **Banner/badge dashboard** (trong #s-app): `#freeBanner`, `#premiumBadge`
 - Cuối body: `<script type="module" src="app.js"></script>` + `<script src="ui.js"></script>`
+
+**KHÔNG có** trong dashboard.html: `#loginModal`, `#planSelectModal`, `#readdWelcomeModal`.
 
 **Lưu ý `#startModal` đã bị xóa hoàn toàn** — thay bằng `#loginModal` + `#planSelectModal`.
 
@@ -430,13 +434,14 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Modal kết quả sao chép (openModal) không hiện**: Nguyên nhân: `openModal()` dùng `classList.add('on')` nhưng CSS chỉ có `.modal-overlay.active` — không có `.modal-overlay.on`. Fix: đổi sang `classList.add('active')` / `classList.remove('active')`. Đồng thời đổi hành vi mặc định tree: trước đây mở tất cả folder (gây rối với thư mục nhiều tầng); giờ chỉ auto-open folder cha đầu tiên làm mẫu, các folder còn lại đóng — user click để mở/đóng từng folder.
 - **User bấm "Đăng ký" nhưng email đã có tài khoản → vẫn vào dashboard**: Sai về UX. Fix: trong `onAuthStateChanged`, sau khi check `docSnap.exists()`, nếu `_loginMode === 'register'` → `signOut(auth)` ngay + `sec('land')` + `toast('...Vui lòng nhấn Đăng nhập...')` + shake animation (class `shake-hint`) trên nút `#btnGoLogin`. Chỉ khi `_loginMode === 'login'` mới cho user có doc vào dashboard.
 - **Admin denied screen bị override về login ngay lập tức (loop vô tận)**: Nguyên nhân: `onAuthStateChanged` phát hiện non-admin → gọi `sec('denied')` + `signOut(auth)` → signOut kích hoạt `onAuthStateChanged(null)` → `sec('login')` ghi đè denied screen → user không đọc được thông báo lỗi → bấm đăng nhập lại → lặp. Fix: thêm flag `let _denied = false`; khi non-admin phát hiện đặt `_denied=true` trước khi signOut; trong handler `if (!u){ if (_denied) return; sec('login'); }`; thêm `window.tryAnotherAccount` đặt lại `_denied=false` và gọi `sec('login')`. Màn hình denied hiện email đã dùng sai và nút "Thử tài khoản khác".
+- **Auth flow redirect sai sau tách index.html/dashboard.html**: `openLoginModal()` trên landing redirect sang `/copy-drive?m=register` ngay lập tức — trước khi auth xong → loginModal hiện trên `/copy-drive`, nền mất landing, nhấn X → trang trắng. Fix: `openLoginModal()` trên landing mở loginModal tại chỗ (không redirect); toàn bộ auth flow (loginModal → planSelectModal → paymentModal → paymentConfirmModal) chạy trên `index.html` với URL vẫn là `/`; chỉ redirect sang `/copy-drive` sau khi có Firestore doc. Dashboard không có user → redirect `/` (không show loginModal). `createFreeUser()` và `createPaidPendingUser()` trên landing → `window.location.href='/copy-drive'` sau khi tạo doc. `readdWelcomeModal` nằm trong `index.html`; `closeReaddWelcome()` redirect sang `/copy-drive` khi trên landing.
 - **[CHẨN ĐOÁN SAI — BÀI HỌC QUAN TRỌNG] Maintenance không hoạt động cho người chưa đăng nhập (Bảo trì 1 & 2)**: Triệu chứng: incognito và tài khoản chưa đăng ký vẫn thấy landing thay vì trang bảo trì. Chẩn đoán ban đầu SAI: cứ đề nghị sửa Firestore Security Rules trong Firebase Console thay vì tìm giải pháp code. Nguyên nhân thật: `getMaintenance()` đọc Firestore trực tiếp từ browser → Security Rules chặn người chưa auth → catch trả `{ mode:'off' }` → maintenance không bao giờ áp dụng. Fix đúng: tạo `api/maintenance.js` (Vercel serverless + service account JWT) → đọc Firestore server-side → bypass Security Rules hoàn toàn → tất cả 3 mode hoạt động cho mọi loại user. **Quy tắc rút ra: bất kỳ Firestore collection nào cần đọc bởi người CHƯA đăng nhập → PHẢI đọc qua Vercel server-side function, KHÔNG đọc trực tiếp từ browser.**
 
 ---
 
 ## Trạng thái hiện tại (để tiếp tục đúng chỗ)
 
-- **Landing/Dashboard split**: ĐÃ tách — `index.html` (~434 dòng) chỉ còn landing (`#s-land`); `dashboard.html` (~810 dòng) chứa toàn bộ app (`#s-check/pend/kicked/app/maintenance` + tất cả auth/copy modals). `app.js` dùng `IS_DASHBOARD = !!document.getElementById('s-app')` để phân biệt context; `sec()` tự navigate cross-page. Landing "Đăng ký/Đăng nhập" → redirect `/copy-drive?m=register|login`; dashboard đọc `?m` param để mở loginModal đúng mode. `/copy-drive` → `dashboard.html` trong `vercel.json`. `index.html.bak` đã xóa sau khi verify.
+- **Landing/Dashboard split**: ĐÃ tách và ĐÃ fix auth flow — `index.html` (~621 dòng) xử lý toàn bộ đăng ký/đăng nhập tại chỗ (loginModal + planSelectModal + paymentModal + paymentConfirmModal + readdWelcomeModal đều trong index.html). `dashboard.html` (~684 dòng) chỉ chứa app sections + copy modals + upgrade modals (paymentModal/paymentConfirmModal cho free→paid). Dashboard không có user → redirect `/`. `app.js` dùng `IS_DASHBOARD = !!document.getElementById('s-app')`. URL không đổi khi mở auth modals trên landing.
 - **Đang deploy**: Vercel (`swiftcopydrive.vercel.app`) — sắp mua domain `swiftcopydrive.com`
 - **CI/CD**: Vercel tự động deploy khi push lên GitHub
 - **Email system**: ĐÃ hoạt động — `GAS_URL` lưu trong Vercel env var, proxy qua `api/email.js`, confirmed working (kick/readd/approve/upgrade đều gửi được)

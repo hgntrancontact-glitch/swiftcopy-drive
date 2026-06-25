@@ -51,8 +51,6 @@ let _kickPollTimer  = null;    // 30s interval to detect kick while in dashboard
 
 // Page detection — true khi đang ở dashboard.html (/copy-drive), false khi ở index.html (/)
 const IS_DASHBOARD = !!document.getElementById('s-app');
-// Login mode truyền qua URL param khi redirect từ landing sang dashboard
-let _urlLoginMode = IS_DASHBOARD ? (new URLSearchParams(location.search).get('m') || null) : null;
 
 function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[] }; }
 
@@ -164,11 +162,12 @@ window.hideLoginWarn = () => {
 };
 let _loginMode = 'register';
 window.openLoginModal = (mode = 'register') => {
-  if (!IS_DASHBOARD) {
-    // Landing page — loginModal ở dashboard.html, redirect sang /copy-drive
-    window.location.href = '/copy-drive?m=' + (mode || 'register');
+  if (IS_DASHBOARD) {
+    // Dashboard: không có loginModal — redirect về landing
+    window.location.href = '/';
     return;
   }
+  // Landing: loginModal nằm ở đây — mở trực tiếp, URL không đổi
   _loginMode = mode;
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   document.getElementById('loginModal')?.classList.add('active');
@@ -252,36 +251,68 @@ else              sec('land',  true); // landing: hiện s-land ngay (không ch�
 getMaintenance(); // bắt đầu fetch trước để cache sẵn khi onAuthStateChanged gọi lại
 
 onAuthStateChanged(auth, async u => {
+  const maint = await getMaintenance();
+  const mode = maint.mode || (maint.enabled ? 'all' : 'off');
+  const allowedEmails = maint.allowedEmails || [];
+
   // ── LANDING (index.html) ────────────────────────────────────────────────
   if (!IS_DASHBOARD) {
-    if (u) { window.location.href = '/copy-drive'; return; } // logged-in → go to dashboard
-    const maint = await getMaintenance();
-    const mode = maint.mode || (maint.enabled ? 'all' : 'off');
-    const mResult0 = getMaintenanceResult(mode, maint.allowedEmails || [], null);
-    if (mResult0 === 'maintenance') { sec('maintenance'); return; }
-    sec('land');
+    if (!u) {
+      const mResult = getMaintenanceResult(mode, allowedEmails, null);
+      if (mResult === 'maintenance') { sec('maintenance'); return; }
+      sec('land');
+      return;
+    }
+    // User vừa đăng nhập trên landing — chạy full auth flow tại đây
+    gUser = u;
+    const mResult = getMaintenanceResult(mode, allowedEmails, u.email);
+    if (mResult === 'maintenance') { sec('maintenance'); return; }
+    // Đóng loginModal trước khi xử lý
+    document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+    try {
+      const docSnap = await getDoc(doc(db,'users',u.uid));
+      if (!docSnap.exists()) {
+        // User mới — hiện planSelectModal trên landing
+        setNavUser(u);
+        showPlanSelect();
+        return;
+      }
+      // User đã có tài khoản nhưng bấm "Đăng ký" → báo lỗi, cho đăng nhập lại
+      if (_loginMode === 'register') {
+        await signOut(auth);
+        setTimeout(() => {
+          toast('Tài khoản này đã được đăng ký. Vui lòng chọn Đăng nhập.', 'err');
+          const btn = document.getElementById('btnGoLogin');
+          if (btn) { btn.classList.add('shake-hint'); setTimeout(() => btn.classList.remove('shake-hint'), 600); }
+          window.openLoginModal('login');
+        }, 150);
+        return;
+      }
+      const d = docSnap.data();
+      if (d.status === 'kicked') notifyAdminKicked(u, d.kickReason);
+      const approved = await checkApproval(u);
+      if (approved) {
+        // Kiểm tra readd welcome trước khi redirect
+        if (checkReaddWelcome()) return; // closeReaddWelcome() sẽ redirect sang /copy-drive
+        window.location.href = '/copy-drive';
+      } else {
+        // pending hoặc kicked → redirect sang dashboard để hiện trạng thái
+        window.location.href = '/copy-drive';
+      }
+    } catch(e) { window.location.href = '/copy-drive'; }
     return;
   }
 
   // ── DASHBOARD (dashboard.html) ──────────────────────────────────────────
   if (u) sec('check'); // hiện spinner trong khi await bên dưới
-  const maint = await getMaintenance();
-  // Backward compat: old docs use enabled:bool, new docs use mode:string
-  const mode = maint.mode || (maint.enabled ? 'all' : 'off');
-  const allowedEmails = maint.allowedEmails || [];
 
-  if (!u){
+  if (!u) {
     gUser=null; gToken=null; gUserData=null;
     if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
-    document.getElementById('planSelectModal')?.classList.remove('active');
     const mResult0 = getMaintenanceResult(mode, allowedEmails, null);
     if (mResult0 === 'maintenance'){ sec('maintenance'); return; }
-    // Không có user trên dashboard → mở loginModal (ở lại dashboard)
-    ['check','pend','kicked','app','maintenance'].forEach(s=>{
-      const el=document.getElementById('s-'+s); if(el) el.style.display='none';
-    });
-    if (_urlLoginMode && location.search) history.replaceState(null,'','/copy-drive');
-    window.openLoginModal(_urlLoginMode || 'login');
+    // Không có user trên dashboard → về landing
+    window.location.href = '/';
     return;
   }
   gUser=u;
@@ -289,29 +320,20 @@ onAuthStateChanged(auth, async u => {
   if (mResult === 'maintenance'){ sec('maintenance'); return; }
   if (mResult === 'landing')    { window.location.href = '/'; return; }
   try {
-    // Kiểm tra document tồn tại chưa
     const docSnap = await getDoc(doc(db,'users',u.uid));
     if (!docSnap.exists()){
-      // User mới — hiện modal chọn gói, KHÔNG tạo doc ngay
-      setNavUser(u);
-      showPlanSelect();
+      // Không có doc trên dashboard → về landing để đăng ký
+      await signOut(auth);
+      window.location.href = '/';
       return;
     }
-    // Nếu user bấm "Đăng ký" nhưng tài khoản đã tồn tại → báo lỗi, ở lại dashboard
-    if (_loginMode === 'register') {
-      _urlLoginMode = 'login'; // chuyển sang login mode khi null handler mở lại modal
-      await signOut(auth);
-      setTimeout(() => toast('Tài khoản này đã được đăng ký. Vui lòng chọn Đăng nhập.', 'err'), 150);
-      return; // onAuthStateChanged(null) sẽ mở loginModal('login')
-    }
-    // User cũ bị kick → thông báo admin
     const d = docSnap.data();
     if (d.status === 'kicked') notifyAdminKicked(u, d.kickReason);
     const approved = await checkApproval(u);
     setNavUser(u);
     if (approved){
       document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
-      sec('app'); checkResume(); updateFreeBanner(); checkReaddWelcome();
+      sec('app'); checkResume(); updateFreeBanner();
       if (_kickPollTimer) clearInterval(_kickPollTimer);
       _kickPollTimer = setInterval(pollKickStatus, 30000);
     }
@@ -371,13 +393,15 @@ function notifyAdminKicked(u,reason){
 
 // ── PLAN SELECTION (sau Google auth, user chưa có Firestore doc) ─────────
 function showPlanSelect(){
-  // Trên dashboard: ẩn spinner, để modal overlay phủ nền
+  // Đóng mọi modal đang mở (loginModal vừa dùng)
+  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+  // Hiện landing page phía sau modal (landing) hoặc ẩn sections (dashboard edge case)
   if (IS_DASHBOARD) {
     ['check','pend','kicked','app','maintenance'].forEach(s=>{
       const el=document.getElementById('s-'+s); if(el) el.style.display='none';
     });
   } else {
-    sec('land'); // landing: hiện landing page phía sau modal
+    sec('land', true); // hiện landing làm nền phía sau, không redirect
   }
   document.getElementById('planSelectModal')?.classList.add('active');
 }
@@ -386,11 +410,10 @@ window.closePlanSelect = async () => {
   await signOut(auth);
 };
 
-// Tạo user gói Free và vào dashboard
+// Tạo user gói Free → redirect sang /copy-drive
 window.createFreeUser = async () => {
   if (!gUser) return;
   document.getElementById('planSelectModal')?.classList.remove('active');
-  sec('check');
   try {
     const userData = {
       email:gUser.email, displayName:gUser.displayName, photoURL:gUser.photoURL,
@@ -399,13 +422,9 @@ window.createFreeUser = async () => {
       upgradeRequestedAt:null, createdAt:serverTimestamp()
     };
     await setDoc(doc(db,'users',gUser.uid), userData);
-    gUserData = { id:gUser.uid, ...userData };
     sendRegEmail(gUser);
-    setNavUser(gUser);
-    sec('app'); checkResume(); updateFreeBanner();
-    if (_kickPollTimer) clearInterval(_kickPollTimer);
-    _kickPollTimer = setInterval(pollKickStatus, 30000);
-  } catch(e){ toast('Lỗi tạo tài khoản: '+e.message,'err'); await signOut(auth); if(!IS_DASHBOARD) sec('land'); }
+    window.location.href = '/copy-drive'; // dashboard sẽ detect user + doc → sec('app')
+  } catch(e){ toast('Lỗi tạo tài khoản: '+e.message,'err'); await signOut(auth); }
 };
 
 // Mở paymentModal từ planSelectModal (user mới, chưa có doc)
@@ -469,15 +488,20 @@ window.confirmPayment = async () => {
 };
 
 // ── READD WELCOME ─────────────────────────────────────────────
+// Trả về true nếu modal được hiện (landing sẽ giữ lại, không redirect ngay)
 function checkReaddWelcome(){
-  if (!gUser || !gUserData || !gUserData.readdedAt) return;
+  if (!gUser || !gUserData || !gUserData.readdedAt) return false;
   const flagKey = 'swiftcopy_readd_'+gUser.uid;
-  if (localStorage.getItem(flagKey)) return;
+  if (localStorage.getItem(flagKey)) return false;
   localStorage.setItem(flagKey, '1');
-  document.getElementById('readdWelcomeModal')?.classList.add('active');
+  const el = document.getElementById('readdWelcomeModal');
+  if (el) { el.classList.add('active'); return true; }
+  return false;
 }
 window.closeReaddWelcome = () => {
   document.getElementById('readdWelcomeModal')?.classList.remove('active');
+  // Trên landing: redirect sang dashboard sau khi đóng welcome
+  if (!IS_DASHBOARD) window.location.href = '/copy-drive';
 };
 
 // ── DRIVE API ────────────────────────────────────────────────
@@ -1732,33 +1756,25 @@ function updateFreeLimitCountdown() {
 function sec(name, _noPush){
   // Cross-page navigation
   if (!IS_DASHBOARD && !['land','maintenance'].includes(name)){
-    // Landing page: chỉ xử lý 'land' và 'maintenance' — các section khác ở dashboard
+    // Landing page: section này ở dashboard — redirect nếu không phải _noPush
     if (!_noPush) window.location.href = '/copy-drive';
     return;
   }
   if (IS_DASHBOARD && name === 'land' && !_noPush){
-    // Dashboard page: sec('land') = redirect về landing
+    // Dashboard: sec('land') = redirect về landing
     window.location.href = '/';
     return;
   }
   ['land','check','pend','kicked','app','maintenance'].forEach(s=>{const el=document.getElementById('s-'+s);if(el)el.style.display=s===name?'block':'none';});
   const nr=document.getElementById('navRight');if(nr)nr.style.display=name==='app'?'flex':'none';
   const ng=document.getElementById('navGuest');if(ng)ng.style.display=name==='app'?'none':'flex';
-  if(!_noPush){
-    if(name==='app'&&location.pathname!=='/copy-drive') history.pushState(null,'','/copy-drive');
-    else if(name==='pend'&&location.pathname!=='/') history.pushState(null,'','/');
-  }
 }
 
 // ── CLIENT-SIDE ROUTING ──────────────────────────────────────
 window.addEventListener('popstate',()=>{
   if(!IS_DASHBOARD){ sec('land',true); return; }
-  if(location.pathname==='/copy-drive'){
-    if(gUser) sec('app',true);
-    else window.openLoginModal('login');
-  } else {
-    window.location.href = '/';
-  }
+  if(gUser) sec('app',true);
+  else window.location.href = '/';
 });
 function setNavUser(u){
   document.getElementById('navAv').src=u.photoURL||'';
