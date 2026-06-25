@@ -1154,6 +1154,28 @@ let _videoWarnResolve = null;
 let _videoSeenCount = 0;
 let _videoFilesCount = 0; // counted during copy, shown in completion modal
 let _progTotal = 0;       // top-level item count — used for accurate progress bar fill
+let _videoWarnMode = 'before'; // 'before' | 'after'
+
+function showVideoWarn(count, mode) {
+  _videoWarnMode = mode;
+  document.getElementById('videoWarnCount').textContent = count;
+  const btn = document.getElementById('videoWarnBtn');
+  if (mode === 'before') {
+    btn.textContent = 'Đã hiểu, bắt đầu sao chép';
+    btn.onclick = () => confirmVideoWarn();
+  } else {
+    btn.textContent = 'Đã hiểu';
+    btn.onclick = () => closeVideoWarn();
+  }
+  document.getElementById('videoWarnModal').classList.add('active');
+}
+window.confirmVideoWarn = () => {
+  document.getElementById('videoWarnModal').classList.remove('active');
+  _runCopyInternal(_pendingCopyResume);
+};
+window.closeVideoWarn = () => {
+  document.getElementById('videoWarnModal').classList.remove('active');
+};
 
 window.startCopy = async (isResume) => {
   if (!gToken){ showNoAuth('Chưa cấp quyền Drive!','Bạn cần cấp quyền truy cập Google Drive trước khi sao chép.'); return; }
@@ -1164,6 +1186,27 @@ window.startCopy = async (isResume) => {
   if (!isResume) { stopFlag=false; setBtnMode('copy'); }
   // Kiểm tra giới hạn free trước khi copy (bỏ qua khi resume vì đã kiểm tra trước đó)
   if (!isResume && !(await checkFreeLimit())) { setBtnMode('idle'); return; }
+  // Cảnh báo video cho paid user trước khi bắt đầu copy
+  if (!isResume && gUserData?.plan === 'paid') {
+    setBtnMode('idle'); // tạm reset để không bị kẹt nếu user đóng modal
+    const srcId = fid(sv);
+    let videoCount = 0;
+    try {
+      if (clLoaded && clItems.length > 0) {
+        videoCount = clItems.filter(i => i.depth === 0 && isVideoItem(i)).length;
+      } else {
+        const topItems = await listItems(srcId);
+        videoCount = topItems.filter(i => isVideoItem(i)).length;
+      }
+    } catch(e) { /* ignore — nếu không scan được thì bỏ qua cảnh báo */ }
+    if (videoCount > 0) {
+      _pendingCopyResume = isResume;
+      showVideoWarn(videoCount, 'before');
+      return; // copy bắt đầu khi user bấm "Đã hiểu, bắt đầu sao chép"
+    }
+    // Không có video → bắt đầu bình thường
+    stopFlag=false; setBtnMode('copy');
+  }
   await _runCopyInternal(isResume);
 };
 
@@ -1466,7 +1509,13 @@ async function saveHist(si,sn,di,dn,el){
 }
 
 // ── COMPLETION MODAL ─────────────────────────────────────────
-window.closeComplModal=()=>{ document.getElementById('complOv').classList.remove('on'); };
+window.closeComplModal=()=>{
+  document.getElementById('complOv').classList.remove('on');
+  // Sau khi đóng báo cáo kết quả, hiện lại cảnh báo video nếu có copy video (paid only)
+  if (_videoFilesCount > 0 && gUserData?.plan === 'paid') {
+    showVideoWarn(_videoFilesCount, 'after');
+  }
+};
 function showComplModal(elapsed, videoCount){
   document.getElementById('complCopied').textContent  = stats.copied;
   document.getElementById('complFailed').textContent  = stats.failed;
