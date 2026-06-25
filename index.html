@@ -149,7 +149,7 @@
             </p>
             <div class="flex gap-3 justify-center flex-wrap">
                 <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] active:scale-95 transition-all" onclick="openLoginModal('register')">Đăng ký dùng thử</button>
-                <button class="px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer bg-white border-2 border-[#212529] hover:bg-[#f8f9fa] active:scale-95 transition-all" onclick="openLoginModal('login')">Đăng nhập</button>
+                <button id="btnGoLogin" class="px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer bg-white border-2 border-[#212529] hover:bg-[#f8f9fa] active:scale-95 transition-all" onclick="openLoginModal('login')">Đăng nhập</button>
             </div>
             <p class="text-sm text-[#868e96] mt-4">Dùng thử miễn phí hoặc mua trọn đời</p>
         </div>
@@ -253,51 +253,51 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start mb-8">
             <div>
                 <div class="flex items-center gap-3 mb-3">
-                    <svg class="w-9 h-9 rounded-lg flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-10 h-10 rounded-lg flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
                       <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
                       <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
                       <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <h3 class="font-bold text-black tracking-tight text-xl">SwiftCopy<span class="text-[#dc3545]">.</span>Drive</h3>
+                    <h3 class="font-bold text-black tracking-tight text-[22px]">SwiftCopy<span class="text-[#dc3545]">.</span>Drive</h3>
                 </div>
-                <p class="text-[15px] text-[#868e96] leading-snug">Tối ưu hóa thời gian xử lý dữ liệu sao chép trên nền tảng Google Drive cho cá nhân và doanh nghiệp sản xuất nội dung số.</p>
+                <p class="text-base text-[#868e96] leading-snug">Tối ưu hóa thời gian xử lý dữ liệu sao chép trên nền tảng Google Drive cho cá nhân và doanh nghiệp sản xuất nội dung số.</p>
             </div>
             <div>
-                <h3 class="font-bold text-black text-[17.5px] mb-3 tracking-tight">Tính năng</h3>
+                <h3 class="font-bold text-black text-[18.5px] mb-3 tracking-tight">Tính năng</h3>
                 <div style="display:flex;flex-direction:column;gap:6px;">
-                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:11px;flex-shrink:0;">✔</span>Sao chép tốc độ cực nhanh</span>
-                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:11px;flex-shrink:0;">✔</span>Kiểm tra Drive lỗi trước</span>
-                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:11px;flex-shrink:0;">✔</span>Chọn lọc mục muốn copy</span>
-                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:11px;flex-shrink:0;">✔</span>Theo dõi hành trình sao chép</span>
-                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:11px;flex-shrink:0;">✔</span>Tự động copy tiếp nếu mất mạng, treo máy</span>
+                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:12px;flex-shrink:0;">✔</span>Sao chép tốc độ cực nhanh</span>
+                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:12px;flex-shrink:0;">✔</span>Kiểm tra Drive lỗi trước</span>
+                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:12px;flex-shrink:0;">✔</span>Chọn lọc mục muốn copy</span>
+                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:12px;flex-shrink:0;">✔</span>Theo dõi hành trình sao chép</span>
+                    <span style="display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;color:#2b8a3e;background:#f0fdf4;border:1.5px solid #bbf7d0;padding:5px 11px;border-radius:8px;"><span style="font-size:12px;flex-shrink:0;">✔</span>Tự động copy tiếp nếu mất mạng, treo máy</span>
                 </div>
             </div>
             <div>
-                <h3 class="font-bold text-black text-[17.5px] mb-3 tracking-tight">Liên hệ</h3>
-                <ul class="text-[15px] text-[#6c757d] space-y-2">
+                <h3 class="font-bold text-black text-[18.5px] mb-3 tracking-tight">Liên hệ</h3>
+                <ul class="text-base text-[#6c757d] space-y-2">
                     <li class="flex items-center gap-2">
                         <svg class="w-4 h-4 stroke-[#868e96] fill-none stroke-2 flex-shrink-0" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                         hgntran.contact@gmail.com
                     </li>
                 </ul>
-                <span class="font-bold text-black text-[15px] block mt-4 mb-1.5">ZALO</span>
+                <span class="font-bold text-black text-base block mt-4 mb-1.5">ZALO</span>
                 <img src="zalo-qr.png" alt="Mã QR Zalo" class="border border-[#dee2e6] rounded-md w-[88px] h-[88px] object-contain bg-white p-1"/>
             </div>
             <div>
-                <h3 class="font-bold text-black text-[17.5px] mb-3 tracking-tight">Hỗ trợ</h3>
+                <h3 class="font-bold text-black text-[18.5px] mb-3 tracking-tight">Hỗ trợ</h3>
                 <div class="flex flex-col items-start gap-2 mb-4">
-                    <span class="text-[15px] text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
-                    <a href="/dieu-khoan" class="text-[15px] text-[#6c757d] hover:text-[#dc3545] transition-colors" style="text-decoration:none">Điều khoản sử dụng</a>
-                    <a href="/bao-mat" class="text-[15px] text-[#6c757d] hover:text-[#dc3545] transition-colors" style="text-decoration:none">Chính sách bảo mật</a>
-                    <a href="/hoan-tien" class="text-[15px] text-[#6c757d] hover:text-[#dc3545] transition-colors" style="text-decoration:none">Chính sách hoàn tiền</a>
+                    <span class="text-base text-[#6c757d] hover:text-[#dc3545] cursor-pointer transition-colors" onclick="openFaqModal()">Câu hỏi thường gặp</span>
+                    <a href="/dieu-khoan" class="text-base text-[#6c757d] hover:text-[#dc3545] transition-colors" style="text-decoration:none">Điều khoản sử dụng</a>
+                    <a href="/bao-mat" class="text-base text-[#6c757d] hover:text-[#dc3545] transition-colors" style="text-decoration:none">Chính sách bảo mật</a>
+                    <a href="/hoan-tien" class="text-base text-[#6c757d] hover:text-[#dc3545] transition-colors" style="text-decoration:none">Chính sách hoàn tiền</a>
                 </div>
-                <button class="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#ffc107] to-[#ff8f00] text-black px-4 py-2 rounded-full text-[15px] font-bold shadow-md hover:scale-105 active:scale-95 transition-all whitespace-nowrap" id="reviewBtn">
-                    <span class="text-black text-[15px]">★</span>
+                <button class="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#ffc107] to-[#ff8f00] text-black px-4 py-2 rounded-full text-base font-bold shadow-md hover:scale-105 active:scale-95 transition-all whitespace-nowrap" id="reviewBtn">
+                    <span class="text-black text-base">★</span>
                     <span>Đánh giá SwiftCopy<span class="text-[#dc3545]">.</span>Drive</span>
                 </button>
             </div>
         </div>
-        <div class="border-t border-[#f1f3f5] pt-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-[15px] text-[#868e96]">
+        <div class="border-t border-[#f1f3f5] pt-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-base text-[#868e96]">
             <div>© 2026 SwiftCopy<span class="text-[#dc3545]">.</span>Drive. All rights reserved.</div>
             <div class="font-bold text-black bg-[#fafafa] border border-[#e9ecef] rounded-full px-4 py-1.5">Mua 1 lần sử dụng trọn đời</div>
         </div>
@@ -786,7 +786,7 @@
       <div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:3px;">Chọn gói phù hợp với bạn</div>
       <div style="font-size:13px;color:#adb5bd;">Bắt đầu miễn phí hoặc mua trọn đời một lần duy nhất</div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+    <div class="plan-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
       <!-- FREE COLUMN -->
       <div style="padding:20px 22px 22px;border-right:1px solid #e9ecef;">
         <div style="font-size:11px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Miễn phí</div>
@@ -837,7 +837,7 @@
     <!-- Body -->
     <div style="padding:18px 22px;display:flex;flex-direction:column;gap:14px;">
       <!-- 2-column: QR left + Bank info right -->
-      <div style="display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;">
+      <div class="payment-grid" style="display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;">
         <!-- Left: QR -->
         <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
           <img src="vpbank-qr.png" alt="QR VPBank" style="width:185px;height:185px;border-radius:14px;border:2px solid #dee2e6;object-fit:contain;box-shadow:0 2px 12px rgba(0,0,0,.08);display:block;"/>

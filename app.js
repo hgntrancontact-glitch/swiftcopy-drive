@@ -268,6 +268,20 @@ onAuthStateChanged(auth, async u => {
       showPlanSelect();
       return;
     }
+    // Nếu user bấm "Đăng ký" nhưng tài khoản đã tồn tại → báo lỗi, không vào dashboard
+    if (_loginMode === 'register') {
+      await signOut(auth);
+      sec('land');
+      setTimeout(() => {
+        toast('Tài khoản này đã được đăng ký. Vui lòng nhấn Đăng nhập để tiếp tục.', 'err');
+        const loginBtn = document.getElementById('btnGoLogin');
+        if (loginBtn) {
+          loginBtn.classList.add('shake-hint');
+          setTimeout(() => loginBtn.classList.remove('shake-hint'), 600);
+        }
+      }, 150);
+      return;
+    }
     // User cũ bị kick → thông báo admin
     const d = docSnap.data();
     if (d.status === 'kicked') notifyAdminKicked(u, d.kickReason);
@@ -1479,15 +1493,16 @@ window.openModal=(type)=>{
   };
   const cfg=cfgMap[type];if(!cfg)return;
   _mOpen.clear();
-  function ea(nodes){nodes.forEach(n=>{if(n.type==='folder'){_mOpen.add(n.path);ea(n.children||[]);}}); }
-  ea(cfg.nodes);
-  document.getElementById('modalTitle').innerHTML='<span>'+cfg.label+'</span><span style="font-size:12px;background:var(--surface2);color:var(--text3);padding:2px 8px;border-radius:999px;font-family:monospace;margin-left:6px">'+cfg.nodes.length+'</span>';
-  function rerender(){document.getElementById('modalBody').innerHTML=cfg.nodes.length===0?'<p style="color:var(--text3);text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>':buildTreeHTML(cfg.nodes,_mOpen,'_treeToggle');}
+  // Mặc định: tất cả folder cha đều đóng. Chỉ mở folder cha đầu tiên để làm mẫu.
+  const firstFolder=cfg.nodes.find(n=>n.type==='folder');
+  if(firstFolder) _mOpen.add(firstFolder.path);
+  document.getElementById('modalTitle').innerHTML='<span>'+cfg.label+'</span><span style="font-size:12px;background:#f1f3f5;color:#868e96;padding:2px 8px;border-radius:999px;font-family:monospace;margin-left:6px">'+cfg.nodes.length+'</span>';
+  function rerender(){document.getElementById('modalBody').innerHTML=cfg.nodes.length===0?'<p style="color:#868e96;text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>':buildTreeHTML(cfg.nodes,_mOpen,'_treeToggle');}
   window._treeToggle=path=>{_mOpen.has(path)?_mOpen.delete(path):_mOpen.add(path);rerender();};
   rerender();
-  document.getElementById('modalOv').classList.add('on');
+  document.getElementById('modalOv').classList.add('active');
 };
-window.closeModal=()=>document.getElementById('modalOv').classList.remove('on');
+window.closeModal=()=>document.getElementById('modalOv').classList.remove('active');
 
 // ── FREE PLAN HELPERS ─────────────────────────────────────────
 function updateFreeBanner() {

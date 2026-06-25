@@ -253,3 +253,51 @@
 
         #s-land, #s-check, #s-pend, #s-app, #s-kicked, #s-maintenance { display:none; }
         @keyframes logoWobble { 0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(5deg)} }
+
+        /* ── Shake hint animation (register ↔ login mismatch) ── */
+        @keyframes shakeHint {
+          0%,100%{transform:translateX(0)}
+          20%,60%{transform:translateX(-5px)}
+          40%,80%{transform:translateX(5px)}
+        }
+        .shake-hint { animation:shakeHint .5s ease !important; outline:2.5px solid #dc3545 !important; outline-offset:2px; }
+
+        /* ── Responsive: phones ≤640px ── */
+        @media (max-width:640px){
+          #bellIcon, #helpIcon { display:none !important; }
+          #navGuest { gap:10px; }
+          .modal-overlay { padding:0.5rem; }
+          .modal-wrapper { max-height:92vh; overflow-y:auto; padding:1.125rem; }
+          /* Completion modal: 4-col → 2x2 */
+          .compl-stats { grid-template-columns:repeat(2,1fr) !important; }
+          /* Checklist body tighter on mobile */
+          .checklist-body { max-height:260px; }
+        }
+
+        /* ── Responsive: small phones ≤480px ── */
+        @media (max-width:480px){
+          header { padding-left:1rem !important; padding-right:1rem !important; }
+          /* Hide earn + language switcher on very small screens */
+          #navGuest > div:nth-child(3),
+          #navGuest > div:nth-child(4) { display:none !important; }
+          /* Plan select: stack 2 cols → 1 col */
+          .plan-cols { display:flex !important; flex-direction:column !important; }
+          .plan-cols > div:first-child { border-right:none !important; border-bottom:1px solid #e9ecef; }
+          /* Payment: QR + bank info → stack vertically */
+          .payment-grid { grid-template-columns:1fr !important; }
+          .payment-grid > div:first-child { align-items:center; }
+          /* Modal wrapper tighter padding */
+          .modal-wrapper { padding:1rem; }
+          /* Free limit modal */
+          #freeLimitModal .modal-wrapper { padding:0; }
+        }
+
+        /* ── Responsive: tablet 641–1024px ── */
+        @media (min-width:641px) and (max-width:1024px){
+          .modal-wrapper { max-height:90vh; overflow-y:auto; }
+        }
+
+        /* ── Responsive: small laptop 1024–1280px ── */
+        @media (min-width:1024px) and (max-width:1280px){
+          .checklist-body { max-height:340px; }
+        }
