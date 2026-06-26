@@ -131,7 +131,7 @@ window.doReset = () => {
   if(_pi){ _pi.style.display='none'; _pi.innerHTML=''; }
   document.getElementById('logBox').innerHTML      = '';
   document.getElementById('scanResult').style.display = 'none';
-  /* statsRow kept visible always */
+  document.getElementById('statsRow').style.display = 'none';
   setStatus('Chưa bắt đầu');
   clearSession(); setBtnMode('idle');
   toast('Đã reset toàn bộ','ok');
@@ -1081,8 +1081,9 @@ async function startScan() {
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
   stopFlag=false; pauseFlag=false; runMode='scan'; _authExpiredHandled=false;
-  stats=ns(); updStats();
+  stats=ns();
   document.getElementById('scanResult').style.display='none';
+  document.getElementById('statsRow').style.display='none';
   document.getElementById('logBox').innerHTML='';
   setBtnMode('scan');
   setStatus('Đang chuẩn bị kiểm tra...');
@@ -1159,7 +1160,7 @@ async function scanNodes(items, destId, path, depth, srcName) {
       _progTotal += children.length;
       progInc(); updateProgInfo(item.name);
       stats.folders++; if(depth===0) stats.topFolders++;
-      addLog('Thư mục: '+item.name,'info'); updStats();
+      addLog('Thư mục: '+item.name,'info');
 
       const testFile=children.find(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME);
       let selfErr=null;
@@ -1199,7 +1200,7 @@ async function scanFileNodes(items,destId,path,depth,srcName){
       try{ err=await testFileCopy(item,destId); }
       catch(e){ if(isAuthExpiredErr(e)) throw e; err='Lỗi'; }
       if(err){ addLog('Lỗi: '+item.name,'err'); stats.failed++; } else { addLog('OK: '+item.name,'ok'); stats.copied++; }
-      progInc(); updateProgInfo(item.name); updStats();
+      progInc(); updateProgInfo(item.name);
       nodes[realIdx]={name:item.name,path:fp,type:'file',depth,error:err,children:[]};
     }));
     if(stopFlag) break;
@@ -1233,40 +1234,105 @@ function splitScanTree(nodes){
 }
 
 function renderScanResult(tree,totalErr){
-  const el=document.getElementById('scanResult'); el.style.display='block';
-  if (totalErr===0){
-    el.innerHTML='<div class="tree-wrap"><div class="tree-head ok-head" style="justify-content:flex-start;gap:8px"><svg class="ic16" style="color:var(--green)"><use href="#ic-check-c"/></svg><span style="font-size:13px;font-weight:700;color:var(--green)">Tất cả đều có thể sao chép!</span></div></div>';
-    return;
-  }
+  const el=document.getElementById('scanResult');
+  el.style.display='block';
 
-  const {okNodes, errNodes} = splitScanTree(tree);
-  const okCount  = countTreeNodes(okNodes);
+  const {okNodes,errNodes}=splitScanTree(tree);
+  const okCount=countTreeNodes(okNodes);
 
-  const errAllPaths=new Set();
-  function epErr(nodes){nodes.forEach(n=>{if(n.type==='folder'){errAllPaths.add(n.path);epErr(n.children||[]);}}); }
-  epErr(errNodes);
+  const headerIcon=totalErr===0
+    ?'<svg style="width:18px;height:18px;flex-shrink:0;color:#099268" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-check-c"/></svg>'
+    :'<svg style="width:18px;height:18px;flex-shrink:0;color:#f59f00" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-warn"/></svg>';
 
-  let html = '<div class="tree-wrap"><div class="tree-head err-head"><span style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:7px"><svg class="ic16" style="color:var(--red)"><use href="#ic-warn"/></svg>'+totalErr+' mục bị lỗi quyền</span><span style="font-size:11px;font-weight:700;background:var(--red);color:#fff;padding:2px 8px;border-radius:999px">'+totalErr+'</span></div><div class="tree-body" id="scanErrTreeBody"></div><div class="tree-note"><svg class="ic" style="color:var(--text3);margin-right:4px"><use href="#ic-info"/></svg>Vào Drive nguồn → chuột phải → <b>Chia sẻ</b> → thêm email bạn quyền <b>Người chỉnh sửa</b></div></div>';
+  const okBtnStyle='display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #c3fae8;background:#e6fcf5;color:#099268;transition:all .15s';
+  const errBtnStyle=totalErr>0
+    ?'display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #ffe3e3;background:#fff5f5;color:#fa5252;transition:all .15s'
+    :'display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:default;border:1.5px solid #e9ecef;background:#f8f9fa;color:#adb5bd';
 
-  if (okCount>0){
-    const okAllPaths=new Set();
-    function epOk(nodes){nodes.forEach(n=>{if(n.type==='folder'){okAllPaths.add(n.path);epOk(n.children||[]);}}); }
-    epOk(okNodes);
-    html += '<div class="tree-wrap"><div class="tree-head ok-head"><span style="font-size:13px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:7px"><svg class="ic16" style="color:var(--green)"><use href="#ic-check-c"/></svg>Có quyền copy</span><span style="font-size:11px;font-weight:700;background:var(--green);color:#fff;padding:2px 8px;border-radius:999px">'+okCount+'</span></div><div class="tree-body" id="scanOkTreeBody"></div></div>';
+  const errBtnClick=totalErr>0?'onclick="window.toggleScanDetail(\'err\')"':'';
 
-    el.innerHTML = html;
+  el.innerHTML=`<div style="background:#fff;border:1.5px solid #e9ecef;border-radius:16px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04)">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    ${headerIcon}
+    <span style="font-size:13.5px;font-weight:700;color:#212529">Đã thực hiện xong việc "kiểm tra trước" trước khi bắt đầu sao chép</span>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <button id="scanRepOkBtn" onclick="window.toggleScanDetail('ok')" style="${okBtnStyle}">
+      <svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-check-c"/></svg>
+      <b>${okCount}</b> sẽ copy thành công
+    </button>
+    <button id="scanRepErrBtn" ${errBtnClick} style="${errBtnStyle}">
+      <svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-warn"/></svg>
+      <b>${totalErr}</b> sẽ lỗi
+    </button>
+  </div>
+  <div id="scanDetailOk" style="display:none;margin-bottom:12px;border:1px solid #c3fae8;border-radius:10px;overflow:hidden;max-height:320px;overflow-y:auto">
+    <div class="tree-body" id="scanDetailOkBody"></div>
+  </div>
+  <div id="scanDetailErr" style="display:none;margin-bottom:12px;border:1px solid #ffe3e3;border-radius:10px;overflow:hidden;max-height:320px;overflow-y:auto">
+    <div style="padding:10px 14px 4px;font-size:12px;color:#868e96;border-bottom:1px solid #fff0f0"><svg style="width:13px;height:13px;vertical-align:-2px;color:#adb5bd;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg>Vào Drive nguồn → chuột phải → <b>Chia sẻ</b> → thêm email bạn quyền <b>Người chỉnh sửa</b></div>
+    <div class="tree-body" id="scanDetailErrBody"></div>
+  </div>
+  <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding-top:14px;border-top:1px solid #f1f3f5">
+    <button onclick="window.closeScanReport()" style="padding:9px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #ffc9c9;background:#fff5f5;color:#fa5252;transition:all .15s">Để tôi kiểm tra lại</button>
+    <button onclick="window.startCopy()" style="padding:9px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:#ffc107;color:#212529;box-shadow:0 2px 8px rgba(255,193,7,.35);transition:all .15s">Bắt đầu sao chép ngay →</button>
+  </div>
+</div>`;
 
-    window._scanOkToggle=function(path){okAllPaths.has(path)?null:null; togglePathSet(_okOpenSet,path); document.getElementById('scanOkTreeBody').innerHTML=buildTreeHTML(okNodes,_okOpenSet,'_scanOkToggle');};
-    var _okOpenSet=new Set(okAllPaths);
-    document.getElementById('scanOkTreeBody').innerHTML=buildTreeHTML(okNodes,_okOpenSet,'_scanOkToggle');
-  } else {
-    el.innerHTML = html;
-  }
-
-  window._scanErrToggle=function(path){togglePathSet(_errOpenSet,path); document.getElementById('scanErrTreeBody').innerHTML=buildTreeHTML(errNodes,_errOpenSet,'_scanErrToggle');};
-  var _errOpenSet=new Set(errAllPaths);
-  document.getElementById('scanErrTreeBody').innerHTML=buildTreeHTML(errNodes,_errOpenSet,'_scanErrToggle');
+  _setupScanDetailTree('ok',okNodes);
+  _setupScanDetailTree('err',errNodes);
 }
+
+function _setupScanDetailTree(type,nodes){
+  const bodyId=type==='ok'?'scanDetailOkBody':'scanDetailErrBody';
+  const fnName=type==='ok'?'_scanRepOkToggle':'_scanRepErrToggle';
+  const firstFolder=nodes.find(n=>n.type==='folder'&&n.depth===0);
+  const openSet=new Set(firstFolder?[firstFolder.path]:[]);
+  window[fnName]=function(path){
+    togglePathSet(openSet,path);
+    const body=document.getElementById(bodyId);
+    if(body) body.innerHTML=buildTreeHTML(nodes,openSet,fnName);
+  };
+  const body=document.getElementById(bodyId);
+  if(body) body.innerHTML=nodes.length?buildTreeHTML(nodes,openSet,fnName):'<p style="color:#868e96;text-align:center;padding:20px;font-size:13px">Không có mục nào.</p>';
+}
+
+window.toggleScanDetail=function(type){
+  const okEl=document.getElementById('scanDetailOk');
+  const errEl=document.getElementById('scanDetailErr');
+  if(!okEl||!errEl) return;
+  if(type==='ok'){
+    const show=okEl.style.display==='none';
+    okEl.style.display=show?'block':'none';
+    errEl.style.display='none';
+  } else {
+    const show=errEl.style.display==='none';
+    errEl.style.display=show?'block':'none';
+    okEl.style.display='none';
+  }
+};
+
+window.closeScanReport=()=>{ document.getElementById('scanResult').style.display='none'; };
+
+window.doProgressReset=()=>{
+  if(runMode!=='idle'){
+    stopFlag=true; pauseFlag=false;
+    if(_resumeResolve){_resumeResolve();_resumeResolve=null;}
+  }
+  stats=ns();
+  const _rf=document.getElementById('progFill');
+  _rf.style.transition='none'; _rf.style.width='0%'; _rf.className='prog-fill';
+  _rf.parentElement.classList.remove('indeterminate');
+  requestAnimationFrame(()=>{ _rf.style.transition=''; });
+  const _pi=document.getElementById('progInfo');
+  if(_pi){_pi.style.display='none';_pi.innerHTML='';}
+  document.getElementById('logBox').innerHTML='';
+  document.getElementById('scanResult').style.display='none';
+  document.getElementById('statsRow').style.display='none';
+  setStatus('Chưa bắt đầu');
+  runMode='idle'; setBtnMode('idle');
+  toast('Đã reset tiến trình','ok');
+};
 
 function togglePathSet(set,path){ set.has(path)?set.delete(path):set.add(path); }
 
