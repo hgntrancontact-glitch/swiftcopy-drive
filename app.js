@@ -691,6 +691,26 @@ async function loadChecklist(srcId) {
     renderChecklist();
     updateClInfo();
     updateSrcTotalInfo();
+    // Pre-load depth-1 so "Đã chọn: X MB" shows accurate size on first render
+    // (top-level folders start with children:null → calcSelectedBytes() returns 0 until expanded)
+    const _snapshot = clItems;
+    const _preloadFolders = clItems.filter(i => i.mimeType === FMIME && i.children === null);
+    if (_preloadFolders.length) {
+      await Promise.all(_preloadFolders.map(async folder => {
+        try {
+          const ch = await listItems(folder.id);
+          folder.children = ch.map(c => ({
+            id:c.id, name:c.name, mimeType:c.mimeType,
+            size: parseInt(c.size)||0,
+            depth: folder.depth+1, expanded:false,
+            checked: folder.checked, indeterminate:false,
+            children: c.mimeType===FMIME ? null : [],
+            parentId: folder.id
+          }));
+        } catch(_e) { /* ignore — size will be partial if this folder fails */ }
+      }));
+      if (clItems === _snapshot) updateClInfo();
+    }
   } catch(e) {
     if(isAuthExpiredErr(e)){ body.innerHTML = '<div class="cl-empty">Phiên cấp quyền đã hết hạn</div>'; handleAuthExpired(); return; }
     body.innerHTML = '<div class="cl-empty">Lỗi tải danh sách: '+escH(e.message)+'</div>';
