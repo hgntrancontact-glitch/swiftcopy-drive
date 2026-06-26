@@ -514,8 +514,8 @@ window.closeReaddWelcome = () => {
 const BASE='https://www.googleapis.com/drive/v3';
 const FMIME='application/vnd.google-apps.folder';
 const SMIME='application/vnd.google-apps.shortcut';
-const CONCUR=8;
-const FOLDER_CONCUR=3; // sibling folders processed in parallel during copy
+const CONCUR=12;
+const FOLDER_CONCUR=5; // sibling folders processed in parallel during copy
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const hdr=()=>({Authorization:'Bearer '+gToken,'Content-Type':'application/json'});
 
@@ -1516,7 +1516,7 @@ async function _runCopyInternal(isResume) {
 async function copyRecTree(srcId,destId,path,depth,parentChildren){
   await pausePoint(); if(stopFlag) return;
   const items=await listItems(srcId);
-  _progTotal += items.length;
+  if(_totalDeepCount===0) _progTotal += items.length;
   const dnames=await existNames(destId);
   const folders=items.filter(i=>i.mimeType===FMIME);
   const files=items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&!dnames.has(i.name));
@@ -1564,7 +1564,7 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
 async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem){
   await pausePoint(); if(stopFlag)return;
   const items=await listItems(srcId);
-  _progTotal += items.length;
+  if(_totalDeepCount===0) _progTotal += items.length;
   const dnames=await existNames(destId);
   const checkedChildIds = clItem.children ? new Set(clItem.children.filter(c=>c.checked||c.indeterminate).map(c=>c.id)) : null;
   const filteredItems = checkedChildIds ? items.filter(i=>checkedChildIds.has(i.id)) : items;
