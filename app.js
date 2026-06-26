@@ -35,6 +35,7 @@ let _resumeResolve = null;
 // Checklist state
 let clItems = [];     // flat list of { id, name, mimeType, size, parentId, depth, expanded, checked, indeterminate }
 let clLoaded = false;
+let _deepScanId = 0; // Incremented on each loadChecklist call to cancel stale background scans
 // Drag-select state
 let _dragActive = false, _dragCheckValue = null;
 // Video file extensions to detect
@@ -691,10 +692,58 @@ async function loadChecklist(srcId) {
     renderChecklist();
     updateClInfo();
     updateSrcTotalInfo();
+    // Auto deep-scan all subfolders in background for accurate size display
+    const thisScanId = ++_deepScanId;
+    deepLoadAllFolders(thisScanId);
   } catch(e) {
     if(isAuthExpiredErr(e)){ body.innerHTML = '<div class="cl-empty">Phiên cấp quyền đã hết hạn</div>'; handleAuthExpired(); return; }
     body.innerHTML = '<div class="cl-empty">Lỗi tải danh sách: '+escH(e.message)+'</div>';
   }
+}
+
+// Background recursive scan — loads all unloaded folders so size display is always accurate
+async function deepLoadAllFolders(scanId) {
+  function collectUnloaded() {
+    const found = [];
+    function walk(items) {
+      for (const item of items) {
+        if (item.mimeType !== FMIME) continue;
+        if (item.children === null) { found.push(item); }
+        else { walk(item.children); }
+      }
+    }
+    walk(clItems);
+    return found;
+  }
+
+  const DEEP_CONCUR = 4;
+  let unloaded = collectUnloaded();
+  while (unloaded.length > 0) {
+    if (_deepScanId !== scanId) return; // New link pasted — abort stale scan
+    const batch = unloaded.splice(0, DEEP_CONCUR);
+    await Promise.all(batch.map(async (item) => {
+      if (_deepScanId !== scanId || item.children !== null) return;
+      try {
+        const children = await listItems(item.id);
+        if (_deepScanId !== scanId) return;
+        item.children = children.map(c => ({
+          id: c.id, name: c.name, mimeType: c.mimeType,
+          size: parseInt(c.size) || 0,
+          depth: item.depth + 1, expanded: false,
+          checked: item.checked, indeterminate: false,
+          children: c.mimeType === FMIME ? null : [],
+          parentId: item.id
+        }));
+      } catch(e2) {
+        if (isAuthExpiredErr(e2)) { handleAuthExpired(); return; }
+        item.children = []; // Mark as failed/empty so loop terminates
+      }
+    }));
+    if (_deepScanId !== scanId) return;
+    updateClInfo();
+    unloaded = collectUnloaded(); // Re-collect after each batch (may find new subfolders)
+  }
+  if (_deepScanId === scanId) updateClInfo();
 }
 
 function renderChecklist() {
@@ -854,11 +903,10 @@ function updateClInfo() {
   if (!clLoaded || !total){ sizeEl.style.display='none'; return; }
   sizeEl.style.display = 'block';
 
-  // If any selected folders haven't been expanded yet, their contents are unknown
-  // — show count only instead of a misleading partial size
+  // While background deep-scan is still running, show a loading state
   const unloaded = countUnloadedSelectedFolders();
   if (unloaded > 0) {
-    sizeEl.innerHTML = `Đã chọn: <b>${selected} mục</b> <span style="color:#adb5bd;font-size:11px">— nhấn ▶ mở thư mục để tính dung lượng</span>`;
+    sizeEl.innerHTML = `Đã chọn: <b>${selected} mục</b> <span style="color:#adb5bd;font-size:11px">— đang tính dung lượng...</span>`;
     return;
   }
 
