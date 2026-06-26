@@ -143,6 +143,7 @@ window.doLogin = async () => {
   try {
     const res = await signInWithPopup(auth, provider);
     gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
+    if (gToken) sessionStorage.setItem('swiftcopy_gtok', gToken);
   } catch(e) { toast('Đăng nhập thất bại','err'); }
 };
 window.showLoginWarn = () => {
@@ -183,9 +184,10 @@ window.openRegisterModal = () => window.openLoginModal();
 window.doLogout = () => signOut(auth);
 window.reAuth   = async () => {
   try {
-    provider.setCustomParameters({ prompt: 'consent' });
+    provider.setCustomParameters({ prompt: 'select_account' });
     const res=await signInWithPopup(auth,provider);
     gToken=GoogleAuthProvider.credentialFromResult(res)?.accessToken;
+    if (gToken) sessionStorage.setItem('swiftcopy_gtok', gToken);
     showAuthOK();
     // Re-trigger folder name preview for inputs that already have values
     const sv=document.getElementById('srcInput').value.trim();
@@ -306,6 +308,7 @@ onAuthStateChanged(auth, async u => {
   // ── DASHBOARD (dashboard.html) ──────────────────────────────────────────
   if (!u) {
     gUser=null; gToken=null; gUserData=null;
+    sessionStorage.removeItem('swiftcopy_gtok');
     if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
     const mResult0 = getMaintenanceResult(mode, allowedEmails, null);
     if (mResult0 === 'maintenance'){ sec('maintenance'); return; }
@@ -313,6 +316,8 @@ onAuthStateChanged(auth, async u => {
     return;
   }
   gUser=u;
+  // Restore gToken từ sessionStorage nếu chưa có (navigation từ trang khác hoặc refresh)
+  if (!gToken) { const t=sessionStorage.getItem('swiftcopy_gtok'); if(t) gToken=t; }
   const mResult = getMaintenanceResult(mode, allowedEmails, u.email);
   if (mResult === 'maintenance'){ sec('maintenance'); return; }
   if (mResult === 'landing')    { window.location.href = '/'; return; }
@@ -776,6 +781,7 @@ window.clToggleExpand = async (e, id) => {
     item.expanded = !item.expanded;
   }
   renderChecklist();
+  updateClInfo();
 };
 
 function setItemCheck(item, val) {
@@ -1042,6 +1048,7 @@ async function scanNodes(items, destId, path, depth, srcName) {
       let children;
       try{ children=await listItems(item.id); }
       catch(e){ if(isAuthExpiredErr(e)) throw e; children=[]; }
+      _progTotal += children.length;
       progInc(); updateProgInfo(item.name);
       addLog('Thư mục: '+item.name,'info');
 
@@ -1401,6 +1408,7 @@ async function _runCopyInternal(isResume) {
 async function copyRecTree(srcId,destId,path,depth,parentChildren){
   await pausePoint(); if(stopFlag) return;
   const items=await listItems(srcId);
+  _progTotal += items.length;
   const dnames=await existNames(destId);
   const folders=items.filter(i=>i.mimeType===FMIME);
   const files=items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&!dnames.has(i.name));
@@ -1448,6 +1456,7 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
 async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem){
   await pausePoint(); if(stopFlag)return;
   const items=await listItems(srcId);
+  _progTotal += items.length;
   const dnames=await existNames(destId);
   const checkedChildIds = clItem.children ? new Set(clItem.children.filter(c=>c.checked||c.indeterminate).map(c=>c.id)) : null;
   const filteredItems = checkedChildIds ? items.filter(i=>checkedChildIds.has(i.id)) : items;
