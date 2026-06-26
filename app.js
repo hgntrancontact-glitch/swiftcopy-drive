@@ -1041,7 +1041,7 @@ function updateProgInfo(fileName, isDone){
   if(!isDone&&progDone===0){ el.style.display='none'; return; }
   el.style.display='block';
   const x=progDone;
-  const y=Math.max(x, _totalDeepCount);
+  const y=_totalDeepCount>0 ? _totalDeepCount : x;
   const xColor=isDone?'#099268':'#212529';
   const yColor=isDone?'#099268':'#dc3545';
   const fileHtml=fileName?` <span style="color:#adb5bd;font-weight:400">${escH(fileName)}</span>`:'';
