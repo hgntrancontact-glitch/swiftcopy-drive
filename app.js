@@ -130,7 +130,7 @@ window.doReset = () => {
   const _pi=document.getElementById('progInfo');
   if(_pi){ _pi.style.display='none'; _pi.innerHTML=''; }
   document.getElementById('logBox').innerHTML      = '';
-  document.getElementById('scanResult').style.display = 'none';
+  document.getElementById('scanRepModal')?.classList.remove('active');
   document.getElementById('statsRow').style.display = 'none';
   setStatus('Chưa bắt đầu');
   clearSession(); setBtnMode('idle');
@@ -514,8 +514,8 @@ window.closeReaddWelcome = () => {
 const BASE='https://www.googleapis.com/drive/v3';
 const FMIME='application/vnd.google-apps.folder';
 const SMIME='application/vnd.google-apps.shortcut';
-const CONCUR=12;
-const FOLDER_CONCUR=5; // sibling folders processed in parallel during copy
+const CONCUR=16;
+const FOLDER_CONCUR=8; // sibling folders processed in parallel during copy
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const hdr=()=>({Authorization:'Bearer '+gToken,'Content-Type':'application/json'});
 
@@ -1082,7 +1082,7 @@ async function startScan() {
 
   stopFlag=false; pauseFlag=false; runMode='scan'; _authExpiredHandled=false;
   stats=ns();
-  document.getElementById('scanResult').style.display='none';
+  document.getElementById('scanRepModal')?.classList.remove('active');
   document.getElementById('statsRow').style.display='none';
   document.getElementById('logBox').innerHTML='';
   setBtnMode('scan');
@@ -1103,7 +1103,7 @@ async function startScan() {
 
     if (stopFlag){ setStatus('Đã dừng kiểm tra'); setBtnMode('idle'); return; }
 
-    _progTotal = topItems.length;
+    _progTotal = _totalDeepCount > 0 ? _totalDeepCount : topItems.length;
     progStart();
     setStatus('Đang kiểm tra "'+sn+'"...');
 
@@ -1124,8 +1124,8 @@ async function startScan() {
   }
 }
 
-const SCAN_FILE_CONCUR   = 8;
-const SCAN_FOLDER_CONCUR = 4;
+const SCAN_FILE_CONCUR   = 12;
+const SCAN_FOLDER_CONCUR = 6;
 
 async function testFileCopy(item, destId){
   try{
@@ -1157,7 +1157,7 @@ async function scanNodes(items, destId, path, depth, srcName) {
       let children;
       try{ children=await listItems(item.id); }
       catch(e){ if(isAuthExpiredErr(e)) throw e; children=[]; }
-      _progTotal += children.length;
+      if(_totalDeepCount===0) _progTotal += children.length;
       progInc(); updateProgInfo(item.name);
       stats.folders++; if(depth===0) stats.topFolders++;
       addLog('Thư mục: '+item.name,'info');
@@ -1192,7 +1192,7 @@ async function scanFileNodes(items,destId,path,depth,srcName){
       const fp=path?path+' > '+item.name:item.name;
       if (item.mimeType===SMIME){
         progInc(); updateProgInfo(item.name);
-        nodes[realIdx]={name:item.name,path:fp,type:'file',depth,error:'Là shortcut - bỏ qua',children:[]};
+        // shortcut: bỏ qua im lặng như copy (không đánh là lỗi để kết quả scan/copy đồng nhất)
         return;
       }
       addLog('Kiểm tra: '+item.name,'skip');
@@ -1234,53 +1234,57 @@ function splitScanTree(nodes){
 }
 
 function renderScanResult(tree,totalErr){
-  const el=document.getElementById('scanResult');
-  el.style.display='block';
+  const modal=document.getElementById('scanRepModal');
+  const content=document.getElementById('scanRepContent');
 
   const {okNodes,errNodes}=splitScanTree(tree);
   const okCount=countTreeNodes(okNodes);
 
+  const headerBg=totalErr===0?'#ebfbee':'#fff9db';
   const headerIcon=totalErr===0
-    ?'<svg style="width:18px;height:18px;flex-shrink:0;color:#099268" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-check-c"/></svg>'
-    :'<svg style="width:18px;height:18px;flex-shrink:0;color:#f59f00" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-warn"/></svg>';
+    ?'<svg style="width:26px;height:26px;color:#099268" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-check-c"/></svg>'
+    :'<svg style="width:26px;height:26px;color:#f59f00" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-warn"/></svg>';
+  const headerTitle=totalErr===0?'Kiểm tra xong — Không có lỗi!':'Phát hiện '+totalErr+' mục có vấn đề';
 
-  const okBtnStyle='display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #c3fae8;background:#e6fcf5;color:#099268;transition:all .15s';
+  const okBtnStyle='display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #c3fae8;background:#e6fcf5;color:#099268;transition:all .15s';
   const errBtnStyle=totalErr>0
-    ?'display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #ffe3e3;background:#fff5f5;color:#fa5252;transition:all .15s'
-    :'display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:default;border:1.5px solid #e9ecef;background:#f8f9fa;color:#adb5bd';
-
+    ?'display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #ffe3e3;background:#fff5f5;color:#fa5252;transition:all .15s'
+    :'display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:default;border:1.5px solid #e9ecef;background:#f8f9fa;color:#adb5bd';
   const errBtnClick=totalErr>0?'onclick="window.toggleScanDetail(\'err\')"':'';
 
-  el.innerHTML=`<div style="background:#fff;border:1.5px solid #e9ecef;border-radius:16px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04)">
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-    ${headerIcon}
-    <span style="font-size:13.5px;font-weight:700;color:#212529">Đã thực hiện xong việc "kiểm tra trước" trước khi bắt đầu sao chép</span>
+  content.innerHTML=`
+  <div style="text-align:center;padding-bottom:20px;border-bottom:1px solid #f1f3f5;margin-bottom:20px">
+    <div style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:${headerBg};margin-bottom:12px">
+      ${headerIcon}
+    </div>
+    <div style="font-size:18px;font-weight:800;color:#212529;margin-bottom:4px">${headerTitle}</div>
+    <div style="font-size:13px;color:#868e96">Kết quả kiểm tra quyền trước khi bắt đầu sao chép</div>
   </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
     <button id="scanRepOkBtn" onclick="window.toggleScanDetail('ok')" style="${okBtnStyle}">
-      <svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-check-c"/></svg>
+      <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-check-c"/></svg>
       <b>${okCount}</b> sẽ copy thành công
     </button>
     <button id="scanRepErrBtn" ${errBtnClick} style="${errBtnStyle}">
-      <svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-warn"/></svg>
+      <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-warn"/></svg>
       <b>${totalErr}</b> sẽ lỗi
     </button>
   </div>
-  <div id="scanDetailOk" style="display:none;margin-bottom:12px;border:1px solid #c3fae8;border-radius:10px;overflow:hidden;max-height:320px;overflow-y:auto">
+  <div id="scanDetailOk" style="display:none;margin-bottom:14px;border:1px solid #c3fae8;border-radius:10px;overflow:hidden;max-height:300px;overflow-y:auto">
     <div class="tree-body" id="scanDetailOkBody"></div>
   </div>
-  <div id="scanDetailErr" style="display:none;margin-bottom:12px;border:1px solid #ffe3e3;border-radius:10px;overflow:hidden;max-height:320px;overflow-y:auto">
+  <div id="scanDetailErr" style="display:none;margin-bottom:14px;border:1px solid #ffe3e3;border-radius:10px;overflow:hidden;max-height:300px;overflow-y:auto">
     <div style="padding:10px 14px 4px;font-size:12px;color:#868e96;border-bottom:1px solid #fff0f0"><svg style="width:13px;height:13px;vertical-align:-2px;color:#adb5bd;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg>Vào Drive nguồn → chuột phải → <b>Chia sẻ</b> → thêm email bạn quyền <b>Người chỉnh sửa</b></div>
     <div class="tree-body" id="scanDetailErrBody"></div>
   </div>
-  <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding-top:14px;border-top:1px solid #f1f3f5">
-    <button onclick="window.closeScanReport()" style="padding:9px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #ffc9c9;background:#fff5f5;color:#fa5252;transition:all .15s">Để tôi kiểm tra lại</button>
-    <button onclick="window.startCopy()" style="padding:9px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:#ffc107;color:#212529;box-shadow:0 2px 8px rgba(255,193,7,.35);transition:all .15s">Bắt đầu sao chép ngay →</button>
-  </div>
-</div>`;
+  <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding-top:16px;border-top:1px solid #f1f3f5">
+    <button onclick="window.closeScanReport()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #ffc9c9;background:#fff5f5;color:#fa5252;transition:all .15s">Để tôi kiểm tra lại</button>
+    <button onclick="window.closeScanReport();window.startCopy()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;background:#ffc107;color:#212529;box-shadow:0 2px 8px rgba(255,193,7,.35);transition:all .15s">Bắt đầu sao chép ngay →</button>
+  </div>`;
 
   _setupScanDetailTree('ok',okNodes);
   _setupScanDetailTree('err',errNodes);
+  modal.classList.add('active');
 }
 
 function _setupScanDetailTree(type,nodes){
@@ -1312,7 +1316,7 @@ window.toggleScanDetail=function(type){
   }
 };
 
-window.closeScanReport=()=>{ document.getElementById('scanResult').style.display='none'; };
+window.closeScanReport=()=>{ document.getElementById('scanRepModal')?.classList.remove('active'); };
 
 window.doProgressReset=()=>{
   if(runMode!=='idle'){
@@ -1327,7 +1331,7 @@ window.doProgressReset=()=>{
   const _pi=document.getElementById('progInfo');
   if(_pi){_pi.style.display='none';_pi.innerHTML='';}
   document.getElementById('logBox').innerHTML='';
-  document.getElementById('scanResult').style.display='none';
+  document.getElementById('scanRepModal')?.classList.remove('active');
   document.getElementById('statsRow').style.display='none';
   setStatus('Chưa bắt đầu');
   runMode='idle'; setBtnMode('idle');
@@ -1463,7 +1467,7 @@ async function _runCopyInternal(isResume) {
   stopFlag=false; pauseFlag=false; runMode='copy'; _authExpiredHandled=false;
   if (!isResume){ stats=ns(); _sessionCopiedMB=0; }
   document.getElementById('logBox').innerHTML='';
-  document.getElementById('scanResult').style.display='none';
+  document.getElementById('scanRepModal')?.classList.remove('active');
   document.getElementById('statsRow').style.display='grid';
   updStats(); setBtnMode('copy');
   // progStart() called after top items are available so _progTotal is set accurately

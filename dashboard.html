@@ -341,9 +341,6 @@
 
       </div>
 
-      <!-- SCAN RESULT -->
-      <div id="scanResult" style="display:none"></div>
-
     </div>
   </main>
 </div>
@@ -408,6 +405,13 @@
 </div>
 
 <!-- COMPLETION MODAL -->
+<!-- SCAN REPORT MODAL -->
+<div id="scanRepModal" class="modal-overlay" onclick="if(event.target===this)window.closeScanReport()">
+  <div style="background:#fff;border-radius:18px;width:100%;max-width:700px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.25);border:1.5px solid #e9ecef;overflow:hidden">
+    <div id="scanRepContent" style="overflow-y:auto;flex:1;padding:26px 28px"></div>
+  </div>
+</div>
+
 <div id="complOv" class="compl-ov">
   <div class="compl-card">
     <div class="compl-head">
