@@ -691,26 +691,6 @@ async function loadChecklist(srcId) {
     renderChecklist();
     updateClInfo();
     updateSrcTotalInfo();
-    // Pre-load depth-1 so "Đã chọn: X MB" shows accurate size on first render
-    // (top-level folders start with children:null → calcSelectedBytes() returns 0 until expanded)
-    const _snapshot = clItems;
-    const _preloadFolders = clItems.filter(i => i.mimeType === FMIME && i.children === null);
-    if (_preloadFolders.length) {
-      await Promise.all(_preloadFolders.map(async folder => {
-        try {
-          const ch = await listItems(folder.id);
-          folder.children = ch.map(c => ({
-            id:c.id, name:c.name, mimeType:c.mimeType,
-            size: parseInt(c.size)||0,
-            depth: folder.depth+1, expanded:false,
-            checked: folder.checked, indeterminate:false,
-            children: c.mimeType===FMIME ? null : [],
-            parentId: folder.id
-          }));
-        } catch(_e) { /* ignore — size will be partial if this folder fails */ }
-      }));
-      if (clItems === _snapshot) updateClInfo();
-    }
   } catch(e) {
     if(isAuthExpiredErr(e)){ body.innerHTML = '<div class="cl-empty">Phiên cấp quyền đã hết hạn</div>'; handleAuthExpired(); return; }
     body.innerHTML = '<div class="cl-empty">Lỗi tải danh sách: '+escH(e.message)+'</div>';
@@ -850,6 +830,19 @@ function countNativeSelected(){
   walk(clItems); return n;
 }
 
+// Returns number of checked/indeterminate folders whose children haven't been loaded yet
+function countUnloadedSelectedFolders(){
+  let n=0;
+  function walk(items){
+    for(const item of items){
+      if(item.mimeType!==FMIME) continue;
+      if((item.checked||item.indeterminate) && item.children===null){ n++; }
+      else if(item.children){ walk(item.children); }
+    }
+  }
+  walk(clItems); return n;
+}
+
 function updateClInfo() {
   const total    = clItems.length;
   const selected = clItems.filter(i => i.checked || i.indeterminate).length;
@@ -860,6 +853,15 @@ function updateClInfo() {
   if (!sizeEl) return;
   if (!clLoaded || !total){ sizeEl.style.display='none'; return; }
   sizeEl.style.display = 'block';
+
+  // If any selected folders haven't been expanded yet, their contents are unknown
+  // — show count only instead of a misleading partial size
+  const unloaded = countUnloadedSelectedFolders();
+  if (unloaded > 0) {
+    sizeEl.innerHTML = `Đã chọn: <b>${selected} mục</b> <span style="color:#adb5bd;font-size:11px">— nhấn ▶ mở thư mục để tính dung lượng</span>`;
+    return;
+  }
+
   const rawMb = calcSelectedBytes() / (1024*1024);
   const mb = isNaN(rawMb) ? 0 : rawMb;
   const sizeStr = mb>=1024 ? (mb/1024).toFixed(2)+' GB' : mb.toFixed(1)+' MB';
