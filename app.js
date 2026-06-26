@@ -52,27 +52,6 @@ let _kickPollTimer  = null;    // 30s interval to detect kick while in dashboard
 // Page detection — true khi đang ở dashboard.html (/copy-drive), false khi ở index.html (/)
 const IS_DASHBOARD = !!document.getElementById('s-app');
 
-// ── DASHBOARD CACHE (skip #s-check for returning approved users) ─────────
-// Saves minimal user state to localStorage so returning users go straight to #s-app
-// without waiting for a Firestore round-trip. Verified in background after render.
-function _ck(uid){ return 'swiftcopy_ok_' + uid; }
-function saveCachedStatus(uid, d){
-  if (!uid || !d) return;
-  try {
-    localStorage.setItem(_ck(uid), JSON.stringify({
-      plan: d.plan || 'free',
-      approved: d.approved,
-      status: d.status,
-      freeUsedMB: d.freeUsedMB || 0,
-      freeResetAt: d.freeResetAt?.toMillis?.() || null,
-      upgradeRequestedAt: d.upgradeRequestedAt?.toMillis?.() || null,
-      displayName: d.displayName || '',
-      photoURL: d.photoURL || ''
-    }));
-  } catch(e) {}
-}
-function getCachedStatus(uid){ try{ const r=localStorage.getItem(_ck(uid)); return r?JSON.parse(r):null; }catch(e){return null;} }
-function clearCachedStatus(uid){ if(uid) try{ localStorage.removeItem(_ck(uid)); }catch(e){} }
 
 function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[] }; }
 
@@ -268,8 +247,7 @@ function getMaintenanceResult(mode, allowedEmails, userEmail){
 }
 
 // Khởi tạo UI theo page context
-if (IS_DASHBOARD) sec('check', true); // dashboard: hiện spinner trong khi chờ Firebase
-else              sec('land',  true); // landing: hiện s-land ngay (không chờ Firebase)
+if (!IS_DASHBOARD) sec('land', true); // landing: hiện s-land ngay (không chờ Firebase)
 getMaintenance(); // bắt đầu fetch trước để cache sẵn khi onAuthStateChanged gọi lại
 
 onAuthStateChanged(auth, async u => {
@@ -327,7 +305,6 @@ onAuthStateChanged(auth, async u => {
 
   // ── DASHBOARD (dashboard.html) ──────────────────────────────────────────
   if (!u) {
-    clearCachedStatus(gUser?.uid); // xóa cache khi logout
     gUser=null; gToken=null; gUserData=null;
     if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
     const mResult0 = getMaintenanceResult(mode, allowedEmails, null);
@@ -340,49 +317,6 @@ onAuthStateChanged(auth, async u => {
   if (mResult === 'maintenance'){ sec('maintenance'); return; }
   if (mResult === 'landing')    { window.location.href = '/'; return; }
 
-  // Kiểm tra cache — nếu đã biết user là approved, hiện #s-app ngay, skip Firestore round-trip
-  const _cached = getCachedStatus(u.uid);
-  if (_cached && _cached.approved && _cached.status === 'approved') {
-    gUserData = {
-      id: u.uid,
-      email: u.email,
-      displayName: _cached.displayName || u.displayName,
-      photoURL: _cached.photoURL || u.photoURL,
-      plan: _cached.plan || 'free',
-      approved: true,
-      status: 'approved',
-      freeUsedMB: _cached.freeUsedMB || 0,
-      freeResetAt: _cached.freeResetAt ? { toMillis: () => _cached.freeResetAt } : null,
-      upgradeRequestedAt: _cached.upgradeRequestedAt ? { toMillis: () => _cached.upgradeRequestedAt } : null
-    };
-    setNavUser(u);
-    document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
-    sec('app'); checkResume(); updateFreeBanner();
-    if (_kickPollTimer) clearInterval(_kickPollTimer);
-    _kickPollTimer = setInterval(pollKickStatus, 30000);
-    // Background: verify Firestore, refresh gUserData silently
-    getDoc(doc(db,'users',u.uid)).then(snap => {
-      if (!snap.exists()){ clearCachedStatus(u.uid); signOut(auth).then(()=>{ window.location.href='/'; }); return; }
-      const d = snap.data();
-      gUserData = { id: u.uid, ...d };
-      saveCachedStatus(u.uid, d);
-      updateFreeBanner();
-      if (!d.approved || d.status === 'kicked') {
-        clearCachedStatus(u.uid);
-        if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
-        sec('kicked');
-        const el = document.getElementById('kickedReasonText');
-        if (el) el.textContent = d.kickReason ? `Lý do: ${d.kickReason}` : 'Lý do: Vi phạm điều khoản sử dụng.';
-      } else if (d.status === 'pending' || !d.approved) {
-        clearCachedStatus(u.uid);
-        if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
-        sec('pend');
-      }
-    }).catch(() => {});
-    return;
-  }
-
-  // Không có cache (lần đầu hoặc sau logout) → hiện spinner, verify Firestore
   try {
     const docSnap = await getDoc(doc(db,'users',u.uid));
     if (!docSnap.exists()){
@@ -395,7 +329,6 @@ onAuthStateChanged(auth, async u => {
     const approved = await checkApproval(u);
     setNavUser(u);
     if (approved){
-      saveCachedStatus(u.uid, gUserData); // lưu cache sau lần verify đầu tiên
       document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
       sec('app'); checkResume(); updateFreeBanner();
       if (_kickPollTimer) clearInterval(_kickPollTimer);
@@ -415,7 +348,6 @@ async function pollKickStatus(){
   try {
     const snap = await getDoc(doc(db,'users',gUser.uid));
     if (!snap.exists() || snap.data().status !== 'approved' || !snap.data().approved){
-      clearCachedStatus(gUser.uid);
       if (_kickPollTimer){ clearInterval(_kickPollTimer); _kickPollTimer=null; }
       stopFlag=true; pauseFlag=false;
       if (_resumeResolve){ _resumeResolve(); _resumeResolve=null; }
@@ -1830,7 +1762,7 @@ function sec(name, _noPush){
     window.location.href = '/';
     return;
   }
-  ['land','check','pend','kicked','app','maintenance'].forEach(s=>{const el=document.getElementById('s-'+s);if(el)el.style.display=s===name?'block':'none';});
+  ['land','pend','kicked','app','maintenance'].forEach(s=>{const el=document.getElementById('s-'+s);if(el)el.style.display=s===name?'block':'none';});
   const nr=document.getElementById('navRight');if(nr)nr.style.display=name==='app'?'flex':'none';
   const ng=document.getElementById('navGuest');if(ng)ng.style.display=name==='app'?'none':'flex';
 }

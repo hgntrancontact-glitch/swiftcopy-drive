@@ -124,7 +124,7 @@ pollKickStatus() (30s interval khi đang ở sec='app'):
 - SVG sprite (giống index.html)
 - **noAuthBackdrop + noAuthPanel + authSuccessToast** — overlay reauth Drive (chỉ cần trong dashboard)
 - Header (giống index.html — navGuest và navRight đều present, JS quản lý visibility)
-- 5 section: `#s-check`, `#s-pend`, `#s-kicked`, `#s-app`, `#s-maintenance`
+- 4 section: `#s-pend`, `#s-kicked`, `#s-app`, `#s-maintenance` — `#s-check` đã bị xóa hoàn toàn. `#s-pend`, `#s-kicked`, `#s-maintenance` có `style="display:none"` mặc định; `#s-app` hiện mặc định (JS sẽ ẩn nếu cần).
 - **Modals copy**: `#modalOv`, `#vidWarnOv` (dead code), `#videoWarnModal`, `#complOv`, `#freeLimitModal`
 - **Modals upgrade** (free → paid từ dashboard): `#paymentModal`, `#paymentConfirmModal`
 - **Utility modals** (duplicate từ index.html — cần cho header dashboard): `#langModal`, `#supportModal`, `#earnModal`, `#addReviewModal`, `#reviewListModal`, `#faqModal`, `#policyModal`, `#policyAndReviewModal`
@@ -145,8 +145,7 @@ Nhóm hàm chính:
 - **Kicked screen**: `pollKickStatus` — hiện `sec('kicked')` thay vì `signOut()` khi bị kick
 - **Readd welcome (new)**: `checkReaddWelcome` (gọi sau login), `closeReaddWelcome`
   - localStorage key: `swiftcopy_readd_{uid}` — đảm bảo modal chỉ hiện 1 lần
-- **Maintenance**: `getMaintenance()` (cached promise, gọi `/api/maintenance` — Vercel function dùng service account) + `getMaintenanceResult(mode, allowedEmails, userEmail)` → `'maintenance'|'landing'|null`. `sec('check', true)` và `getMaintenance()` gọi ngay khi module load. Chỉ `allowedEmails` bypass — ADMIN_EMAIL không có xử lý đặc biệt trong `app.js`. **QUAN TRỌNG: KHÔNG đọc Firestore trực tiếp từ browser cho `settings/maintenance`** — phải luôn qua `/api/maintenance` vì người chưa đăng nhập bị Security Rules chặn.
-- **Dashboard cache (skip #s-check)**: `saveCachedStatus(uid, d)`, `getCachedStatus(uid)`, `clearCachedStatus(uid)` — localStorage key `swiftcopy_ok_{uid}`. Khi `onAuthStateChanged` fires trên dashboard và user có cache `approved=true` → set `gUserData` từ cache, gọi `sec('app')` ngay (không await Firestore), verify Firestore ngầm sau đó. Cache được save sau lần verify đầu tiên thành công, clear khi logout / kicked / pollKickStatus phát hiện thay đổi.
+- **Maintenance**: `getMaintenance()` (cached promise, gọi `/api/maintenance` — Vercel function dùng service account) + `getMaintenanceResult(mode, allowedEmails, userEmail)` → `'maintenance'|'landing'|null`. `getMaintenance()` gọi ngay khi module load để cache sẵn. Chỉ `allowedEmails` bypass — ADMIN_EMAIL không có xử lý đặc biệt trong `app.js`. **QUAN TRỌNG: KHÔNG đọc Firestore trực tiếp từ browser cho `settings/maintenance`** — phải luôn qua `/api/maintenance` vì người chưa đăng nhập bị Security Rules chặn.
 - **Drive API wrapper**: `dget`, `dpost`, `ddel`, `fid`, `fname`, `listItems`, `existNames`, `copyFileSingle`, `mkFolder` — có retry exponential backoff cho 429/500/503
 - **Auth expiry**: `isAuthExpiredErr`, `handleAuthExpired` — xử lý 401 giữa chừng, tự resume sau khi reauth
 - **Checklist**: `loadChecklist`, `renderChecklist` — cây thư mục lazy-load, checkbox 3 trạng thái
