@@ -895,25 +895,26 @@ function calcSelectedBytes(){
   walk(clItems); return total;
 }
 
-// Returns top file extensions (by count) across all selected loaded items, max 6
+// Returns top file extensions (by total size) across all selected loaded items, max 6
 function collectSelectedExtensions() {
-  const counts = new Map();
-  function add(ext) { counts.set(ext, (counts.get(ext) || 0) + 1); }
+  const sizes = new Map();
+  function add(ext, size) { sizes.set(ext, (sizes.get(ext) || 0) + (size || 0)); }
   function walk(items) {
     for (const item of items) {
       if (item.mimeType === FMIME) { if (item.children) walk(item.children); continue; }
       if (!item.checked && !item.indeterminate) continue;
       if (item.mimeType === SMIME) continue;
-      if (item.mimeType === 'application/vnd.google-apps.document')     { add('doc'); continue; }
-      if (item.mimeType === 'application/vnd.google-apps.spreadsheet')  { add('sheet'); continue; }
-      if (item.mimeType === 'application/vnd.google-apps.presentation') { add('slide'); continue; }
-      if (item.mimeType.startsWith('application/vnd.google-apps.'))     { add('gdrive'); continue; }
+      const sz = parseInt(item.size) || 0;
+      if (item.mimeType === 'application/vnd.google-apps.document')     { add('doc', sz); continue; }
+      if (item.mimeType === 'application/vnd.google-apps.spreadsheet')  { add('sheet', sz); continue; }
+      if (item.mimeType === 'application/vnd.google-apps.presentation') { add('slide', sz); continue; }
+      if (item.mimeType.startsWith('application/vnd.google-apps.'))     { add('gdrive', sz); continue; }
       const dot = item.name.lastIndexOf('.');
-      if (dot > 0 && dot < item.name.length - 1) add(item.name.slice(dot + 1).toLowerCase());
+      if (dot > 0 && dot < item.name.length - 1) add(item.name.slice(dot + 1).toLowerCase(), sz);
     }
   }
   walk(clItems);
-  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([ext]) => ext);
+  return [...sizes.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([ext]) => ext);
 }
 
 // Returns number of checked/indeterminate folders whose children haven't been loaded yet
