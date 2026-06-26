@@ -1014,6 +1014,7 @@ function getSelectedItems() {
 
 // ── GLOBAL PROGRESS COUNTERS (dynamic, no pre-scan) ───────────
 let progDone = 0;
+let _maxPct = 0; // ratchet — bar only moves forward, never backward
 
 function _updateProgBar(){
   const f=document.getElementById('progFill');
@@ -1023,7 +1024,6 @@ function _updateProgBar(){
     if(progDone<=_progTotal){
       pct=Math.min(95,Math.round(progDone/_progTotal*95));
     } else {
-      // Entered sub-folders beyond initial estimate: asymptotic 95→99%
       const excess=progDone-_progTotal;
       pct=Math.min(99,Math.round(95+4*excess/(excess+_progTotal)));
     }
@@ -1031,7 +1031,8 @@ function _updateProgBar(){
     const K=30;
     pct=Math.min(99,Math.round(progDone/(progDone+K)*100));
   }
-  f.style.width=pct+'%';
+  _maxPct=Math.max(_maxPct,pct);
+  f.style.width=_maxPct+'%';
 }
 
 function updateProgInfo(fileName, isDone){
@@ -1048,7 +1049,7 @@ function updateProgInfo(fileName, isDone){
 }
 
 function progStart(){
-  progDone=0;
+  progDone=0; _maxPct=0;
   const f=document.getElementById('progFill');
   if(f){
     f.style.transition='none';

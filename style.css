@@ -146,11 +146,11 @@
         .cl-empty { padding:28px; text-align:center; color:#868e96; font-size:13px; }
 
         .prog-track { height:8px; background:#f1f3f5; border-radius:999px; overflow:hidden; border:1px solid #e9ecef; position:relative; }
-        .prog-fill { height:100%; border-radius:999px; background:#212529; transition:width .25s ease-out; width:0; }
+        .prog-fill { height:100%; border-radius:999px; background:#ffc107; transition:width .25s ease-out; width:0; }
         .prog-fill.done { background:#1a9950; width:100% !important; transition:width .4s ease-out; }
-        .prog-fill.paused { background:#d97706; animation:none !important; }
-        .prog-fill.scanning { background:#7c3aed; }
-        .prog-fill.running { background:#212529; }
+        .prog-fill.paused { background:#adb5bd; animation:none !important; }
+        .prog-fill.scanning { background:#ffc107; }
+        .prog-fill.running { background:#ffc107; }
         .status-lbl { font-size:11px; color:#868e96; margin-top:5px; min-height:16px; font-family:'Courier New',monospace; }
 
         .log-box { height:240px; overflow-y:auto; background:#111110; border-radius:10px; padding:10px 12px; font-family:'Courier New',monospace; }
