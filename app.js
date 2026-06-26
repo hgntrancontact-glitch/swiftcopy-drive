@@ -693,7 +693,6 @@ async function loadChecklist(srcId) {
     clLoaded = true;
     renderChecklist();
     updateClInfo();
-    updateSrcTotalInfo();
     // Auto deep-scan all subfolders in background for accurate size display
     const thisScanId = ++_deepScanId;
     deepLoadAllFolders(thisScanId);
@@ -875,10 +874,25 @@ function calcSelectedBytes(){
   walk(clItems); return total;
 }
 
-function countNativeSelected(){
-  let n=0;
-  function walk(items){ for(const item of items){ if(item.mimeType!==FMIME&&item.mimeType!==SMIME&&item.mimeType.startsWith('application/vnd.google-apps.')&&(item.checked||item.indeterminate)) n++; if(item.children) walk(item.children); } }
-  walk(clItems); return n;
+// Returns top file extensions (by count) across all selected loaded items, max 6
+function collectSelectedExtensions() {
+  const counts = new Map();
+  function add(ext) { counts.set(ext, (counts.get(ext) || 0) + 1); }
+  function walk(items) {
+    for (const item of items) {
+      if (item.mimeType === FMIME) { if (item.children) walk(item.children); continue; }
+      if (!item.checked && !item.indeterminate) continue;
+      if (item.mimeType === SMIME) continue;
+      if (item.mimeType === 'application/vnd.google-apps.document')     { add('doc'); continue; }
+      if (item.mimeType === 'application/vnd.google-apps.spreadsheet')  { add('sheet'); continue; }
+      if (item.mimeType === 'application/vnd.google-apps.presentation') { add('slide'); continue; }
+      if (item.mimeType.startsWith('application/vnd.google-apps.'))     { add('gdrive'); continue; }
+      const dot = item.name.lastIndexOf('.');
+      if (dot > 0 && dot < item.name.length - 1) add(item.name.slice(dot + 1).toLowerCase());
+    }
+  }
+  walk(clItems);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([ext]) => ext);
 }
 
 // Returns number of checked/indeterminate folders whose children haven't been loaded yet
@@ -915,18 +929,18 @@ function updateClInfo() {
   const rawMb = calcSelectedBytes() / (1024*1024);
   const mb = isNaN(rawMb) ? 0 : rawMb;
   const sizeStr = mb>=1024 ? (mb/1024).toFixed(2)+' GB' : mb.toFixed(1)+' MB';
-  const native = countNativeSelected();
-  const nativeTip = native>0 ? ` <span style="color:#adb5bd;font-size:11px">(+${native} Google Docs/Sheets/Slides)</span>` : '';
+  const exts = collectSelectedExtensions();
+  const extTip = exts.length > 0 ? ` <span style="color:#adb5bd;font-size:11px">(${exts.join(', ')})</span>` : '';
   if (gUserData?.plan==='free'){
     const remainMB = Math.max(0, FREE_MB_LIMIT-(gUserData.freeUsedMB||0));
     if (mb > remainMB){
       const over = Math.ceil(mb-remainMB);
-      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${nativeTip} &nbsp;<span style="color:#e67700;font-weight:700;">⚠ Vượt ${over}MB còn lại — <a href="#" onclick="openUpgradeModal();return false;" style="color:#d97706;text-decoration:underline">Nâng cấp gói</a></span>`;
+      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip} &nbsp;<span style="color:#e67700;font-weight:700;">⚠ Vượt ${over}MB còn lại — <a href="#" onclick="openUpgradeModal();return false;" style="color:#d97706;text-decoration:underline">Nâng cấp gói</a></span>`;
     } else {
-      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${nativeTip} <span style="color:#adb5bd;">(còn ${Math.round(remainMB)}MB / 500MB)</span>`;
+      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip} <span style="color:#adb5bd;">(còn ${Math.round(remainMB)}MB / 500MB)</span>`;
     }
   } else {
-    sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${nativeTip}`;
+    sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip}`;
   }
 }
 
