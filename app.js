@@ -36,6 +36,7 @@ let _resumeResolve = null;
 let clItems = [];     // flat list of { id, name, mimeType, size, parentId, depth, expanded, checked, indeterminate }
 let clLoaded = false;
 let _deepScanId = 0; // Incremented on each loadChecklist call to cancel stale background scans
+let _totalDeepCount = 0; // Total items (files+folders) from deep scan — used as Y in progress display
 // Drag-select state
 let _dragActive = false, _dragCheckValue = null;
 // Video file extensions to detect
@@ -54,7 +55,7 @@ let _kickPollTimer  = null;    // 30s interval to detect kick while in dashboard
 const IS_DASHBOARD = !!document.getElementById('s-app');
 
 
-function ns(){ return { copied:0, failed:0, folders:0, copiedFiles:[], failedFiles:[], folderList:[] }; }
+function ns(){ return { copied:0, failed:0, folders:0, topFolders:0, copiedFiles:[], failedFiles:[], folderList:[] }; }
 
 // ── OVERLAY ─────────────────────────────────────────────────
 window.closeNoAuth = () => {
@@ -116,7 +117,7 @@ function doStopCopy()  {
 window.doReset = () => {
   stopFlag=true; pauseFlag=false;
   if(_resumeResolve){_resumeResolve();_resumeResolve=null;}
-  stats=ns(); updStats(); clItems=[]; clLoaded=false;
+  stats=ns(); updStats(); clItems=[]; clLoaded=false; _totalDeepCount=0;
   document.getElementById('srcInput').value  = '';
   document.getElementById('destInput').value = '';
   document.getElementById('srcPreview').style.display  = 'none';
@@ -691,6 +692,7 @@ async function loadChecklist(srcId) {
       parentId: null
     }));
     clLoaded = true;
+    _totalDeepCount = 0;
     renderChecklist();
     updateClInfo();
     // Auto deep-scan all subfolders in background for accurate size display
@@ -700,6 +702,24 @@ async function loadChecklist(srcId) {
     if(isAuthExpiredErr(e)){ body.innerHTML = '<div class="cl-empty">Phiên cấp quyền đã hết hạn</div>'; handleAuthExpired(); return; }
     body.innerHTML = '<div class="cl-empty">Lỗi tải danh sách: '+escH(e.message)+'</div>';
   }
+}
+
+// Count total checked/indeterminate items (files+folders) across fully-loaded tree
+function countAllDeepItems() {
+  let total = 0;
+  function walk(items) {
+    for (const item of items) {
+      if (!item.checked && !item.indeterminate) continue;
+      if (item.mimeType === FMIME) {
+        total++;
+        if (item.children) walk(item.children);
+      } else if (item.mimeType !== SMIME) {
+        total++;
+      }
+    }
+  }
+  walk(clItems);
+  return total;
 }
 
 // Background recursive scan — loads all unloaded folders so size display is always accurate
@@ -742,9 +762,10 @@ async function deepLoadAllFolders(scanId) {
     }));
     if (_deepScanId !== scanId) return;
     updateClInfo();
+    _totalDeepCount = countAllDeepItems();
     unloaded = collectUnloaded(); // Re-collect after each batch (may find new subfolders)
   }
-  if (_deepScanId === scanId) updateClInfo();
+  if (_deepScanId === scanId) { updateClInfo(); _totalDeepCount = countAllDeepItems(); }
 }
 
 function renderChecklist() {
@@ -1018,8 +1039,7 @@ function updateProgInfo(fileName, isDone){
   if(!isDone&&progDone===0){ el.style.display='none'; return; }
   el.style.display='block';
   const x=progDone;
-  const clSel=clLoaded?clItems.filter(i=>i.checked||i.indeterminate).length:0;
-  const y=Math.max(x, clSel>0?clSel:x);
+  const y=Math.max(x, _totalDeepCount);
   const xColor=isDone?'#099268':'#212529';
   const yColor=isDone?'#099268':'#dc3545';
   const fileHtml=fileName?` <span style="color:#adb5bd;font-weight:400">${escH(fileName)}</span>`:'';
@@ -1400,7 +1420,7 @@ async function _runCopyInternal(isResume) {
 
     if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
 
-    _progTotal = top.length;
+    _progTotal = _totalDeepCount > 0 ? _totalDeepCount : top.length;
     progStart();
     setStatus('Đang sao chép...');
 
@@ -1452,6 +1472,7 @@ async function _runCopyInternal(isResume) {
           let node=stats.folderList.find(f=>f.depth===0&&f.name===item.name&&f._srcId===item.id);
           if (!node){
             stats.folders++;
+            stats.topFolders++;
             node={name:item.name,path:item.name,type:'folder',depth:0,error:null,children:[],_srcId:item.id};
             stats.folderList.push(node);
           }
@@ -1932,9 +1953,9 @@ function addLog(msg,lv='ok'){
   b.appendChild(d);b.scrollTop=b.scrollHeight;
 }
 function updStats(){
-  document.getElementById('sCopied').textContent=stats.copied;
+  document.getElementById('sCopied').textContent=stats.copied+stats.folders;
   document.getElementById('sFailed').textContent=stats.failed;
-  document.getElementById('sFolders').textContent=stats.folders;
+  document.getElementById('sFolders').textContent=stats.topFolders;
 }
 function toast(msg,type='info'){
   const t=document.getElementById('toast');
