@@ -172,6 +172,8 @@ window.openLoginModal = (mode = 'register') => {
   }
   // Landing: loginModal nằm ở đây — mở trực tiếp, URL không đổi
   _loginMode = mode;
+  const titleEl = document.getElementById('loginModalTitle');
+  if (titleEl) titleEl.textContent = mode === 'login' ? 'Đăng nhập' : 'Đăng ký';
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   document.getElementById('loginModal')?.classList.add('active');
   window.hideLoginWarn();
