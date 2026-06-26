@@ -1041,7 +1041,7 @@ function updateProgInfo(fileName, isDone){
   if(!isDone&&progDone===0){ el.style.display='none'; return; }
   el.style.display='block';
   const x=progDone;
-  const y=_totalDeepCount>0 ? _totalDeepCount : x;
+  const y=Math.max(x, _totalDeepCount);
   const xColor=isDone?'#099268':'#212529';
   const yColor=isDone?'#099268':'#dc3545';
   const fileHtml=fileName?` <span style="color:#adb5bd;font-weight:400">${escH(fileName)}</span>`:'';
@@ -1158,7 +1158,8 @@ async function scanNodes(items, destId, path, depth, srcName) {
       catch(e){ if(isAuthExpiredErr(e)) throw e; children=[]; }
       _progTotal += children.length;
       progInc(); updateProgInfo(item.name);
-      addLog('Thư mục: '+item.name,'info');
+      stats.folders++; if(depth===0) stats.topFolders++;
+      addLog('Thư mục: '+item.name,'info'); updStats();
 
       const testFile=children.find(c=>c.mimeType!==FMIME&&c.mimeType!==SMIME);
       let selfErr=null;
@@ -1197,8 +1198,8 @@ async function scanFileNodes(items,destId,path,depth,srcName){
       let err;
       try{ err=await testFileCopy(item,destId); }
       catch(e){ if(isAuthExpiredErr(e)) throw e; err='Lỗi'; }
-      if(err) addLog('Lỗi: '+item.name,'err'); else addLog('OK: '+item.name,'ok');
-      progInc(); updateProgInfo(item.name);
+      if(err){ addLog('Lỗi: '+item.name,'err'); stats.failed++; } else { addLog('OK: '+item.name,'ok'); stats.copied++; }
+      progInc(); updateProgInfo(item.name); updStats();
       nodes[realIdx]={name:item.name,path:fp,type:'file',depth,error:err,children:[]};
     }));
     if(stopFlag) break;
