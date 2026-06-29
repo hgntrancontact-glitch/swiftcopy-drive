@@ -148,8 +148,21 @@ window.onInputChange = async (which) => {
 
   clearTimeout(st._previewTimers[which]);
   if (which === 'src') {
-    st.clItems = []; st.clLoaded = false;
+    st.clItems = []; st.clLoaded = false; st._totalDeepCount = 0;
     document.getElementById('checklistWrap').style.display = 'none';
+    // Bug 2: reset khu vực Tiến trình đồng bộ khi đổi link nguồn
+    if (st.runMode === 'idle') {
+      st.stats = ns(); updStats();
+      const _rf = document.getElementById('progFill');
+      _rf.style.transition = 'none'; _rf.style.width = '0%'; _rf.className = 'prog-fill';
+      requestAnimationFrame(() => { _rf.style.transition = ''; });
+      const _pi = document.getElementById('progInfo');
+      if (_pi) { _pi.style.display = 'none'; _pi.innerHTML = ''; }
+      document.getElementById('logBox').innerHTML = '';
+      document.getElementById('scanRepModal')?.classList.remove('active');
+      document.getElementById('statsRow').style.display = 'none';
+      setStatus('Chưa bắt đầu');
+    }
   }
   if (!val) { el.style.display = 'none'; return; }
 
@@ -839,25 +852,6 @@ window.startCopy = async (isResume) => {
   if (!sv || !dv) { toast('Nhập đủ Drive nguồn và đích!', 'warn'); return; }
   if (!isResume) { st.stopFlag = false; setBtnMode('copy'); }
   if (!isResume && !(await checkFreeLimit())) { setBtnMode('idle'); return; }
-  if (!isResume && st.gUserData?.plan === 'paid') {
-    setBtnMode('idle');
-    const srcId = fid(sv);
-    let videoCount = 0;
-    try {
-      if (st.clLoaded && st.clItems.length > 0) {
-        videoCount = st.clItems.filter(i => i.depth === 0 && isVideoItem(i)).length;
-      } else {
-        const topItems = await listItems(srcId);
-        videoCount = topItems.filter(i => isVideoItem(i)).length;
-      }
-    } catch (e) { /* ignore */ }
-    if (videoCount > 0) {
-      st._pendingCopyResume = isResume;
-      showVideoWarn(videoCount, 'before');
-      return;
-    }
-    st.stopFlag = false; setBtnMode('copy');
-  }
   await _runCopyInternal(isResume);
 };
 
@@ -1174,7 +1168,6 @@ async function saveHist(si, sn, di, dn, el) {
 // ── COMPLETION MODAL ──────────────────────────────────────────
 window.closeComplModal = () => {
   document.getElementById('complOv').classList.remove('on');
-  if (st._videoFilesCount > 0 && st.gUserData?.plan === 'paid') showVideoWarn(st._videoFilesCount, 'after');
 };
 function showComplModal(elapsed, videoCount) {
   document.getElementById('complCopied').textContent  = st.stats.copied;
@@ -1335,9 +1328,11 @@ function setBtnMode(mode) {
   } else if (mode === 'scan') {
     bs.className  = BTN_BASE.scan  + ' ' + BTN_STYLE.scanScan;  bsT.textContent  = 'Dừng kiểm tra';
     bst.className = BTN_BASE.start + ' ' + BTN_STYLE.startIdle; bstT.textContent = 'Bắt đầu sao chép';
+    bst.disabled = true; // Bug 1: khoá nút kia khi đang scan
     bp.style.display = 'block'; br.style.display = 'none'; bR.disabled = true; bR.style.opacity = '.4';
   } else if (mode === 'copy') {
     bs.className  = BTN_BASE.scan  + ' ' + BTN_STYLE.scanIdle;  bsT.textContent  = 'Kiểm tra trước';
+    bs.disabled = true; // Bug 1: khoá nút kia khi đang copy
     bst.className = BTN_BASE.start + ' ' + BTN_STYLE.startCopy; bstT.textContent = 'Dừng sao chép';
     bp.style.display = 'block'; br.style.display = 'none'; bR.disabled = true; bR.style.opacity = '.4';
   }

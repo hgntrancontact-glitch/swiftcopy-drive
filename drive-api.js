@@ -61,7 +61,7 @@ export async function listItems(folderId) {
       q: "'" + folderId + "' in parents and trashed=false",
       pageSize: 1000,
       fields: 'nextPageToken,files(id,name,mimeType,size)',
-      orderBy: 'folder,name',
+      orderBy: 'folder,name_natural',
       supportsAllDrives: true,
       includeItemsFromAllDrives: true
     };
