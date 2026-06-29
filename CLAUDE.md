@@ -31,10 +31,13 @@ Web app cho phép sao chép thư mục Google Drive (kể cả Shared Drive) san
 
 ```
 SwiftCopy.Drive/
-├── index.html          ← Landing page (~434 dòng): chỉ #s-land + #s-maintenance + utility modals (FAQ, Policy, Earn, Lang, Reviews)
-├── dashboard.html      ← Dashboard app (~810 dòng): #s-check, #s-pend, #s-kicked, #s-app, #s-maintenance + tất cả auth/copy modals
+├── index.html          ← Landing page (~621 dòng): #s-land + #s-maintenance + toàn bộ auth modals
+├── dashboard.html      ← Dashboard app (~684 dòng): #s-pend, #s-kicked, #s-app, #s-maintenance + copy modals
 ├── style.css           ← Toàn bộ CSS tùy biến (tách từ index.html)
-├── app.js              ← Firebase, Drive API, copy logic (ES module, ~1800 dòng); dùng chung cho cả 2 page, phát hiện page qua IS_DASHBOARD
+├── state.js            ← Shared state object (st), constants, ns(), pausePoint() (~63 dòng)
+├── drive-api.js        ← Drive API wrappers + video copy + semaphore (~185 dòng)
+├── auth.js             ← Firebase init, auth flow, plan/payment, maintenance (~400 dòng)
+├── app.js              ← Checklist, scan, copy, progress, UI helpers (ES module, ~1380 dòng)
 ├── ui.js               ← Modal, FAQ, review, preview animation (~330 dòng)
 ├── admin.html          ← Trang quản trị: duyệt user, kick, re-add; nút "Bảo trì" → admin-maintenance.html
 ├── admin-maintenance.html ← Trang bảo trì riêng: chọn mode, allowedEmails, lưu Firestore
@@ -60,10 +63,11 @@ SwiftCopy.Drive/
 
 **Khi cập nhật nội dung chính sách:** chỉ cần sửa file `.txt` tương ứng trong `legal/` — KHÔNG đụng vào code `legal.html`.
 
-**`index.html` và `dashboard.html` đều load `app.js` + `ui.js`** — app.js phát hiện context qua `IS_DASHBOARD = !!document.getElementById('s-app')`.
+**`index.html` và `dashboard.html` đều load `app.js` + `ui.js`** — `IS_DASHBOARD = !!document.getElementById('s-app')` trong `state.js`.
 - **index.html** xử lý toàn bộ auth flow: loginModal, planSelectModal, paymentModal, paymentConfirmModal, readdWelcomeModal đều nằm ở đây. Không có noAuthBackdrop/s-check/s-app.
-- **dashboard.html** chỉ chứa app sections (#s-check/pend/kicked/app/maintenance), copy modals (modalOv/complOv/videoWarnModal/freeLimitModal), và paymentModal/paymentConfirmModal (cho upgrade flow từ freeBanner). Không có loginModal/planSelectModal/readdWelcomeModal.
+- **dashboard.html** chỉ chứa app sections (#s-pend/kicked/app/maintenance), copy modals (modalOv/complOv/videoWarnModal/freeLimitModal), và paymentModal/paymentConfirmModal (cho upgrade flow từ freeBanner). Không có loginModal/planSelectModal/readdWelcomeModal.
 - Nếu sửa config chung (firebaseConfig, ADMIN_EMAIL) phải sửa ở `index.html`, `dashboard.html`, `admin.html`, `admin-maintenance.html`.
+- **KHÔNG sửa trực tiếp biến trong state.js** — các hàm đọc/ghi qua object `st` (xem phần state.js bên dưới).
 
 **Luồng điều hướng giữa 2 trang:**
 - Landing "Đăng ký/Đăng nhập" → `openLoginModal(mode)` → mở loginModal NGAY TRÊN index.html, URL vẫn là `/`
@@ -135,25 +139,39 @@ pollKickStatus() (30s interval khi đang ở sec='app'):
 
 **Lưu ý `#startModal` đã bị xóa hoàn toàn** — thay bằng `#loginModal` + `#planSelectModal`.
 
-### app.js — ES module (~1200 dòng)
-Nhóm hàm chính:
-- **Firebase/Auth**: `onAuthStateChanged`, `checkApproval`, `doLogin`, `doLogout`, `reAuth`, `setNavUser`
-- **Plan selection (new)**: `showPlanSelect`, `closePlanSelect` (sign out nếu đóng), `createFreeUser`, `openPlanSelectPaid`, `createPaidPendingUser`
-- **Payment flow (new)**: `showPaymentConfirm`, `confirmPayment`, `_doUpgradeRequestInternal`, `openUpgradeModal`
-  - `doUpgradeRequest` là alias của `showPaymentConfirm` (backward compat)
-  - `_paymentContext`: `'new'` | `'upgrade'` — quyết định `confirmPayment()` làm gì
-- **Kicked screen**: `pollKickStatus` — hiện `sec('kicked')` thay vì `signOut()` khi bị kick
-- **Readd welcome (new)**: `checkReaddWelcome` (gọi sau login), `closeReaddWelcome`
-  - localStorage key: `swiftcopy_readd_{uid}` — đảm bảo modal chỉ hiện 1 lần
-- **Maintenance**: `getMaintenance()` (cached promise, gọi `/api/maintenance` — Vercel function dùng service account) + `getMaintenanceResult(mode, allowedEmails, userEmail)` → `'maintenance'|'landing'|null`. `getMaintenance()` gọi ngay khi module load để cache sẵn. Chỉ `allowedEmails` bypass — ADMIN_EMAIL không có xử lý đặc biệt trong `app.js`. **QUAN TRỌNG: KHÔNG đọc Firestore trực tiếp từ browser cho `settings/maintenance`** — phải luôn qua `/api/maintenance` vì người chưa đăng nhập bị Security Rules chặn.
-- **Drive API wrapper**: `dget`, `dpost`, `ddel`, `fid`, `fname`, `listItems`, `existNames`, `copyFileSingle`, `mkFolder` — có retry exponential backoff cho 429/500/503
-- **Auth expiry**: `isAuthExpiredErr`, `handleAuthExpired` — xử lý 401 giữa chừng, tự resume sau khi reauth
-- **Checklist**: `loadChecklist`, `renderChecklist` — cây thư mục lazy-load, checkbox 3 trạng thái
-- **Scan**: `startScan`, `scanNodes` — test quyền bằng copy-thử-rồi-xóa ngay
-- **Copy**: `startCopy`, `_runCopyInternal`, `copyRecTree` — đa luồng (CONCUR=16 file, FOLDER_CONCUR=8)
-- **Progress**: `progStart`, `progInc`, `progFinish` — indeterminate mode, không pre-scan
+### state.js — shared state (~63 dòng)
+- `IS_DASHBOARD`, `FREE_MB_LIMIT`, `FREE_RESET_MS`, `FMIME` — constants dùng chung
+- `ns()` — factory trả object stats rỗng `{copied, failed, folders, topFolders, ...}`
+- `export const st = {...}` — **object mutable dùng chung toàn bộ code**. Tất cả file import cùng object reference → mutation ở file nào đều visible ngay lập tức.
+- `pausePoint()` — export để cả `drive-api.js` và `app.js` dùng
+- **KHÔNG thêm logic vào state.js** — chỉ khai báo state + constants. Logic thuộc về `auth.js` hoặc `app.js`.
+
+### drive-api.js — Drive API (~185 dòng)
+- Import: `{ st, FMIME, pausePoint }` từ `state.js`
+- Export: `dget`, `dpost`, `ddel`, `isAuthExpiredErr`, `fid`, `fname`, `listItems`, `existNames`, `mkFolder`, `isVideoItem`, `copyFileSingle`, `copyVideoReUpload`, `testFileCopy`
+- Có retry exponential backoff (500ms base) cho 429/500/503
+- **Video semaphore** `VIDEO_CONCUR=6`: Promise-based (không polling), `st._videoActive` + `st._videoWaiters`
+- `copyFileSingle(item, destId)` — non-video dùng `files.copy` (server-side), video gọi `copyVideoReUpload` (download+re-upload để transcode ngay)
+- **KHÔNG gọi hàm từ app.js hoặc auth.js** — chỉ dùng `st.*` callbacks và `st.*` state
+
+### auth.js — Firebase + Auth + Plan (~400 dòng)
+- Import: Firebase SDK + `{ st, IS_DASHBOARD, FREE_MB_LIMIT, FREE_RESET_MS }` từ `state.js`
+- Export: `db` (Firestore instance), `handleAuthExpired` (alias `_handleAuthExpired`), `sendRegEmail`, `sendUpgradeRequestEmail`
+- **Tất cả auth functions** gắn lên `window.*`: `doLogin`, `showLoginWarn`, `hideLoginWarn`, `openLoginModal`, `handleLoginContinue`, `doLogout`, `reAuth`, `closePlanSelect`, `createFreeUser`, `openPlanSelectPaid`, `showPaymentConfirm`, `backToPaymentModal`, `copyText`, `confirmPayment`, `closeReaddWelcome`, `openUpgradeModal`, `openUpgradeFromLimit`, `doUpgradeRequest`
+- **Maintenance**: `getMaintenance()` gọi `/api/maintenance` (Vercel function + service account, cache promise), `getMaintenanceResult()` logic. **KHÔNG đọc Firestore trực tiếp** — người chưa đăng nhập bị Security Rules chặn.
+- `handleAuthExpired()` — xử lý 401 giữa chừng, set stopFlag, gọi `st.showNoAuth?.()`. App.js import: `{ _handleAuthExpired as handleAuthExpired }`.
+- Cross-module calls qua `st.*` callbacks được `app.js` set: `st.sec?.()`, `st.toast?.()`, `st.setNavUser?.()`, `st.updateFreeBanner?.()`, `st.checkResume?.()`, `st.showNoAuth?.()`.
+
+### app.js — Checklist/Scan/Copy/UI (~1380 dòng)
+- Import: `state.js` + `drive-api.js` + `{ db, _handleAuthExpired as handleAuthExpired }` từ `auth.js` + Firebase Firestore CDN
+- **Ngay sau import**: set callbacks `st.addLog = addLog; st.sec = sec; st.toast = toast; ...` (hàm được hoisting nên safe)
+- **Checklist**: `loadChecklist`, `renderChecklist`, `deepLoadAllFolders` (BFS background), `clToggleExpand`, `updateClInfo`, `calcSelectedBytes`, `collectSelectedExtensions`
+- **Scan**: `startScan`, `scanNodes`, `scanFileNodes`, `renderScanResult`, `_setupScanDetailTree`
+- **Copy**: `startCopy`, `_runCopyInternal`, `copyRecTree`, `copyRecTreeFiltered`, `videoGate`
+- **Progress**: `progStart`, `progInc`, `progFinish`, `_updateProgBar`, `updateProgInfo` — asymptotic growth, `_maxPct` ratchet, `_totalDeepCount` làm mẫu số ổn định
 - **Session/resume**: `saveSession`, `checkResume`, `resumeSession` — lưu localStorage key `swiftcopy_session`
-- **UI helpers**: `sec`, `setBtnMode`, `setStatus`, `addLog`, `updStats`, `updateFreeBanner`, `toast` (expose qua `window.toast`)
+- **UI helpers**: `sec`, `setBtnMode`, `setStatus`, `addLog`, `updStats`, `updateFreeBanner`, `toast` (expose qua `window.toast` và `window.setStatus`)
+- **Free plan**: `checkFreeLimit`, `updateFreeUsedMB`, `showFreeLimitModal`, `updateFreeLimitCountdown`
 
 ### ui.js — script thường (~330 dòng)
 - Dữ liệu tĩnh: `initialReviews` (8 đánh giá mẫu), `adminFaqData` (7 câu FAQ), `policyData` (3 chính sách)
@@ -316,19 +334,38 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000;    // 5 giờ
 
 **Lưu ý:** `#freeBanner` không có con HTML tĩnh — toàn bộ nội dung được render bởi `updateFreeBanner()`. Không tạo child element tĩnh trong `#freeBanner`.
 
-### Biến module-level quan trọng trong app.js
-| Biến | Mô tả |
-|---|---|
-| `gUserData` | Full Firestore user document (set bởi `checkApproval()`) |
-| `_loginMode` | `'register'` hoặc `'login'` — set bởi `openLoginModal(mode)`, dùng bởi `handleLoginContinue()` để quyết định có hiện `#loginWarnView` hay gọi `doLogin()` trực tiếp |
-| `_paymentContext` | `'new'` hoặc `'upgrade'` — `confirmPayment()` dùng để quyết định gọi `createPaidPendingUser()` hay `_doUpgradeRequestInternal()` |
-| `_sessionCopiedMB` | MB đã copy trong phiên hiện tại, cộng vào `freeUsedMB` khi copy xong |
-| `_freeLimitTimer` | `setInterval` ID cho countdown trong `#freeLimitModal` |
-| `_kickPollTimer` | `setInterval` ID cho `pollKickStatus()` — clearInterval khi logout hoặc kicked |
-| `_deepScanId` | Token hủy background deep scan — tăng mỗi khi paste link mới |
-| `_totalDeepCount` | Tổng item (file+folder) từ deep scan — dùng làm Y trong `updateProgInfo` |
+### Biến quan trọng trong `st` object (state.js)
+Tất cả đều truy cập qua `st.<tên>`. KHÔNG khai báo lại dưới dạng biến local.
 
-**`_pendingPlan` đã bị xóa** — thay bằng `_paymentContext`.
+| `st.*` | File chủ yếu dùng | Mô tả |
+|---|---|---|
+| `st.gUser` | auth.js | Firebase User object hiện tại |
+| `st.gToken` | auth.js | Google OAuth access token cho Drive API |
+| `st.gUserData` | auth.js | Full Firestore user document |
+| `st._loginMode` | auth.js | `'register'` hoặc `'login'` |
+| `st._paymentContext` | auth.js | `'new'` hoặc `'upgrade'` — `confirmPayment()` dùng để quyết định flow |
+| `st._kickPollTimer` | auth.js | setInterval ID cho `pollKickStatus()` |
+| `st.stopFlag` | app.js/drive-api.js | Hủy tất cả workers ngay |
+| `st.pauseFlag` | app.js/drive-api.js | Tạm dừng (chờ `doResume()`) |
+| `st.runMode` | app.js | `'idle'` / `'scan'` / `'copy'` |
+| `st.abortCtrl` | app.js/drive-api.js | AbortController cho fetch in-flight |
+| `st.stats` | app.js | Object `{copied, failed, folders, topFolders, ...}` |
+| `st._videoActive` / `st._videoWaiters` | drive-api.js | Semaphore video (VIDEO_CONCUR=6) |
+| `st.clItems` | app.js | Cây checklist đã load |
+| `st._deepScanId` | app.js | Token hủy background deep scan |
+| `st._totalDeepCount` | app.js | Tổng items từ deep scan — dùng làm Y trong progress |
+| `st._sessionCopiedMB` | app.js | MB đã copy trong phiên → cộng vào freeUsedMB sau khi xong |
+| `st.progDone` / `st._progTotal` / `st._maxPct` | app.js | Progress tracking |
+| `st._videoFilesCount` | app.js | Số video đã copy — show trong complModal |
+| `st._pendingCopyResume` | app.js | Arg `isResume` pending khi videoWarn chặn |
+
+**Cross-module callbacks** — `app.js` set sau import:
+```js
+st.addLog = addLog; st.sec = sec; st.toast = toast;
+st.setNavUser = setNavUser; st.updateFreeBanner = updateFreeBanner;
+st.checkResume = checkResume; st.showNoAuth = showNoAuth;
+```
+`auth.js` và `drive-api.js` gọi qua `st.addLog?.()`, `st.sec?.()` v.v. — optional chaining đảm bảo safe nếu callback chưa set (không xảy ra trong thực tế vì module-level code auth.js chạy đồng bộ trước async callbacks).
 
 ---
 
@@ -338,18 +375,21 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000;    // 5 giờ
 // Trong index.html và admin.html (phải khớp nhau)
 const ADMIN_EMAIL = "hgntran.contact@gmail.com";
 
-// Concurrency
+// Concurrency — trong app.js
 const CONCUR = 16;             // file song song khi copy
 const FOLDER_CONCUR = 8;       // thư mục song song khi copy
 const SCAN_FILE_CONCUR = 12;   // file song song khi scan
 const SCAN_FOLDER_CONCUR = 6;  // thư mục song song khi scan
 
-// Session
+// Video — trong drive-api.js
+const VIDEO_CONCUR = 6;        // max concurrent video download+reupload
+
+// Session — trong app.js
 const SESSION_TTL = 120 * 60 * 1000; // 120 phút, tự xóa nếu cũ hơn
 
-// Free plan (trong app.js)
-const FREE_MB_LIMIT = 500;
-const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
+// Free plan — trong state.js (export để auth.js và app.js cùng dùng)
+export const FREE_MB_LIMIT = 500;
+export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 ```
 
 ---
@@ -496,10 +536,20 @@ const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 
 ---
 
+- **Ghost workers tiếp tục sau exception trong copy/scan**: Khi 1 worker trong `Promise.all` throw exception → `Promise.all` reject ngay, nhưng các worker còn lại tiếp tục chạy và log. Fix: trong catch block của `_runCopyInternal` và `startScan`, luôn set `stopFlag=true; abortCtrl?.abort(); abortCtrl=null; while(_videoWaiters.length) _videoWaiters.shift()();` TRƯỚC khi log lỗi — không chỉ cho AbortError/AuthExpired case mà cho mọi exception bất ngờ.
+- **app.js quá lớn (~2100 dòng) gây rối trí và fix sai**: Đã tách thành 4 file: `state.js` (63L shared state), `drive-api.js` (185L Drive API), `auth.js` (400L Firebase+auth), `app.js` (1380L copy+scan+UI). Tất cả share cùng object `st` từ state.js — mutation visible ngay. Dependency: `state.js` ← `drive-api.js` ← `auth.js` ← `app.js`. Không có circular dep. HTML không cần sửa — `<script type="module" src="app.js">` tự load transitive imports.
+
+---
+
 ## Khi nhận task mới
 
 1. Đọc CLAUDE.md này trước (đã xong nếu bạn đang đọc đây).
-2. Đọc phần code liên quan (`index.html`, `dashboard.html`, `app.js`, `ui.js`, `style.css`) trước khi sửa. Nếu task ảnh hưởng UI dùng chung (header, utility modals), kiểm tra cả 2 HTML file.
+2. Đọc phần code liên quan trước khi sửa:
+   - Logic auth/plan/payment → đọc `auth.js`
+   - Drive API calls → đọc `drive-api.js`
+   - Copy/scan/checklist/progress/UI → đọc `app.js`
+   - Biến shared → xem `state.js`
+   - UI dùng chung (header, utility modals) → kiểm tra cả 2 HTML file
 3. Sau khi sửa: kiểm tra JS syntax, kiểm tra duplicate ID, kiểm tra tag balance `<div>`.
 4. Không giải trình dài dòng — làm xong báo cáo ngắn gọn những gì đã thay đổi và tại sao.
 5. Nếu task ảnh hưởng đến cả `admin.html`, nêu rõ và sửa cả hai file.
