@@ -1,0 +1,401 @@
+/* ══════════════ FIREBASE AUTH + PLAN/PAYMENT + MAINTENANCE ══════════════
+   Imports: Firebase SDK + state.js
+   Exports: db  (Firestore instance — used by app.js for saveHist/updateDoc)
+   All auth functions are attached to window.* for HTML onclick handlers.
+   Cross-module calls (sec, toast, etc.) go via st.* callbacks set by app.js.
+   ══════════════════════════════════════════════════════════════════════ */
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { st, IS_DASHBOARD, FREE_MB_LIMIT, FREE_RESET_MS } from './state.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDu5D6bB-FxJl2E71Ls17GwHVtqZV0FwF8",
+  authDomain: "swiftcopy-drive.firebaseapp.com",
+  projectId: "swiftcopy-drive",
+  storageBucket: "swiftcopy-drive.firebasestorage.app",
+  messagingSenderId: "477488339991",
+  appId: "1:477488339991:web:7d47100631b846b1189052"
+};
+
+const fbApp    = initializeApp(firebaseConfig);
+const auth     = getAuth(fbApp);
+export const db = getFirestore(fbApp);
+const provider = new GoogleAuthProvider();
+provider.addScope('https://www.googleapis.com/auth/drive');
+
+// ── Auth UI ───────────────────────────────────────────────────
+window.doLogin = async () => {
+  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+  const hint = document.getElementById('loginEmailHint')?.value?.trim() || '';
+  provider.setCustomParameters({ prompt: 'select_account', ...(hint ? { login_hint: hint } : {}) });
+  try {
+    const res = await signInWithPopup(auth, provider);
+    st.gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
+    if (st.gToken) sessionStorage.setItem('swiftcopy_gtok', st.gToken);
+  } catch (e) { st.toast?.('Đăng nhập thất bại', 'err'); }
+};
+
+window.showLoginWarn = () => {
+  const lv = document.getElementById('loginView');
+  const wv = document.getElementById('loginWarnView');
+  if (lv) lv.style.display = 'none';
+  if (wv) wv.style.display = 'block';
+  const cb = document.getElementById('loginWarnCheck');
+  const btn = document.getElementById('loginWarnBtn');
+  if (cb) cb.checked = false;
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+};
+
+window.hideLoginWarn = () => {
+  const lv = document.getElementById('loginView');
+  const wv = document.getElementById('loginWarnView');
+  if (lv) lv.style.display = 'block';
+  if (wv) wv.style.display = 'none';
+};
+
+window.openLoginModal = (mode = 'register') => {
+  if (IS_DASHBOARD) { window.location.href = '/'; return; }
+  st._loginMode = mode;
+  const titleEl = document.getElementById('loginModalTitle');
+  if (titleEl) titleEl.textContent = mode === 'login' ? 'Đăng nhập' : 'Đăng ký';
+  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+  document.getElementById('loginModal')?.classList.add('active');
+  window.hideLoginWarn();
+};
+
+window.handleLoginContinue = () => {
+  if (st._loginMode === 'login') { window.doLogin(); } else { window.showLoginWarn(); }
+};
+
+window.openRegisterModal = () => window.openLoginModal();
+window.doLogout = () => signOut(auth);
+
+window.reAuth = async () => {
+  try {
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const res = await signInWithPopup(auth, provider);
+    st.gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
+    if (st.gToken) sessionStorage.setItem('swiftcopy_gtok', st.gToken);
+    const el = document.getElementById('authSuccessToast');
+    if (el) { el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 3500); }
+    const sv = document.getElementById('srcInput')?.value.trim();
+    const dv = document.getElementById('destInput')?.value.trim();
+    if (sv) window.onInputChange?.('src');
+    if (dv) window.onInputChange?.('dest');
+    await _handleReauthSuccess();
+  } catch (e) { st.toast?.('Lỗi cấp quyền: ' + e.message, 'err'); }
+};
+
+async function _handleReauthSuccess() {
+  if (st._resumeAfterReauth === 'copy') {
+    st._resumeAfterReauth = null;
+    st.toast?.('Đã cấp quyền lại - tiếp tục sao chép...', 'ok');
+    await window.startCopy?.(true);
+  } else {
+    st._resumeAfterReauth = null;
+  }
+}
+
+// Called when any Drive API call hits 401 with existing token
+export function handleAuthExpired() {
+  if (st._authExpiredHandled) return;
+  st._authExpiredHandled = true;
+  st.gToken = null;
+  st.stopFlag = true; st.pauseFlag = false;
+  if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
+  st._resumeAfterReauth = (st.runMode === 'copy') ? 'copy' : null;
+  window.setStatus?.('Đã dừng - cần cấp quyền lại');
+  st.showNoAuth?.('Phiên cấp quyền đã hết hạn', 'Quyền truy cập Google Drive đã hết hạn sau một thời gian. Vui lòng cấp quyền lại để tiếp tục.');
+}
+
+// ── Maintenance ───────────────────────────────────────────────
+function getMaintenance() {
+  if (!st._maintenancePromise) {
+    st._maintenancePromise = fetch('/api/maintenance')
+      .then(r => r.ok ? r.json() : { mode: 'off', allowedEmails: [] })
+      .catch(() => ({ mode: 'off', allowedEmails: [] }));
+  }
+  return st._maintenancePromise;
+}
+
+function getMaintenanceResult(mode, allowedEmails, userEmail) {
+  if (!mode || mode === 'off') return null;
+  if (userEmail && (allowedEmails || []).includes(userEmail)) return null;
+  switch (mode) {
+    case 'all':       return 'maintenance';
+    case 'auth':      return userEmail ? null : 'maintenance';
+    case 'dashboard': return userEmail ? 'maintenance' : null;
+    default:          return null;
+  }
+}
+
+// ── onAuthStateChanged ────────────────────────────────────────
+getMaintenance(); // pre-fetch so it's cached when onAuthStateChanged fires
+
+onAuthStateChanged(auth, async u => {
+  const maint = await getMaintenance();
+  const mode = maint.mode || (maint.enabled ? 'all' : 'off');
+  const allowedEmails = maint.allowedEmails || [];
+
+  // ── LANDING ────────────────────────────────────────────────
+  if (!IS_DASHBOARD) {
+    if (!u) {
+      const mResult = getMaintenanceResult(mode, allowedEmails, null);
+      if (mResult === 'maintenance') { st.sec?.('maintenance'); return; }
+      st.sec?.('land');
+      return;
+    }
+    st.gUser = u;
+    const mResult = getMaintenanceResult(mode, allowedEmails, u.email);
+    if (mResult === 'maintenance') { st.sec?.('maintenance'); return; }
+    document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+    try {
+      const docSnap = await getDoc(doc(db, 'users', u.uid));
+      if (!docSnap.exists()) {
+        st.setNavUser?.(u);
+        showPlanSelect();
+        return;
+      }
+      if (st._loginMode === 'register') {
+        await signOut(auth);
+        setTimeout(() => {
+          st.toast?.('Tài khoản này đã được đăng ký. Vui lòng chọn Đăng nhập.', 'err');
+          const btn = document.getElementById('btnGoLogin');
+          if (btn) { btn.classList.add('shake-hint'); setTimeout(() => btn.classList.remove('shake-hint'), 600); }
+          window.openLoginModal('login');
+        }, 150);
+        return;
+      }
+      const d = docSnap.data();
+      if (d.status === 'kicked') _notifyAdminKicked(u, d.kickReason);
+      const approved = await checkApproval(u);
+      if (approved) {
+        if (checkReaddWelcome()) return;
+        window.location.href = '/copy-drive';
+      } else {
+        window.location.href = '/copy-drive';
+      }
+    } catch (e) { window.location.href = '/copy-drive'; }
+    return;
+  }
+
+  // ── DASHBOARD ──────────────────────────────────────────────
+  if (!u) {
+    st.gUser = null; st.gToken = null; st.gUserData = null;
+    sessionStorage.removeItem('swiftcopy_gtok');
+    if (st._kickPollTimer) { clearInterval(st._kickPollTimer); st._kickPollTimer = null; }
+    const mResult0 = getMaintenanceResult(mode, allowedEmails, null);
+    if (mResult0 === 'maintenance') { st.sec?.('maintenance'); return; }
+    window.location.href = '/';
+    return;
+  }
+  st.gUser = u;
+  if (!st.gToken) { const t = sessionStorage.getItem('swiftcopy_gtok'); if (t) st.gToken = t; }
+  const mResult = getMaintenanceResult(mode, allowedEmails, u.email);
+  if (mResult === 'maintenance') { st.sec?.('maintenance'); return; }
+  if (mResult === 'landing') { window.location.href = '/'; return; }
+
+  try {
+    const docSnap = await getDoc(doc(db, 'users', u.uid));
+    if (!docSnap.exists()) { await signOut(auth); window.location.href = '/'; return; }
+    const d = docSnap.data();
+    if (d.status === 'kicked') _notifyAdminKicked(u, d.kickReason);
+    const approved = await checkApproval(u);
+    st.setNavUser?.(u);
+    if (approved) {
+      document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+      st.sec?.('app'); st.checkResume?.(); st.updateFreeBanner?.();
+      if (st._kickPollTimer) clearInterval(st._kickPollTimer);
+      st._kickPollTimer = setInterval(_pollKickStatus, 30000);
+    } else if (st.gUserData?.status === 'kicked') {
+      st.sec?.('kicked');
+      const el = document.getElementById('kickedReasonText');
+      if (el) el.textContent = st.gUserData.kickReason ? `Lý do: ${st.gUserData.kickReason}` : 'Lý do: Vi phạm điều khoản sử dụng.';
+    } else {
+      st.sec?.('pend');
+    }
+  } catch (e) { st.setNavUser?.(u); st.sec?.('pend'); }
+});
+
+async function _pollKickStatus() {
+  if (!st.gUser) return;
+  try {
+    const snap = await getDoc(doc(db, 'users', st.gUser.uid));
+    if (!snap.exists() || snap.data().status !== 'approved' || !snap.data().approved) {
+      if (st._kickPollTimer) { clearInterval(st._kickPollTimer); st._kickPollTimer = null; }
+      st.stopFlag = true; st.pauseFlag = false;
+      if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
+      const d = snap.exists() ? snap.data() : {};
+      st.gUserData = snap.exists() ? { id: st.gUser.uid, ...d } : null;
+      st.sec?.('kicked');
+      const el = document.getElementById('kickedReasonText');
+      if (el) el.textContent = d.kickReason ? `Lý do: ${d.kickReason}` : 'Lý do: Vi phạm điều khoản sử dụng.';
+    }
+  } catch (e) { console.warn('pollKickStatus', e); }
+}
+
+async function checkApproval(u) {
+  const snap = await getDoc(doc(db, 'users', u.uid));
+  if (!snap.exists()) return false;
+  const d = snap.data();
+  st.gUserData = { id: u.uid, ...d };
+  if (d.plan === 'free' && d.approved && (d.freeUsedMB === undefined || !d.freeResetAt)) {
+    const upd = {};
+    if (d.freeUsedMB === undefined) { upd.freeUsedMB = 0; st.gUserData.freeUsedMB = 0; }
+    if (!d.freeResetAt) { upd.freeResetAt = serverTimestamp(); st.gUserData.freeResetAt = { toMillis: () => Date.now() }; }
+    try { await updateDoc(doc(db, 'users', u.uid), upd); } catch (e) { console.warn('migration', e); }
+  }
+  return d.status !== 'kicked' && d.approved === true;
+}
+
+// ── Email helpers ─────────────────────────────────────────────
+function _gasPost(payload) {
+  fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
+}
+export function sendRegEmail(u)           { _gasPost({ type: 'new_registration', userEmail: u.email, userName: u.displayName || u.email, plan: 'free' }); }
+export function sendUpgradeRequestEmail(u){ _gasPost({ type: 'upgrade_request',  userEmail: u.email, userName: u.displayName || u.email }); }
+function _notifyAdminKicked(u, reason)    { _gasPost({ type: 'kick_alert',       userEmail: u.email, userName: u.displayName || u.email, reason: reason || '?' }); }
+
+// ── Plan selection ────────────────────────────────────────────
+function showPlanSelect() {
+  document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+  if (IS_DASHBOARD) {
+    ['check', 'pend', 'kicked', 'app', 'maintenance'].forEach(s => {
+      const el = document.getElementById('s-' + s); if (el) el.style.display = 'none';
+    });
+  } else {
+    st.sec?.('land', true);
+  }
+  document.getElementById('planSelectModal')?.classList.add('active');
+}
+
+window.closePlanSelect = async () => {
+  document.getElementById('planSelectModal')?.classList.remove('active');
+  await signOut(auth);
+};
+
+window.createFreeUser = async () => {
+  if (!st.gUser) return;
+  document.getElementById('planSelectModal')?.classList.remove('active');
+  try {
+    const userData = {
+      email: st.gUser.email, displayName: st.gUser.displayName, photoURL: st.gUser.photoURL,
+      approved: true, status: 'approved', plan: 'free',
+      freeUsedMB: 0, freeResetAt: serverTimestamp(),
+      upgradeRequestedAt: null, createdAt: serverTimestamp()
+    };
+    await setDoc(doc(db, 'users', st.gUser.uid), userData);
+    sendRegEmail(st.gUser);
+    window.location.href = '/copy-drive';
+  } catch (e) { st.toast?.('Lỗi tạo tài khoản: ' + e.message, 'err'); await signOut(auth); }
+};
+
+window.openPlanSelectPaid = () => {
+  st._paymentContext = 'new';
+  document.getElementById('planSelectModal')?.classList.remove('active');
+  const upgradeBtn = document.getElementById('paymentUpgradeBtn');
+  const loginBtn   = document.getElementById('paymentLoginBtn');
+  if (upgradeBtn) upgradeBtn.style.display = 'flex';
+  if (loginBtn)   loginBtn.style.display   = 'none';
+  document.getElementById('paymentModal')?.classList.add('active');
+};
+
+async function createPaidPendingUser() {
+  if (!st.gUser) return;
+  try {
+    const userData = {
+      email: st.gUser.email, displayName: st.gUser.displayName, photoURL: st.gUser.photoURL,
+      approved: false, status: 'pending', plan: 'free',
+      freeUsedMB: 0, freeResetAt: serverTimestamp(),
+      upgradeRequestedAt: serverTimestamp(), createdAt: serverTimestamp()
+    };
+    await setDoc(doc(db, 'users', st.gUser.uid), userData);
+    st.gUserData = { id: st.gUser.uid, ...userData };
+    sendUpgradeRequestEmail(st.gUser);
+    st.setNavUser?.(st.gUser);
+    st.sec?.('pend');
+  } catch (e) { st.toast?.('Lỗi: ' + e.message, 'err'); }
+}
+
+// ── Payment flow ──────────────────────────────────────────────
+window.showPaymentConfirm = () => {
+  document.getElementById('paymentModal')?.classList.remove('active');
+  document.getElementById('paymentConfirmModal')?.classList.add('active');
+};
+
+window.backToPaymentModal = () => {
+  document.getElementById('paymentConfirmModal')?.classList.remove('active');
+  document.getElementById('paymentModal')?.classList.add('active');
+};
+
+window.copyText = (text, btn) => {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓'; btn.style.color = '#099268';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 1500);
+  }).catch(() => st.toast?.('Không copy được', 'err'));
+};
+
+window.confirmPayment = async () => {
+  document.getElementById('paymentConfirmModal')?.classList.remove('active');
+  document.getElementById('paymentModal')?.classList.remove('active');
+  if (st._paymentContext === 'new') {
+    await createPaidPendingUser();
+  } else {
+    await _doUpgradeRequestInternal();
+  }
+};
+
+// ── Readd welcome ─────────────────────────────────────────────
+function checkReaddWelcome() {
+  if (!st.gUser || !st.gUserData || !st.gUserData.readdedAt) return false;
+  const flagKey = 'swiftcopy_readd_' + st.gUser.uid;
+  if (localStorage.getItem(flagKey)) return false;
+  localStorage.setItem(flagKey, '1');
+  const el = document.getElementById('readdWelcomeModal');
+  if (el) { el.classList.add('active'); return true; }
+  return false;
+}
+
+window.closeReaddWelcome = () => {
+  document.getElementById('readdWelcomeModal')?.classList.remove('active');
+  if (!IS_DASHBOARD) window.location.href = '/copy-drive';
+};
+
+// ── Upgrade (free → paid) ─────────────────────────────────────
+window.openUpgradeModal = () => {
+  st._paymentContext = 'upgrade';
+  const loginBtn   = document.getElementById('paymentLoginBtn');
+  const upgradeBtn = document.getElementById('paymentUpgradeBtn');
+  if (loginBtn)   loginBtn.style.display   = 'none';
+  if (upgradeBtn) upgradeBtn.style.display = 'flex';
+  document.getElementById('paymentModal')?.classList.add('active');
+};
+
+window.openUpgradeFromLimit = () => {
+  window.closeFreeLimitModal?.();
+  window.openUpgradeModal();
+};
+
+async function _doUpgradeRequestInternal() {
+  if (!st.gUserData || !st.gUser) return;
+  if (st.gUserData.upgradeRequestedAt) {
+    st.toast?.('Yêu cầu nâng cấp đã được gửi, admin đang xử lý', 'info');
+    return;
+  }
+  try {
+    await updateDoc(doc(db, 'users', st.gUser.uid), { upgradeRequestedAt: serverTimestamp() });
+    st.gUserData.upgradeRequestedAt = { toMillis: () => Date.now() };
+    sendUpgradeRequestEmail(st.gUser);
+    st.updateFreeBanner?.();
+    st.toast?.('Đã gửi yêu cầu! Admin sẽ xác nhận thanh toán và kích hoạt sớm nhất', 'ok');
+  } catch (e) { st.toast?.('Lỗi: ' + e.message, 'err'); }
+}
+
+window.doUpgradeRequest = () => window.showPaymentConfirm();
+
+export { handleAuthExpired as _handleAuthExpired };
