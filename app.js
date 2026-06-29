@@ -32,6 +32,8 @@ let _paymentContext = null;    // 'new' | 'upgrade' — context khi mở payment
 let pauseFlag = false, stopFlag = false, runMode = 'idle';
 let stats = ns();
 let _resumeResolve = null;
+let abortCtrl = null;    // AbortController — aborted on stop/reset to cancel in-flight fetches instantly
+let _videoActive = 0;   // current concurrent video download+reupload count (semaphore)
 // Checklist state
 let clItems = [];     // flat list of { id, name, mimeType, size, parentId, depth, expanded, checked, indeterminate }
 let clLoaded = false;
@@ -103,12 +105,14 @@ window.handleScanBtn  = () => { if(runMode==='scan')  doStopScan();  else startS
 window.handleStartBtn = () => { if(runMode==='copy')  doStopCopy();  else window.startCopy(); };
 function doStopScan()  {
   stopFlag=true; pauseFlag=false;
+  abortCtrl?.abort(); abortCtrl=null;
   if(_resumeResolve){_resumeResolve();_resumeResolve=null;}
   const f=document.getElementById('progFill');
   if(f&&!f.className.includes('done')) f.className='prog-fill paused';
 }
 function doStopCopy()  {
   stopFlag=true; pauseFlag=false;
+  abortCtrl?.abort(); abortCtrl=null;
   if(_resumeResolve){_resumeResolve();_resumeResolve=null;}
   const f=document.getElementById('progFill');
   if(f&&!f.className.includes('done')) f.className='prog-fill paused';
@@ -116,6 +120,7 @@ function doStopCopy()  {
 
 window.doReset = () => {
   stopFlag=true; pauseFlag=false;
+  abortCtrl?.abort(); abortCtrl=null;
   if(_resumeResolve){_resumeResolve();_resumeResolve=null;}
   stats=ns(); updStats(); clItems=[]; clLoaded=false; _totalDeepCount=0;
   document.getElementById('srcInput').value  = '';
@@ -516,6 +521,7 @@ const FMIME='application/vnd.google-apps.folder';
 const SMIME='application/vnd.google-apps.shortcut';
 const CONCUR=16;
 const FOLDER_CONCUR=8; // sibling folders processed in parallel during copy
+const VIDEO_CONCUR=4;  // max concurrent video download+reupload (memory safety)
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const hdr=()=>({Authorization:'Bearer '+gToken,'Content-Type':'application/json'});
 
@@ -523,14 +529,14 @@ async function dget(path,p={}){
   if (!gToken) throw new Error('NO_TOKEN');
   const url=new URL(BASE+path);
   Object.entries(p).forEach(([k,v])=>url.searchParams.set(k,v));
-  const r=await fetch(url,{headers:hdr()});
+  const r=await fetch(url,{headers:hdr(),signal:abortCtrl?.signal});
   if (r.status===401){ const t=await r.text(); throw new Error('AUTH_EXPIRED: '+t.slice(0,80)); }
   if (!r.ok){const t=await r.text();throw new Error('Drive '+r.status+': '+t.slice(0,80));}
   return r.json();
 }
 async function dpost(path,body){
   if (!gToken) throw new Error('NO_TOKEN');
-  const r=await fetch(BASE+path,{method:'POST',headers:hdr(),body:JSON.stringify(body)});
+  const r=await fetch(BASE+path,{method:'POST',headers:hdr(),body:JSON.stringify(body),signal:abortCtrl?.signal});
   if (r.status===401){ const t=await r.text(); throw new Error('AUTH_EXPIRED: '+t.slice(0,80)); }
   if (!r.ok){const t=await r.text();throw new Error('Drive '+r.status+': '+t.slice(0,80));}
   return r.json();
@@ -568,6 +574,7 @@ async function copyFileSingle(item,destId){
       return {ok:true,sizeMB:(parseInt(resp.size)||0)/(1024*1024)};
     }
     catch(e){
+      if(e.name==='AbortError') return {ok:false,reason:'Đã dừng',sizeMB:0};
       if(isAuthExpiredErr(e)) throw e;
       const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
       if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*800);continue;}
@@ -580,46 +587,55 @@ async function copyFileSingle(item,destId){
 }
 
 async function copyVideoReUpload(item,destId){
-  addLog('Tải xuống+ghi video: '+item.name,'info');
-  for(let attempt=0;attempt<4;attempt++){
-    await pausePoint(); if(stopFlag) return {ok:false,reason:'Đã dừng',sizeMB:0};
-    try{
-      if(!gToken) throw new Error('NO_TOKEN');
-      // 1. Download video content from source
-      const dlRes=await fetch(BASE+'/files/'+item.id+'?alt=media&supportsAllDrives=true',
-        {headers:{Authorization:'Bearer '+gToken}});
-      if(dlRes.status===401) throw new Error('AUTH_EXPIRED: video dl');
-      if(!dlRes.ok){const t=await dlRes.text();throw new Error('Drive '+dlRes.status+': '+t.slice(0,80));}
-      const blob=await dlRes.blob();
-      // 2. Re-upload to destination (multipart upload)
-      const mime=item.mimeType||'application/octet-stream';
-      const meta=JSON.stringify({name:item.name,parents:[destId],mimeType:mime});
-      const boundary='swiftcopy_vid_'+Date.now().toString(36);
-      const CRLF='\r\n';
-      const upBody=new Blob([
-        '--'+boundary+CRLF+'Content-Type: application/json; charset=UTF-8'+CRLF+CRLF+meta+CRLF,
-        '--'+boundary+CRLF+'Content-Type: '+mime+CRLF+CRLF,
-        blob,
-        CRLF+'--'+boundary+'--'
-      ]);
-      const upRes=await fetch(
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,size',
-        {method:'POST',headers:{Authorization:'Bearer '+gToken,'Content-Type':'multipart/related; boundary='+boundary},body:upBody});
-      if(upRes.status===401) throw new Error('AUTH_EXPIRED: video ul');
-      if(!upRes.ok){const t=await upRes.text();throw new Error('Drive '+upRes.status+': '+t.slice(0,80));}
-      const resp=await upRes.json();
-      return {ok:true,sizeMB:(parseInt(resp.size)||0)/(1024*1024)};
-    }
-    catch(e){
-      if(isAuthExpiredErr(e)) throw e;
-      const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
-      if([429,500,503].includes(c)){await sleep(Math.pow(2,attempt)*800);continue;}
-      if(c===403) return {ok:false,reason:'Không có quyền copy',sizeMB:0};
-      if(c===404) return {ok:false,reason:'File không tìm thấy',sizeMB:0};
-      return {ok:false,reason:e.message.slice(0,60),sizeMB:0};
-    }
+  // Semaphore: limit simultaneous video download+reupload to VIDEO_CONCUR to avoid RAM exhaustion
+  while(_videoActive>=VIDEO_CONCUR){
+    if(stopFlag) return {ok:false,reason:'Đã dừng',sizeMB:0};
+    await sleep(100);
   }
-  return {ok:false,reason:'Hết số lần thử',sizeMB:0};
+  _videoActive++;
+  try{
+    addLog('Tải xuống+ghi video: '+item.name,'info');
+    for(let attempt=0;attempt<4;attempt++){
+      await pausePoint(); if(stopFlag) return {ok:false,reason:'Đã dừng',sizeMB:0};
+      try{
+        if(!gToken) throw new Error('NO_TOKEN');
+        const dlRes=await fetch(BASE+'/files/'+item.id+'?alt=media&supportsAllDrives=true',
+          {headers:{Authorization:'Bearer '+gToken},signal:abortCtrl?.signal});
+        if(dlRes.status===401) throw new Error('AUTH_EXPIRED: video dl');
+        if(!dlRes.ok){const t=await dlRes.text();throw new Error('Drive '+dlRes.status+': '+t.slice(0,80));}
+        const blob=await dlRes.blob();
+        const mime=item.mimeType||'application/octet-stream';
+        const meta=JSON.stringify({name:item.name,parents:[destId],mimeType:mime});
+        const boundary='swiftcopy_vid_'+Date.now().toString(36);
+        const CRLF='\r\n';
+        const upBody=new Blob([
+          '--'+boundary+CRLF+'Content-Type: application/json; charset=UTF-8'+CRLF+CRLF+meta+CRLF,
+          '--'+boundary+CRLF+'Content-Type: '+mime+CRLF+CRLF,
+          blob,
+          CRLF+'--'+boundary+'--'
+        ]);
+        const upRes=await fetch(
+          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,size',
+          {method:'POST',headers:{Authorization:'Bearer '+gToken,'Content-Type':'multipart/related; boundary='+boundary},body:upBody,signal:abortCtrl?.signal});
+        if(upRes.status===401) throw new Error('AUTH_EXPIRED: video ul');
+        if(!upRes.ok){const t=await upRes.text();throw new Error('Drive '+upRes.status+': '+t.slice(0,80));}
+        const resp=await upRes.json();
+        return {ok:true,sizeMB:(parseInt(resp.size)||0)/(1024*1024)};
+      }
+      catch(e){
+        if(e.name==='AbortError') return {ok:false,reason:'Đã dừng',sizeMB:0};
+        if(isAuthExpiredErr(e)) throw e;
+        const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
+        if([429,500,503].includes(c)){await sleep(Math.pow(2,attempt)*800);continue;}
+        if(c===403) return {ok:false,reason:'Không có quyền copy',sizeMB:0};
+        if(c===404) return {ok:false,reason:'File không tìm thấy',sizeMB:0};
+        return {ok:false,reason:e.message.slice(0,60),sizeMB:0};
+      }
+    }
+    return {ok:false,reason:'Hết số lần thử',sizeMB:0};
+  } finally {
+    _videoActive--;
+  }
 }
 async function mkFolder(name,parentId){
   const r=await dget('/files',{q:"'"+parentId+"' in parents and name='"+name.replace(/'/g,"\\'")+"' and mimeType='"+FMIME+"' and trashed=false",fields:'files(id)',supportsAllDrives:true,includeItemsFromAllDrives:true});
@@ -1048,14 +1064,15 @@ function updateProgInfo(fileName, isDone){
   el.innerHTML=`<b style="color:${xColor}">${x}</b> / <b style="color:${yColor}">${y}</b><b> mục</b>${fileHtml}`;
 }
 
-function progStart(){
-  progDone=0; _maxPct=0;
+function progStart(startDone=0){
+  progDone=startDone; _maxPct=0;
   const f=document.getElementById('progFill');
   if(f){
     f.style.transition='none';
     f.style.width='0%';
     f.className='prog-fill '+(runMode==='scan'?'scanning':'running');
     f.parentElement.classList.remove('indeterminate');
+    if(startDone>0) _updateProgBar(); // jump bar to correct position while transition is still 'none'
     requestAnimationFrame(()=>{ f.style.transition=''; });
   }
   const pi=document.getElementById('progInfo');
@@ -1081,6 +1098,7 @@ async function startScan() {
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
   stopFlag=false; pauseFlag=false; runMode='scan'; _authExpiredHandled=false;
+  abortCtrl=new AbortController();
   stats=ns();
   document.getElementById('scanRepModal')?.classList.remove('active');
   document.getElementById('statsRow').style.display='none';
@@ -1116,6 +1134,7 @@ async function startScan() {
     setStatus(totalErr===0?'Kiểm tra xong - Không có lỗi ('+elapsed+'s)':'Phát hiện '+totalErr+' vấn đề ('+elapsed+'s)');
     renderScanResult(tree,totalErr);
   } catch(e){
+    if(e.name==='AbortError'){ if(!_authExpiredHandled) setStatus('Đã dừng kiểm tra'); return; }
     if(isAuthExpiredErr(e)){ handleAuthExpired(); return; }
     addLog('Lỗi: '+e.message,'err'); setStatus('Lỗi kiểm tra');
     if(e.message==='NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!','Nhấn nút bên dưới để cấp quyền.');
@@ -1128,15 +1147,20 @@ const SCAN_FILE_CONCUR   = 12;
 const SCAN_FOLDER_CONCUR = 6;
 
 async function testFileCopy(item, destId){
-  try{
-    const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});
-    await ddel(r.id);
-    return null;
-  } catch(e){
-    if(isAuthExpiredErr(e)) throw e;
-    const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
-    return c===403?'Không có quyền copy':'Lỗi API '+c;
+  for(let attempt=0;attempt<4;attempt++){
+    try{
+      const r=await dpost('/files/'+item.id+'/copy',{name:'__swtest_'+item.name,parents:[destId]});
+      await ddel(r.id);
+      return null;
+    } catch(e){
+      if(e.name==='AbortError') throw e;
+      if(isAuthExpiredErr(e)) throw e;
+      const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
+      if([429,500,503].includes(c)){await sleep(Math.pow(2,attempt)*800);continue;}
+      return c===403?'Không có quyền copy':'Lỗi API '+c;
+    }
   }
+  return 'Hết số lần thử';
 }
 
 async function scanNodes(items, destId, path, depth, srcName) {
@@ -1156,7 +1180,7 @@ async function scanNodes(items, destId, path, depth, srcName) {
       const fp=path?path+' > '+item.name:item.name;
       let children;
       try{ children=await listItems(item.id); }
-      catch(e){ if(isAuthExpiredErr(e)) throw e; children=[]; }
+      catch(e){ if(isAuthExpiredErr(e)) throw e; if(e.name==='AbortError') throw e; children=[]; }
       if(_totalDeepCount===0) _progTotal += children.length;
       progInc(); updateProgInfo(item.name);
       stats.folders++; if(depth===0) stats.topFolders++;
@@ -1175,7 +1199,7 @@ async function scanNodes(items, destId, path, depth, srcName) {
   const workers=[];
   for(let w=0;w<Math.min(SCAN_FOLDER_CONCUR,Math.max(folderItems.length,1));w++) workers.push(worker());
   try{ await Promise.all(workers); }
-  catch(e){ if(isAuthExpiredErr(e)) throw e; }
+  catch(e){ if(isAuthExpiredErr(e)) throw e; if(e.name==='AbortError') throw e; }
   if(stopFlag) return [...fileNodes,...folderNodes.filter(Boolean)];
 
   return [...fileNodes,...folderNodes];
@@ -1198,7 +1222,7 @@ async function scanFileNodes(items,destId,path,depth,srcName){
       addLog('Kiểm tra: '+item.name,'skip');
       let err;
       try{ err=await testFileCopy(item,destId); }
-      catch(e){ if(isAuthExpiredErr(e)) throw e; err='Lỗi'; }
+      catch(e){ if(isAuthExpiredErr(e)) throw e; if(e.name==='AbortError') throw e; err='Lỗi'; }
       if(err){ addLog('Lỗi: '+item.name,'err'); stats.failed++; } else { addLog('OK: '+item.name,'ok'); stats.copied++; }
       progInc(); updateProgInfo(item.name);
       nodes[realIdx]={name:item.name,path:fp,type:'file',depth,error:err,children:[]};
@@ -1468,6 +1492,7 @@ async function _runCopyInternal(isResume) {
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
   stopFlag=false; pauseFlag=false; runMode='copy'; _authExpiredHandled=false;
+  abortCtrl=new AbortController(); _videoActive=0;
   if (!isResume){ stats=ns(); _sessionCopiedMB=0; }
   document.getElementById('logBox').innerHTML='';
   document.getElementById('scanRepModal')?.classList.remove('active');
@@ -1496,8 +1521,11 @@ async function _runCopyInternal(isResume) {
 
     if (stopFlag){ setStatus('Đã dừng sao chép'); setBtnMode('idle'); runMode='idle'; return; }
 
-    _progTotal = _totalDeepCount > 0 ? _totalDeepCount : top.length;
-    progStart();
+    const _savedSess=isResume?getSession():null;
+    _progTotal=_savedSess?.progTotal||(_totalDeepCount>0?_totalDeepCount:top.length);
+    const _startDone=isResume?(_savedSess?.progDone||0):0;
+    progStart(_startDone);
+    if(_startDone>0) updateProgInfo('',false);
     setStatus('Đang sao chép...');
 
     // Cảnh báo video cho user free (chỉ tìm top-level để nhanh)
@@ -1516,24 +1544,28 @@ async function _runCopyInternal(isResume) {
     const topFolders=top.filter(i=>i.mimeType===FMIME);
     const topFiles  =top.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME);
 
-    // Files: batches of CONCUR
-    for(let i=0;i<topFiles.length;i+=CONCUR){
-      await pausePoint(); if(stopFlag) break;
-      const batch=topFiles.slice(i,i+CONCUR);
-      await Promise.all(batch.map(async item=>{
-        if(stopFlag) return; await pausePoint();
-        if (dex.has(item.name)){addLog('Đã có: '+item.name,'skip');progInc();updateProgInfo(item.name);return;}
-        // Bỏ qua video cho free user
-        if(gUserData?.plan==='free'&&isVideoItem(item)){
-          addLog('Bỏ qua video (miễn phí): '+item.name,'skip'); progInc(); updateProgInfo(item.name); return;
+    // Files: worker pool — keeps all CONCUR slots busy regardless of individual file size
+    if(topFiles.length){
+      let fIdx=0;
+      const topFileWorker=async()=>{
+        while(true){
+          if(stopFlag) return;
+          const item=topFiles[fIdx++]; if(!item) return;
+          await pausePoint(); if(stopFlag) return;
+          if(dex.has(item.name)){addLog('Đã có: '+item.name,'skip');progInc();updateProgInfo(item.name);continue;}
+          if(gUserData?.plan==='free'&&isVideoItem(item)){addLog('Bỏ qua video (miễn phí): '+item.name,'skip');progInc();updateProgInfo(item.name);continue;}
+          const res=await copyFileSingle(item,destId);
+          if(stopFlag) return;
+          const node={name:item.name,path:item.name,type:'file',depth:0,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
+          if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
+          else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
+          updStats(); saveSession();
+          progInc(); updateProgInfo(item.name);
         }
-        const res=await copyFileSingle(item,destId);
-        const node={name:item.name,path:item.name,type:'file',depth:0,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-        if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
-        else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
-        updStats(); saveSession();
-        progInc(); updateProgInfo(item.name);
-      }));
+      };
+      const fw=[];
+      for(let w=0;w<Math.min(CONCUR,topFiles.length);w++) fw.push(topFileWorker());
+      await Promise.all(fw);
     }
 
     // Folders: bounded parallel workers
@@ -1580,6 +1612,7 @@ async function _runCopyInternal(isResume) {
     }
     else if(!_authExpiredHandled) setStatus('Đã dừng sao chép');
   } catch(e){
+    if(e.name==='AbortError'){ if(!_authExpiredHandled) setStatus('Đã dừng sao chép'); return; }
     if(isAuthExpiredErr(e)){ handleAuthExpired(); return; }
     addLog('Lỗi: '+e.message,'err'); setStatus('Lỗi sao chép');
     if(e.message==='NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!','Nhấn nút bên dưới để cấp quyền.');
@@ -1597,22 +1630,27 @@ async function copyRecTree(srcId,destId,path,depth,parentChildren){
   const files=items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&!dnames.has(i.name));
   const skippedFiles=items.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&dnames.has(i.name));
   skippedFiles.forEach(i=>{addLog('Đã có: '+i.name,'skip'); progInc(); updateProgInfo(i.name);});
-  for(let i=0;i<files.length;i+=CONCUR){
-    await pausePoint(); if(stopFlag) break;
-    await Promise.all(files.slice(i,i+CONCUR).map(async item=>{
-      if(stopFlag)return; await pausePoint();
-      const fp=path?path+' > '+item.name:item.name;
-      // Bỏ qua video cho free user
-      if(gUserData?.plan==='free'&&isVideoItem(item)){
-        addLog('Bỏ qua video (miễn phí): '+item.name,'skip'); progInc(); updateProgInfo(item.name); return;
+  if(files.length){
+    let fIdx=0;
+    const fw=async()=>{
+      while(true){
+        if(stopFlag) return;
+        const item=files[fIdx++]; if(!item) return;
+        await pausePoint(); if(stopFlag) return;
+        const fp=path?path+' > '+item.name:item.name;
+        if(gUserData?.plan==='free'&&isVideoItem(item)){addLog('Bỏ qua video (miễn phí): '+item.name,'skip');progInc();updateProgInfo(item.name);continue;}
+        const res=await copyFileSingle(item,destId);
+        if(stopFlag) return;
+        const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
+        if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
+        else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
+        parentChildren.push(node); updStats(); saveSession();
+        progInc(); updateProgInfo(item.name);
       }
-      const res=await copyFileSingle(item,destId);
-      const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
-      else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
-      parentChildren.push(node); updStats(); saveSession();
-      progInc(); updateProgInfo(item.name);
-    }));
+    };
+    const ww=[];
+    for(let w=0;w<Math.min(CONCUR,files.length);w++) ww.push(fw());
+    await Promise.all(ww);
   }
   if(stopFlag||!folders.length) return;
   let idx=0;
@@ -1647,22 +1685,27 @@ async function copyRecTreeFiltered(srcId,destId,path,depth,parentChildren,clItem
   const files=filteredItems.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&!dnames.has(i.name));
   const skippedFiles=filteredItems.filter(i=>i.mimeType!==FMIME&&i.mimeType!==SMIME&&dnames.has(i.name));
   skippedFiles.forEach(i=>{addLog('Đã có: '+i.name,'skip'); progInc(); updateProgInfo(i.name);});
-  for(let i=0;i<files.length;i+=CONCUR){
-    await pausePoint(); if(stopFlag)break;
-    await Promise.all(files.slice(i,i+CONCUR).map(async item=>{
-      if(stopFlag)return; await pausePoint();
-      const fp=path?path+' > '+item.name:item.name;
-      // Bỏ qua video cho free user
-      if(gUserData?.plan==='free'&&isVideoItem(item)){
-        addLog('Bỏ qua video (miễn phí): '+item.name,'skip'); progInc(); updateProgInfo(item.name); return;
+  if(files.length){
+    let fIdx=0;
+    const fw=async()=>{
+      while(true){
+        if(stopFlag) return;
+        const item=files[fIdx++]; if(!item) return;
+        await pausePoint(); if(stopFlag) return;
+        const fp=path?path+' > '+item.name:item.name;
+        if(gUserData?.plan==='free'&&isVideoItem(item)){addLog('Bỏ qua video (miễn phí): '+item.name,'skip');progInc();updateProgInfo(item.name);continue;}
+        const res=await copyFileSingle(item,destId);
+        if(stopFlag) return;
+        const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
+        if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
+        else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
+        parentChildren.push(node); updStats(); saveSession();
+        progInc(); updateProgInfo(item.name);
       }
-      const res=await copyFileSingle(item,destId);
-      const node={name:item.name,path:fp,type:'file',depth,error:res.ok?null:(res.reason||'Lỗi'),children:[],link:res.ok?null:'https://drive.google.com/file/d/'+item.id+'/view'};
-      if(res.ok){stats.copied++;stats.copiedFiles.push(node);addLog('OK: '+item.name,'ok');_sessionCopiedMB+=(res.sizeMB||0);if(gUserData?.plan!=='free'&&isVideoItem(item))_videoFilesCount++;}
-      else{stats.failed++;stats.failedFiles.push(node);addLog('Lỗi: '+item.name+' - '+res.reason,'err');}
-      parentChildren.push(node); updStats(); saveSession();
-      progInc(); updateProgInfo(item.name);
-    }));
+    };
+    const ww=[];
+    for(let w=0;w<Math.min(CONCUR,files.length);w++) ww.push(fw());
+    await Promise.all(ww);
   }
   if(stopFlag||!folders.length) return;
   let idx=0;
@@ -1723,8 +1766,8 @@ function escH(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 
 // ── SESSION ──────────────────────────────────────────────────
 const SK='swiftcopy_session';
-function saveSessionData(d){localStorage.setItem(SK,JSON.stringify({...d,stats,ts:Date.now()}));}
-function saveSession(){const s=getSession();if(s){s.stats=stats;s.ts=Date.now();localStorage.setItem(SK,JSON.stringify(s));}}
+function saveSessionData(d){localStorage.setItem(SK,JSON.stringify({...d,stats,progDone,progTotal:_progTotal,ts:Date.now()}));}
+function saveSession(){const s=getSession();if(s){s.stats=stats;s.progDone=progDone;s.progTotal=_progTotal;s.ts=Date.now();localStorage.setItem(SK,JSON.stringify(s));}}
 function getSession(){try{return JSON.parse(localStorage.getItem(SK)||'null');}catch{return null;}}
 function clearSession(){localStorage.removeItem(SK);document.getElementById('resumeBanner').style.display='none';}
 function checkResume(){
@@ -1739,6 +1782,9 @@ function checkResume(){
 window.resumeSession=async()=>{
   const s=getSession();if(!s){clearSession();return;}
   if(s.stats){stats=s.stats;updStats();document.getElementById('statsRow').style.display='grid';}
+  // Restore progress counter so bar starts from where it stopped, not from 0%
+  if(s.progDone) progDone=s.progDone;
+  if(s.progTotal) _progTotal=s.progTotal;
   document.getElementById('resumeBanner').style.display='none';
   addLog('Tiếp tục phiên cũ - chỉ sao chép các mục chưa hoàn thành...','info');
   await window.startCopy(true);
