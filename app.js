@@ -1147,7 +1147,8 @@ async function startScan() {
   } catch(e){
     if(e.name==='AbortError'){ if(!_authExpiredHandled) setStatus('Đã dừng kiểm tra'); return; }
     if(isAuthExpiredErr(e)){ handleAuthExpired(); return; }
-    addLog('Lỗi: '+e.message,'err'); setStatus('Lỗi kiểm tra');
+    stopFlag=true; abortCtrl?.abort(); abortCtrl=null;
+    addLog('Lỗi nghiêm trọng: '+(e.message||e),'err'); setStatus('Lỗi kiểm tra');
     if(e.message==='NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!','Nhấn nút bên dưới để cấp quyền.');
   } finally {
     runMode='idle'; setBtnMode('idle');
@@ -1625,7 +1626,9 @@ async function _runCopyInternal(isResume) {
   } catch(e){
     if(e.name==='AbortError'){ if(!_authExpiredHandled) setStatus('Đã dừng sao chép'); return; }
     if(isAuthExpiredErr(e)){ handleAuthExpired(); return; }
-    addLog('Lỗi: '+e.message,'err'); setStatus('Lỗi sao chép');
+    stopFlag=true; abortCtrl?.abort(); abortCtrl=null;
+    while(_videoWaiters.length) _videoWaiters.shift()();
+    addLog('Lỗi nghiêm trọng: '+(e.message||e),'err'); setStatus('Lỗi sao chép');
     if(e.message==='NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!','Nhấn nút bên dưới để cấp quyền.');
   } finally {
     runMode='idle'; setBtnMode('idle');
