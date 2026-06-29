@@ -34,6 +34,7 @@ let stats = ns();
 let _resumeResolve = null;
 let abortCtrl = null;    // AbortController — aborted on stop/reset to cancel in-flight fetches instantly
 let _videoActive = 0;   // current concurrent video download+reupload count (semaphore)
+const _videoWaiters = []; // Promise resolvers waiting for a video slot (Promise-based semaphore)
 // Checklist state
 let clItems = [];     // flat list of { id, name, mimeType, size, parentId, depth, expanded, checked, indeterminate }
 let clLoaded = false;
@@ -107,6 +108,7 @@ function doStopScan()  {
   stopFlag=true; pauseFlag=false;
   abortCtrl?.abort(); abortCtrl=null;
   if(_resumeResolve){_resumeResolve();_resumeResolve=null;}
+  while(_videoWaiters.length) _videoWaiters.shift()();
   const f=document.getElementById('progFill');
   if(f&&!f.className.includes('done')) f.className='prog-fill paused';
 }
@@ -114,6 +116,7 @@ function doStopCopy()  {
   stopFlag=true; pauseFlag=false;
   abortCtrl?.abort(); abortCtrl=null;
   if(_resumeResolve){_resumeResolve();_resumeResolve=null;}
+  while(_videoWaiters.length) _videoWaiters.shift()();
   const f=document.getElementById('progFill');
   if(f&&!f.className.includes('done')) f.className='prog-fill paused';
 }
@@ -122,6 +125,7 @@ window.doReset = () => {
   stopFlag=true; pauseFlag=false;
   abortCtrl?.abort(); abortCtrl=null;
   if(_resumeResolve){_resumeResolve();_resumeResolve=null;}
+  while(_videoWaiters.length) _videoWaiters.shift()();
   stats=ns(); updStats(); clItems=[]; clLoaded=false; _totalDeepCount=0;
   document.getElementById('srcInput').value  = '';
   document.getElementById('destInput').value = '';
@@ -521,7 +525,7 @@ const FMIME='application/vnd.google-apps.folder';
 const SMIME='application/vnd.google-apps.shortcut';
 const CONCUR=16;
 const FOLDER_CONCUR=8; // sibling folders processed in parallel during copy
-const VIDEO_CONCUR=4;  // max concurrent video download+reupload (memory safety)
+const VIDEO_CONCUR=6;  // max concurrent video download+reupload (memory safety)
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const hdr=()=>({Authorization:'Bearer '+gToken,'Content-Type':'application/json'});
 
@@ -577,7 +581,7 @@ async function copyFileSingle(item,destId){
       if(e.name==='AbortError') return {ok:false,reason:'Đã dừng',sizeMB:0};
       if(isAuthExpiredErr(e)) throw e;
       const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
-      if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*800);continue;}
+      if([429,500,503].includes(c)){await sleep(Math.pow(2,i)*500);continue;}
       if(c===403) return {ok:false,reason:'Không có quyền copy',sizeMB:0};
       if(c===404) return {ok:false,reason:'File không tìm thấy',sizeMB:0};
       return {ok:false,reason:e.message.slice(0,60),sizeMB:0};
@@ -587,10 +591,11 @@ async function copyFileSingle(item,destId){
 }
 
 async function copyVideoReUpload(item,destId){
-  // Semaphore: limit simultaneous video download+reupload to VIDEO_CONCUR to avoid RAM exhaustion
+  // Semaphore: Promise-based (no polling) — waiter wakes instantly when a slot frees
   while(_videoActive>=VIDEO_CONCUR){
     if(stopFlag) return {ok:false,reason:'Đã dừng',sizeMB:0};
-    await sleep(100);
+    await new Promise(r=>_videoWaiters.push(r));
+    if(stopFlag) return {ok:false,reason:'Đã dừng',sizeMB:0};
   }
   _videoActive++;
   try{
@@ -626,7 +631,7 @@ async function copyVideoReUpload(item,destId){
         if(e.name==='AbortError') return {ok:false,reason:'Đã dừng',sizeMB:0};
         if(isAuthExpiredErr(e)) throw e;
         const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
-        if([429,500,503].includes(c)){await sleep(Math.pow(2,attempt)*800);continue;}
+        if([429,500,503].includes(c)){await sleep(Math.pow(2,attempt)*500);continue;}
         if(c===403) return {ok:false,reason:'Không có quyền copy',sizeMB:0};
         if(c===404) return {ok:false,reason:'File không tìm thấy',sizeMB:0};
         return {ok:false,reason:e.message.slice(0,60),sizeMB:0};
@@ -635,6 +640,7 @@ async function copyVideoReUpload(item,destId){
     return {ok:false,reason:'Hết số lần thử',sizeMB:0};
   } finally {
     _videoActive--;
+    _videoWaiters.shift()?.(); // wake next waiter immediately
   }
 }
 async function mkFolder(name,parentId){
@@ -1035,20 +1041,25 @@ let _maxPct = 0; // ratchet — bar only moves forward, never backward
 function _updateProgBar(){
   const f=document.getElementById('progFill');
   if(!f||f.className.includes('done')||f.className.includes('paused')) return;
+  // Use the best available total: prefer _totalDeepCount (from background deep scan) over _progTotal
+  const total=Math.max(_progTotal,_totalDeepCount,1);
   let pct;
-  if(_progTotal>0){
-    if(progDone<=_progTotal){
-      pct=Math.min(95,Math.round(progDone/_progTotal*95));
-    } else {
-      const excess=progDone-_progTotal;
-      pct=Math.min(99,Math.round(95+4*excess/(excess+_progTotal)));
-    }
+  if(progDone<=total){
+    pct=Math.min(95,Math.round(progDone/total*95));
   } else {
-    const K=30;
-    pct=Math.min(99,Math.round(progDone/(progDone+K)*100));
+    const excess=progDone-total;
+    pct=Math.min(99,Math.round(95+4*excess/(excess+total)));
   }
-  _maxPct=Math.max(_maxPct,pct);
-  f.style.width=_maxPct+'%';
+  if(_totalDeepCount>0&&total===_totalDeepCount){
+    // Stable total from completed deep scan — direct display, no ratchet
+    // (_totalDeepCount is final; bar can only rise as progDone grows)
+    f.style.width=pct+'%';
+  } else {
+    // Total still growing — ratchet prevents teeth, but allow correction if severely off
+    if(pct<_maxPct-35) _maxPct=pct+15;
+    else _maxPct=Math.max(_maxPct,pct);
+    f.style.width=_maxPct+'%';
+  }
 }
 
 function updateProgInfo(fileName, isDone){
@@ -1156,7 +1167,7 @@ async function testFileCopy(item, destId){
       if(e.name==='AbortError') throw e;
       if(isAuthExpiredErr(e)) throw e;
       const c=parseInt(e.message.match(/\d+/)?.[0]||'0');
-      if([429,500,503].includes(c)){await sleep(Math.pow(2,attempt)*800);continue;}
+      if([429,500,503].includes(c)){await sleep(Math.pow(2,attempt)*500);continue;}
       return c===403?'Không có quyền copy':'Lỗi API '+c;
     }
   }
@@ -1492,7 +1503,7 @@ async function _runCopyInternal(isResume) {
   if (!sv||!dv){ toast('Nhập đủ Drive nguồn và đích!','warn'); return; }
 
   stopFlag=false; pauseFlag=false; runMode='copy'; _authExpiredHandled=false;
-  abortCtrl=new AbortController(); _videoActive=0;
+  abortCtrl=new AbortController(); _videoActive=0; _videoWaiters.length=0;
   if (!isResume){ stats=ns(); _sessionCopiedMB=0; }
   document.getElementById('logBox').innerHTML='';
   document.getElementById('scanRepModal')?.classList.remove('active');
