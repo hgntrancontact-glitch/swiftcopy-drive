@@ -38,6 +38,11 @@ let _stopPendingFn = null;
 let _calcAnimTimer = null;
 let _calcAnimStep  = 0;
 let _calcAnimSel   = 0;
+let _lastScanOkNodes     = [];
+let _lastScanErrNodes    = [];
+let _lastScanOkCount     = 0;
+let _lastScanTotalErr    = 0;
+let _scanDetailActiveTab = 'ok';
 
 // ── Init ──────────────────────────────────────────────────────
 st.stats = ns();
@@ -153,6 +158,7 @@ window.doReset = () => {
   if (_pi) { _pi.style.display = 'none'; _pi.innerHTML = ''; }
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('scanRepModal')?.classList.remove('active');
+  hideScanSummaryBanner();
   document.getElementById('statsRow').style.display = 'none';
   setStatus('Chưa bắt đầu');
   clearSession(); setBtnMode('idle');
@@ -180,6 +186,7 @@ window.onInputChange = async (which) => {
       if (_pi) { _pi.style.display = 'none'; _pi.innerHTML = ''; }
       document.getElementById('logBox').innerHTML = '';
       document.getElementById('scanRepModal')?.classList.remove('active');
+      hideScanSummaryBanner();
       document.getElementById('statsRow').style.display = 'none';
       setStatus('Chưa bắt đầu');
     }
@@ -753,6 +760,10 @@ function renderScanResult(tree, totalErr) {
   const content = document.getElementById('scanRepContent');
   const { okNodes, errNodes } = splitScanTree(tree);
   const okCount = countTreeNodes(okNodes);
+  _lastScanOkNodes  = okNodes;
+  _lastScanErrNodes = errNodes;
+  _lastScanOkCount  = okCount;
+  _lastScanTotalErr = totalErr;
 
   const headerBg   = totalErr === 0 ? '#ebfbee' : '#fff9db';
   const headerIcon = totalErr === 0
@@ -792,8 +803,8 @@ function renderScanResult(tree, totalErr) {
     <div class="tree-body" id="scanDetailErrBody"></div>
   </div>
   <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding-top:16px;border-top:1px solid #f1f3f5">
-    <button onclick="window.closeScanReport()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #ffc9c9;background:#fff5f5;color:#fa5252;transition:all .15s">Để tôi kiểm tra lại</button>
-    <button onclick="window.closeScanReport();window.startCopy()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;background:#ffc107;color:#212529;box-shadow:0 2px 8px rgba(255,193,7,.35);transition:all .15s">Bắt đầu sao chép ngay →</button>
+    <button onclick="window.closeScanReportReview()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #ffc9c9;background:#fff5f5;color:#fa5252;transition:all .15s">Để tôi kiểm tra lại</button>
+    <button onclick="window.closeScanReportAndStart()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;background:#ffc107;color:#212529;box-shadow:0 2px 8px rgba(255,193,7,.35);transition:all .15s">Bắt đầu sao chép ngay →</button>
   </div>`;
 
   _setupScanDetailTree('ok', okNodes);
@@ -825,6 +836,94 @@ window.toggleScanDetail = function (type) {
 };
 
 window.closeScanReport = () => { document.getElementById('scanRepModal')?.classList.remove('active'); };
+window.closeScanReportReview = () => {
+  document.getElementById('scanRepModal')?.classList.remove('active');
+  showScanSummaryBanner();
+};
+window.closeScanReportAndStart = () => {
+  document.getElementById('scanRepModal')?.classList.remove('active');
+  hideScanSummaryBanner();
+  window.startCopy();
+};
+window.openScanDetailModal = (tab) => {
+  tab = tab || (_lastScanTotalErr > 0 ? 'err' : 'ok');
+  const modal = document.getElementById('scanDetailModal');
+  if (!modal) return;
+  const okCountEl  = document.getElementById('scanDetailOkCount');
+  const errCountEl = document.getElementById('scanDetailErrCount');
+  if (okCountEl)  okCountEl.textContent  = _lastScanOkCount;
+  if (errCountEl) errCountEl.textContent = _lastScanTotalErr;
+  const errBtn = document.getElementById('scanDetailTabErrBtn');
+  if (errBtn) {
+    errBtn.style.pointerEvents = _lastScanTotalErr > 0 ? '' : 'none';
+    errBtn.style.opacity       = _lastScanTotalErr > 0 ? '' : '0.45';
+  }
+  _scanDetailActiveTab = tab;
+  _renderScanDetailTab(tab);
+  modal.classList.add('active');
+};
+window.closeScanDetailModal = () => {
+  document.getElementById('scanDetailModal')?.classList.remove('active');
+};
+window.switchScanDetailTab = (tab) => {
+  if (tab === 'err' && _lastScanTotalErr === 0) return;
+  _scanDetailActiveTab = tab;
+  _renderScanDetailTab(tab);
+};
+
+function showScanSummaryBanner() {
+  const el = document.getElementById('scanSummaryBanner');
+  if (!el) return;
+  const okNumEl  = document.getElementById('scanSumOkNum');
+  const errNumEl = document.getElementById('scanSumErrNum');
+  if (okNumEl)  okNumEl.textContent  = _lastScanOkCount;
+  if (errNumEl) errNumEl.textContent = _lastScanTotalErr;
+  const errCell = document.getElementById('scanSumErrCell');
+  if (errCell) {
+    if (_lastScanTotalErr > 0) {
+      errCell.style.opacity = '1'; errCell.style.cursor = 'pointer';
+      errCell.onclick = () => window.openScanDetailModal('err');
+    } else {
+      errCell.style.opacity = '0.45'; errCell.style.cursor = 'default';
+      errCell.onclick = null;
+    }
+  }
+  el.style.display = 'block';
+}
+function hideScanSummaryBanner() {
+  const el = document.getElementById('scanSummaryBanner');
+  if (el) el.style.display = 'none';
+}
+function _renderScanDetailTab(tab) {
+  const okBtn   = document.getElementById('scanDetailTabOkBtn');
+  const errBtn  = document.getElementById('scanDetailTabErrBtn');
+  const content = document.getElementById('scanDetailModalContent');
+  const hint    = document.getElementById('scanDetailErrHint');
+  if (!content) return;
+  const activeStyle   = 'padding:11px 18px;font-size:13px;font-weight:800;border:none;background:transparent;cursor:pointer;border-bottom:2px solid #212529;color:#212529;margin-bottom:-2px;transition:all .15s';
+  const inactiveStyle = 'padding:11px 18px;font-size:13px;font-weight:600;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:#868e96;margin-bottom:-2px;transition:all .15s';
+  if (okBtn)  okBtn.style.cssText  = tab === 'ok'  ? activeStyle : inactiveStyle;
+  if (errBtn) {
+    errBtn.style.cssText = tab === 'err' ? activeStyle : inactiveStyle;
+    if (_lastScanTotalErr === 0) { errBtn.style.pointerEvents = 'none'; errBtn.style.opacity = '0.45'; }
+  }
+  if (hint) hint.style.display = tab === 'err' ? 'block' : 'none';
+  const isOk   = tab === 'ok';
+  const nodes  = isOk ? _lastScanOkNodes : _lastScanErrNodes;
+  const fnName = isOk ? '_scanDtlOkToggle' : '_scanDtlErrToggle';
+  const openSet = new Set();
+  const firstFolder = nodes.find(n => n.type === 'folder' && n.depth === 0);
+  window[fnName] = function (path) {
+    togglePathSet(openSet, path);
+    content.innerHTML = nodes.length
+      ? buildTreeHTML(nodes, openSet, fnName)
+      : '<p style="color:#868e96;text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>';
+  };
+  content.innerHTML = nodes.length
+    ? buildTreeHTML(nodes, openSet, fnName)
+    : '<p style="color:#868e96;text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>';
+  if (firstFolder) window[fnName](firstFolder.path);
+}
 
 window.doProgressReset = () => {
   if (st.runMode !== 'idle') {
@@ -840,6 +939,7 @@ window.doProgressReset = () => {
   if (_pi) { _pi.style.display = 'none'; _pi.innerHTML = ''; }
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('scanRepModal')?.classList.remove('active');
+  hideScanSummaryBanner();
   document.getElementById('statsRow').style.display = 'none';
   setStatus('Chưa bắt đầu');
   st.runMode = 'idle'; setBtnMode('idle');
@@ -928,6 +1028,7 @@ async function _runCopyInternal(isResume) {
   if (!isResume) { st.stats = ns(); st._sessionCopiedMB = 0; }
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('scanRepModal')?.classList.remove('active');
+  hideScanSummaryBanner();
   document.getElementById('statsRow').style.display = 'grid';
   updStats(); setBtnMode('copy');
 
