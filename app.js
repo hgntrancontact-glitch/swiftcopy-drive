@@ -242,6 +242,9 @@ async function loadChecklist(srcId) {
     deepLoadAllFolders(thisScanId);
   } catch (e) {
     if (isAuthExpiredErr(e)) { body.innerHTML = '<div class="cl-empty">Phiên cấp quyền đã hết hạn</div>'; handleAuthExpired(); return; }
+    // stopFlag có thể đã bị set bởi 1 request 401 khác chạy song song (handleAuthExpired
+    // đã xử lý + hiện noAuthBackdrop rồi) — tránh hiện nhầm "Đã dừng" gây hiểu lầm.
+    if (e.name === 'AbortError' && st._authExpiredHandled) { body.innerHTML = '<div class="cl-empty">Phiên cấp quyền đã hết hạn</div>'; return; }
     body.innerHTML = '<div class="cl-empty">Lỗi tải danh sách: ' + escH(e.message) + '</div>';
   }
 }
