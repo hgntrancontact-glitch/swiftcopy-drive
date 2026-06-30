@@ -262,6 +262,22 @@
         }
         .shake-hint { animation:shakeHint .5s ease !important; outline:2.5px solid #dc3545 !important; outline-offset:2px; }
 
+        /* ── Floating support button (FAB) ── */
+        @keyframes fabWobble {
+          0%,92%,100% { transform:rotate(0deg); }
+          93% { transform:rotate(-8deg); }
+          94% { transform:rotate(8deg); }
+          95% { transform:rotate(-6deg); }
+          96% { transform:rotate(6deg); }
+          97% { transform:rotate(-3deg); }
+          98% { transform:rotate(3deg); }
+        }
+        .fab-wobble { animation:fabWobble 4s ease-in-out infinite; }
+
+        /* ── Zalo QR footer hover zoom ── */
+        .zalo-qr-footer { transition:transform .2s ease; cursor:pointer; }
+        .zalo-qr-footer:hover { transform:scale(1.18); }
+
         /* ── Responsive: phones ≤640px ── */
         @media (max-width:640px){
           #bellIcon, #helpIcon { display:none !important; }
