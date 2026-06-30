@@ -159,6 +159,7 @@ window.doReset = () => {
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('scanRepModal')?.classList.remove('active');
   hideScanSummaryBanner();
+  hideCopyResultBanner();
   document.getElementById('statsRow').style.display = 'none';
   setStatus('Chưa bắt đầu');
   clearSession(); setBtnMode('idle');
@@ -187,6 +188,7 @@ window.onInputChange = async (which) => {
       document.getElementById('logBox').innerHTML = '';
       document.getElementById('scanRepModal')?.classList.remove('active');
       hideScanSummaryBanner();
+      hideCopyResultBanner();
       document.getElementById('statsRow').style.display = 'none';
       setStatus('Chưa bắt đầu');
     }
@@ -849,15 +851,13 @@ function renderScanResult(tree, totalErr) {
   _lastScanOkCount  = okCount;
   _lastScanTotalErr = totalErr;
 
-  const headerBg   = totalErr === 0 ? '#ebfbee' : '#fff9db';
-  const headerIcon = totalErr === 0
-    ? '<svg style="width:26px;height:26px;color:#099268" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-check-c"/></svg>'
-    : '<svg style="width:26px;height:26px;color:#f59f00" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-warn"/></svg>';
+  const headerBg   = '#dc3545';
+  const headerIcon = '<svg style="width:26px;height:26px;color:#fff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>';
   const headerTitle = totalErr === 0 ? 'Kiểm tra xong — Không có lỗi!' : 'Phát hiện ' + totalErr + ' mục có vấn đề';
 
   const okBtnStyle  = 'display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #c3fae8;background:#e6fcf5;color:#099268;transition:all .15s';
   const errBtnStyle = totalErr > 0
-    ? 'display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #ffe3e3;background:#fff5f5;color:#fa5252;transition:all .15s'
+    ? 'display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #ffc9c9;background:#fff5f5;color:#dc3545;transition:all .15s'
     : 'display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:default;pointer-events:none;opacity:0.6;border:1.5px solid #e9ecef;background:#f8f9fa;color:#adb5bd';
   const errBtnClick = totalErr > 0 ? 'onclick="window.toggleScanDetail(\'err\')"' : '';
   const okHover  = `onmouseenter="this.style.background='#d3f9d8';this.style.borderColor='#8ce99a'" onmouseleave="this.style.background='#e6fcf5';this.style.borderColor='#c3fae8'"`;
@@ -888,7 +888,7 @@ function renderScanResult(tree, totalErr) {
   </div>
   <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding-top:16px;border-top:1px solid #f1f3f5">
     <button onclick="window.closeScanReportReview()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #ffc9c9;background:#fff5f5;color:#fa5252;transition:all .15s">Để tôi kiểm tra lại</button>
-    <button onclick="window.closeScanReportAndStart()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;background:#ffc107;color:#212529;box-shadow:0 2px 8px rgba(255,193,7,.35);transition:all .15s">Bắt đầu sao chép ngay →</button>
+    <button onclick="window.closeScanReportAndStart()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;background:#dc3545;color:#fff;box-shadow:0 2px 8px rgba(220,53,69,.35);transition:all .15s">Bắt đầu sao chép ngay →</button>
   </div>`;
 
   _setupScanDetailTree('ok', okNodes);
@@ -958,17 +958,21 @@ window.switchScanDetailTab = (tab) => {
 function showScanSummaryBanner() {
   const el = document.getElementById('scanSummaryBanner');
   if (!el) return;
-  const okNumEl  = document.getElementById('scanSumOkNum');
-  const errNumEl = document.getElementById('scanSumErrNum');
+  const okNumEl    = document.getElementById('scanSumOkNum');
+  const errNumEl   = document.getElementById('scanSumErrNum');
+  const errLabelEl = document.getElementById('scanSumErrLabel');
   if (okNumEl)  okNumEl.textContent  = _lastScanOkCount;
   if (errNumEl) errNumEl.textContent = _lastScanTotalErr;
+  const errColor = _lastScanTotalErr > 0 ? '#dc3545' : '#adb5bd';
+  if (errNumEl)   errNumEl.style.color   = errColor;
+  if (errLabelEl) errLabelEl.style.color = errColor;
   const errCell = document.getElementById('scanSumErrCell');
   if (errCell) {
     if (_lastScanTotalErr > 0) {
-      errCell.style.opacity = '1'; errCell.style.cursor = 'pointer';
+      errCell.style.cursor = 'pointer';
       errCell.onclick = () => window.openScanDetailModal('err');
     } else {
-      errCell.style.opacity = '0.45'; errCell.style.cursor = 'default';
+      errCell.style.cursor = 'default';
       errCell.onclick = null;
     }
   }
@@ -1024,6 +1028,7 @@ window.doProgressReset = () => {
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('scanRepModal')?.classList.remove('active');
   hideScanSummaryBanner();
+  hideCopyResultBanner();
   document.getElementById('statsRow').style.display = 'none';
   setStatus('Chưa bắt đầu');
   st.runMode = 'idle'; setBtnMode('idle');
@@ -1114,6 +1119,7 @@ async function _runCopyInternal(isResume) {
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('scanRepModal')?.classList.remove('active');
   hideScanSummaryBanner();
+  hideCopyResultBanner();
   document.getElementById('statsRow').style.display = 'grid';
   updStats(); setBtnMode('copy');
 
@@ -1216,6 +1222,7 @@ async function _runCopyInternal(isResume) {
       clearSession();
       if (st.gUserData?.plan !== 'free') await saveHist(srcId, sn, destId, dn, elapsed);
       showComplModal(elapsed, st._videoFilesCount);
+      showCopyResultBanner();
     } else if (!st._authExpiredHandled) {
       setStatus('Đã dừng sao chép');
     }
@@ -1436,6 +1443,22 @@ function showComplModal(elapsed, videoCount) {
   _lastComplVideoCount = videoCount || 0;
   document.getElementById('complOv').classList.add('on');
 }
+
+// Banner thu gọn "Kết quả sao chép hoàn tất" trong khu vực Tiến trình đồng bộ —
+// cùng công thức suy ra X - LỖI như showComplModal()/updStats() ở trên, chỉ thêm hiển thị.
+function showCopyResultBanner() {
+  const el = document.getElementById('copyResultBanner');
+  if (!el) return;
+  document.getElementById('copyResBannerOkNum').textContent     = st.progDone - st.stats.failed;
+  document.getElementById('copyResBannerErrNum').textContent    = st.stats.failed;
+  document.getElementById('copyResBannerFolderNum').textContent = st.stats.folders;
+  el.style.display = 'block';
+}
+function hideCopyResultBanner() {
+  const el = document.getElementById('copyResultBanner');
+  if (el) el.style.display = 'none';
+}
+window.openCopyResultDetail = () => window.openModal(st.stats.failed > 0 ? 'failed' : 'result');
 
 // Drops failed-file nodes from a folder's children, recursively, without
 // mutating the original stats arrays — used to build a "successful items only"
