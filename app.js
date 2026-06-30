@@ -599,7 +599,12 @@ function updateProgInfo(fileName, isDone) {
   el.style.display = 'block';
   const x = st.progDone;
   const y = Math.max(x, st._totalDeepCount);
-  const xColor = isDone ? '#099268' : '#212529';
+  let xColor = '#212529';
+  if (isDone) {
+    if (x === 0 || st.stats.failed === 0) xColor = '#099268';      // 100% thành công
+    else if (st.stats.failed === x)       xColor = '#dc3545';      // 100% lỗi
+    else                                  xColor = '#ffc107';      // có lỗi xen lẫn thành công
+  }
   const yColor = isDone ? '#099268' : '#dc3545';
   const fileHtml = fileName ? ` <span style="color:#adb5bd;font-weight:400">${escH(fileName)}</span>` : '';
   el.innerHTML = `<b style="color:${xColor}">${x}</b> / <b style="color:${yColor}">${y}</b><b> mục</b>${fileHtml}`;
@@ -1097,15 +1102,15 @@ async function _runCopyInternal(isResume) {
           if (st.stopFlag) return;
           const item = topFiles[fIdx++]; if (!item) return;
           await pausePoint(); if (st.stopFlag) return;
-          if (dex.has(item.name)) { addLog('Đã có: ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); continue; }
-          if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); continue; }
+          if (dex.has(item.name)) { addLog('Đã có: ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
+          if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
           const res = await copyFileSingle(item, destId);
           if (st.stopFlag) return;
           const node = { name: item.name, path: item.name, type: 'file', depth: 0, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
           if (res.ok) { st.stats.copied++; st.stats.copiedFiles.push(node); addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
           else        { st.stats.failed++; st.stats.failedFiles.push(node); addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
-          updStats(); saveSession();
           progInc(); updateProgInfo(item.name);
+          updStats(); saveSession();
         }
       };
       const fw = [];
@@ -1128,8 +1133,8 @@ async function _runCopyInternal(isResume) {
             node = { name: item.name, path: item.name, type: 'folder', depth: 0, error: null, children: [], _srcId: item.id };
             st.stats.folderList.push(node);
           }
-          addLog('Thư mục: ' + item.name, 'folder'); updStats(); saveSession();
-          progInc(); updateProgInfo(item.name);
+          addLog('Thư mục: ' + item.name, 'folder'); progInc(); updateProgInfo(item.name);
+          updStats(); saveSession();
           const clItem = st.clItems.find(ci => ci.id === item.id);
           if (clItem && clItem.indeterminate && clItem.children) {
             await copyRecTreeFiltered(item.id, nid, item.name, 1, node.children, clItem, isResume);
@@ -1179,6 +1184,7 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren, isResume)
   const files        = items.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && !dnames.has(i.name));
   const skippedFiles = items.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && dnames.has(i.name));
   skippedFiles.forEach(i => { addLog('Đã có: ' + i.name, 'skip'); progInc(); updateProgInfo(i.name); });
+  if (skippedFiles.length) updStats();
   if (files.length) {
     let fIdx = 0;
     const fw = async () => {
@@ -1187,14 +1193,14 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren, isResume)
         const item = files[fIdx++]; if (!item) return;
         await pausePoint(); if (st.stopFlag) return;
         const fp = path ? path + ' > ' + item.name : item.name;
-        if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); continue; }
+        if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
         const res = await copyFileSingle(item, destId);
         if (st.stopFlag) return;
         const node = { name: item.name, path: fp, type: 'file', depth, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
         if (res.ok) { st.stats.copied++; st.stats.copiedFiles.push(node); addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
         else        { st.stats.failed++; st.stats.failedFiles.push(node); addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
-        parentChildren.push(node); updStats(); saveSession();
-        progInc(); updateProgInfo(item.name);
+        parentChildren.push(node); progInc(); updateProgInfo(item.name);
+        updStats(); saveSession();
       }
     };
     const ww = [];
@@ -1214,8 +1220,8 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren, isResume)
       st.stats.folders++;
       const node = { name: f.name, path: fp, type: 'folder', depth, error: null, children: [] };
       st.stats.folderList.push(node); parentChildren.push(node);
-      addLog('Thư mục: ' + f.name, 'folder'); updStats();
-      progInc(); updateProgInfo(f.name);
+      addLog('Thư mục: ' + f.name, 'folder'); progInc(); updateProgInfo(f.name);
+      updStats();
       await copyRecTree(f.id, nid, fp, depth + 1, node.children, isResume);
     }
   }
@@ -1235,6 +1241,7 @@ async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, c
   const files        = filteredItems.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && !dnames.has(i.name));
   const skippedFiles = filteredItems.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && dnames.has(i.name));
   skippedFiles.forEach(i => { addLog('Đã có: ' + i.name, 'skip'); progInc(); updateProgInfo(i.name); });
+  if (skippedFiles.length) updStats();
   if (files.length) {
     let fIdx = 0;
     const fw = async () => {
@@ -1243,14 +1250,14 @@ async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, c
         const item = files[fIdx++]; if (!item) return;
         await pausePoint(); if (st.stopFlag) return;
         const fp = path ? path + ' > ' + item.name : item.name;
-        if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); continue; }
+        if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
         const res = await copyFileSingle(item, destId);
         if (st.stopFlag) return;
         const node = { name: item.name, path: fp, type: 'file', depth, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
         if (res.ok) { st.stats.copied++; st.stats.copiedFiles.push(node); addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
         else        { st.stats.failed++; st.stats.failedFiles.push(node); addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
-        parentChildren.push(node); updStats(); saveSession();
-        progInc(); updateProgInfo(item.name);
+        parentChildren.push(node); progInc(); updateProgInfo(item.name);
+        updStats(); saveSession();
       }
     };
     const ww = [];
@@ -1270,8 +1277,8 @@ async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, c
       st.stats.folders++;
       const node = { name: f.name, path: fp, type: 'folder', depth, error: null, children: [] };
       st.stats.folderList.push(node); parentChildren.push(node);
-      addLog('Thư mục: ' + f.name, 'folder'); updStats();
-      progInc(); updateProgInfo(f.name);
+      addLog('Thư mục: ' + f.name, 'folder'); progInc(); updateProgInfo(f.name);
+      updStats();
       const subCl = clItem.children ? clItem.children.find(c => c.id === f.id) : null;
       if (subCl && subCl.indeterminate) await copyRecTreeFiltered(f.id, nid, fp, depth + 1, node.children, subCl, isResume);
       else await copyRecTree(f.id, nid, fp, depth + 1, node.children, isResume);
@@ -1354,7 +1361,8 @@ window.closeComplModal = () => {
   document.getElementById('complOv').classList.remove('on');
 };
 function showComplModal(elapsed, videoCount) {
-  document.getElementById('complCopied').textContent  = st.stats.copied + st.stats.folders;
+  // Cùng công thức suy ra X - LỖI như updStats() — xem comment ở đó.
+  document.getElementById('complCopied').textContent  = st.progDone - st.stats.failed;
   document.getElementById('complFailed').textContent  = st.stats.failed;
   document.getElementById('complFolders').textContent = st.stats.folders;
   document.getElementById('complTime').textContent    = elapsed + 's';
@@ -1617,7 +1625,9 @@ function addLog(msg, lv = 'ok') {
 }
 
 function updStats() {
-  document.getElementById('sCopied').textContent  = st.stats.copied + st.stats.folders;
+  // THÀNH CÔNG suy ra từ X - LỖI (không tự đếm riêng) để đảm bảo X = THÀNH CÔNG + LỖI
+  // luôn đúng tuyệt đối, kể cả khi X tăng do folder/shortcut/skip — không chỉ do file copy.
+  document.getElementById('sCopied').textContent  = st.progDone - st.stats.failed;
   document.getElementById('sFailed').textContent  = st.stats.failed;
   document.getElementById('sFolders').textContent = st.stats.folders;
 }
