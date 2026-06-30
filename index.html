@@ -48,13 +48,13 @@
 </svg>
 
     <header class="bg-white px-6 md:px-10 py-4 flex justify-between items-center sticky top-0 z-40 border-b border-[#f1f3f5] shadow-sm">
-        <div class="flex items-center gap-3">
-            <svg class="w-10 h-10 rounded-xl flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+            <svg class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
               <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
               <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
               <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <div class="font-bold text-2xl text-black tracking-[-0.8px] whitespace-nowrap">
+            <div class="font-bold text-lg sm:text-2xl text-black tracking-[-0.8px] whitespace-nowrap">
                 SwiftCopy<span class="text-[#dc3545]">.</span><span>Drive</span>
             </div>
         </div>
@@ -99,12 +99,12 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3" id="navRight" style="display:none">
-            <div class="flex items-center gap-2.5">
-                <img id="navAv" class="w-9 h-9 rounded-full border-2 border-[#f1f3f5] object-cover shadow-sm" src="" alt=""/>
-                <div class="text-left">
-                    <div id="navName" class="text-[13px] font-bold leading-tight text-[#212529]"></div>
-                    <div id="navEmail" class="text-[11px] text-[#868e96] leading-tight"></div>
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0" id="navRight" style="display:none">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <img id="navAv" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-[#f1f3f5] object-cover shadow-sm flex-shrink-0" src="" alt=""/>
+                <div class="text-left min-w-0">
+                    <div id="navName" class="text-[13px] font-bold leading-tight text-[#212529] max-w-[100px] sm:max-w-none truncate"></div>
+                    <div id="navEmail" class="text-[11px] text-[#868e96] leading-tight max-w-[100px] sm:max-w-none truncate"></div>
                 </div>
             </div>
             <div class="h-7 w-px bg-[#e9ecef] mx-0.5 hidden sm:block"></div>
@@ -486,7 +486,7 @@
 </div>
 
 <!-- ══════════════ PLAN SELECT MODAL ══════════════ -->
-<div class="modal-overlay" id="planSelectModal" style="background-color:rgba(0,0,0,0.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
+<div class="modal-overlay" id="planSelectModal">
   <div class="modal-wrapper" style="max-width:600px;padding:0;border-radius:20px;overflow:hidden;position:relative;">
     <button onclick="closePlanSelect()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
     <div style="background:#212529;padding:22px 28px 16px;text-align:center;">

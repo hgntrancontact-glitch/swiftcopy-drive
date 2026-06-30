@@ -145,7 +145,7 @@ function handleNewUser(data) {
 // Gửi khi: người dùng có status='kicked' trong Firestore đăng nhập thành công
 // Payload: { type, userEmail, userName, reason }
 function handleKickAlert(data) {
-  const subject = '[' + SITE_NAME + '] ⚠️ Cảnh báo: user bị kick đăng nhập lại';
+  const subject = '[' + SITE_NAME + '] Cảnh báo: user bị kick đăng nhập lại';
   const bodyHtml =
     '<p style="margin:0 0 4px;font-family:Arial,sans-serif">Một user đã bị kick đang cố đăng nhập lại. Vui lòng kiểm tra.</p>' +
     _fieldTable(
@@ -205,7 +205,7 @@ function handleKick(data) {
 // Gửi khi: free user bấm "Tôi đã thanh toán — Chờ xác nhận" trong paymentModal
 // Payload: { type, userEmail, userName }
 function handleUpgradeRequest(data) {
-  const subject = '[' + SITE_NAME + '] ⬆ Yêu cầu nâng cấp lên gói Trọn đời';
+  const subject = '[' + SITE_NAME + '] Yêu cầu nâng cấp lên gói Trọn đời';
   const bodyHtml =
     '<p style="margin:0 0 4px;font-family:Arial,sans-serif">Có người dùng vừa yêu cầu nâng cấp lên gói Trọn đời.</p>' +
     _fieldTable(
@@ -227,7 +227,7 @@ function handleUpgradeRequest(data) {
 // Gửi khi: admin nhấn "Duyệt nâng cấp" trong admin.html
 // Payload: { type, toEmail, userName, siteUrl }
 function handleUpgradeApproved(data) {
-  const subject = '[' + SITE_NAME + '] 🎉 Tài khoản đã được nâng cấp lên gói Trọn đời';
+  const subject = '[' + SITE_NAME + '] Tài khoản đã được nâng cấp lên gói Trọn đời';
   const bodyHtml =
     '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
     '<p style="margin:0;font-family:Arial,sans-serif">Chúc mừng! Tài khoản của bạn trên ' + SITE_NAME + ' đã được nâng cấp thành công lên gói <b>Trọn đời</b>. Từ bây giờ bạn có thể sao chép không giới hạn, bao gồm video và lưu lịch sử đầy đủ.</p>';
