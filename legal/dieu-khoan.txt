@@ -1,4 +1,4 @@
-﻿ĐIỀU KHOẢN SỬ DỤNG
+ĐIỀU KHOẢN SỬ DỤNG
 SwiftCopy.Drive | Cập nhật lần cuối: 22/06/2026
 1. Giới thiệu
 Chào mừng bạn đến với SwiftCopy.Drive (sau đây gọi là "Dịch vụ" hoặc "Công cụ"). Bằng cách truy cập hoặc sử dụng Dịch vụ, bạn đồng ý bị ràng buộc bởi các Điều khoản Sử dụng này. Nếu bạn không đồng ý với bất kỳ điều khoản nào, vui lòng ngừng sử dụng ngay lập tức.
@@ -15,7 +15,6 @@ Dịch vụ bao gồm các tính năng:
 Để sử dụng Dịch vụ, bạn phải:
     • Có tài khoản Google hợp lệ
     • Được Quản trị viên phê duyệt sau khi thanh toán thành công
-    • Từ 18 tuổi trở lên hoặc có sự đồng ý của phụ huynh/người giám hộ
     • Không sử dụng Dịch vụ cho các mục đích vi phạm pháp luật
 
 4. Tài khoản và Thanh toán

@@ -259,6 +259,20 @@ function countAllDeepItems() {
   return total;
 }
 
+const _dlfSleep = ms => new Promise(r => setTimeout(r, ms));
+async function listItemsRetry(id) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try { return await listItems(id); }
+    catch (e) {
+      if (isAuthExpiredErr(e)) throw e;
+      const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
+      if ([429, 500, 503].includes(c)) { await _dlfSleep(Math.pow(2, attempt) * 500); continue; }
+      throw e;
+    }
+  }
+  return listItems(id);
+}
+
 async function deepLoadAllFolders(scanId) {
   function collectUnloaded() {
     const found = [];
@@ -280,7 +294,7 @@ async function deepLoadAllFolders(scanId) {
     await Promise.all(batch.map(async (item) => {
       if (st._deepScanId !== scanId || item.children !== null) return;
       try {
-        const children = await listItems(item.id);
+        const children = await listItemsRetry(item.id);
         if (st._deepScanId !== scanId) return;
         item.children = children.map(c => ({
           id: c.id, name: c.name, mimeType: c.mimeType,
