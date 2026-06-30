@@ -318,6 +318,8 @@ function _gasPost(payload) {
 export function sendRegEmail(u)           { _gasPost({ type: 'new_registration', userEmail: u.email, userName: u.displayName || u.email, plan: 'free' }); }
 export function sendUpgradeRequestEmail(u){ _gasPost({ type: 'upgrade_request',  userEmail: u.email, userName: u.displayName || u.email }); }
 function _notifyAdminKicked(u, reason)    { _gasPost({ type: 'kick_alert',       userEmail: u.email, userName: u.displayName || u.email, reason: reason || '?' }); }
+function _sendRegisterFreeSuccessEmail(u) { _gasPost({ type: 'register_free_success', toEmail: u.email, userName: u.displayName || u.email }); }
+function _sendRegisterPaidPendingEmail(u) { _gasPost({ type: 'register_paid_pending',  toEmail: u.email, userName: u.displayName || u.email }); }
 
 // ── Plan selection ────────────────────────────────────────────
 function showPlanSelect() {
@@ -349,6 +351,7 @@ window.createFreeUser = async () => {
     };
     await setDoc(doc(db, 'users', st.gUser.uid), userData);
     sendRegEmail(st.gUser);
+    _sendRegisterFreeSuccessEmail(st.gUser);
     window.location.href = '/copy-drive';
   } catch (e) { st.toast?.('Lỗi tạo tài khoản: ' + e.message, 'err'); await signOut(auth); }
 };
@@ -375,6 +378,7 @@ async function createPaidPendingUser() {
     await setDoc(doc(db, 'users', st.gUser.uid), userData);
     st.gUserData = { id: st.gUser.uid, ...userData };
     sendUpgradeRequestEmail(st.gUser);
+    _sendRegisterPaidPendingEmail(st.gUser);
     st.setNavUser?.(st.gUser);
     st.sec?.('pend');
   } catch (e) { st.toast?.('Lỗi: ' + e.message, 'err'); }

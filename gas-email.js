@@ -44,6 +44,8 @@ function doPost(e) {
       case 'account_readded':   handleReadd(data);          break;
       case 'upgrade_request':   handleUpgradeRequest(data); break;
       case 'upgrade_approved':  handleUpgradeApproved(data);break;
+      case 'register_free_success': handleRegisterFreeSuccess(data); break;
+      case 'register_paid_pending': handleRegisterPaidPending(data); break;
       default:
         throw new Error('Unknown type: ' + data.type);
     }
@@ -251,6 +253,65 @@ function handleReadd(data) {
   const html = buildEmailHtml({
     iconBg: '#e6fcf5', iconColor: '#099268', iconChar: '↺',
     title: 'Tài khoản đã được kích hoạt trở lại',
+    bodyHtml: bodyHtml,
+    ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL),
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+}
+
+// ── 8. THÔNG BÁO USER: đăng ký gói Miễn phí thành công ────────────
+// Gửi khi: user hoàn tất đăng ký gói Free (createFreeUser trong auth.js)
+// Payload: { type, toEmail, userName, siteUrl }
+function handleRegisterFreeSuccess(data) {
+  const subject = '[' + SITE_NAME + '] Đăng ký thành công gói Miễn phí!';
+  const compareRow = (label, freeVal, freeColor, paidVal) =>
+    '<tr>' +
+      '<td style="padding:7px 6px;color:#495057;font-size:12.5px;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + label + '</td>' +
+      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;color:' + freeColor + ';border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + freeVal + '</td>' +
+      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;font-weight:700;color:#a07820;background:#fffdf5;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + paidVal + '</td>' +
+    '</tr>';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>, tài khoản của bạn trên ' + SITE_NAME + ' đã sẵn sàng với gói <b>Miễn phí</b>!</p>' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:14px">' +
+      '<tr>' +
+        '<td style="padding:8px 6px;border-bottom:1px solid #e9ecef"></td>' +
+        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#495057;font-weight:700;border-bottom:1px solid #e9ecef;font-family:Arial,sans-serif">Miễn phí</td>' +
+        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#a07820;font-weight:800;background:#fffdf5;border-bottom:1px solid #f0d060;font-family:Arial,sans-serif">Trọn đời</td>' +
+      '</tr>' +
+      compareRow('Sao chép file &amp; thư mục', '✓', '#495057', '✓') +
+      compareRow('Dung lượng', '500MB / 5 giờ', '#495057', 'Không giới hạn') +
+      compareRow('Copy video', '✕', '#dc3545', '✓ Không giới hạn') +
+      compareRow('File không có nút tải', '✕', '#dc3545', '✓') +
+      compareRow('Tự resume mất mạng', '✕', '#dc3545', '✓') +
+    '</table>' +
+    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Nâng cấp lên <b>Trọn đời</b> chỉ <b>250.000đ</b> — dùng mãi mãi, không giới hạn dung lượng &amp; video.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#e6fcf5', iconColor: '#099268', iconChar: '✓',
+    title: 'Đăng ký thành công gói Miễn phí!',
+    bodyHtml: bodyHtml,
+    ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL),
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+}
+
+// ── 9. THÔNG BÁO USER: đã ghi nhận đăng ký gói Trọn đời, chờ duyệt ─
+// Gửi khi: user hoàn tất bước thanh toán gói Trọn đời, chờ admin duyệt
+// (createPaidPendingUser trong auth.js)
+// Payload: { type, toEmail, userName, siteUrl }
+function handleRegisterPaidPending(data) {
+  const subject = '[' + SITE_NAME + '] Đã ghi nhận đăng ký gói Trọn đời';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>, chúng tôi đã ghi nhận yêu cầu đăng ký gói <b>Trọn đời</b> của bạn trên ' + SITE_NAME + '. Đơn hàng đang được xác nhận thanh toán.</p>' +
+    '<div style="background:#f8f9fa;border-radius:10px;padding:14px 16px;margin-bottom:14px;font-family:Arial,sans-serif">' +
+      '<p style="margin:0 0 8px;font-size:13px;color:#495057"><b style="color:#212529">Thời gian xử lý:</b> thường trong vài phút, tối đa vài giờ</p>' +
+      '<p style="margin:0;font-size:13px;color:#495057"><b style="color:#212529">Bạn cần làm:</b> đăng nhập lại web sau khi nhận được email kích hoạt</p>' +
+    '</div>' +
+    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Nếu chưa kích hoạt, vui lòng đợi thêm ít phút rồi thử đăng nhập lại — chúng tôi sẽ xử lý sớm nhất có thể.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#fffbea', iconColor: '#d97706', iconChar: '◷',
+    title: 'Đã ghi nhận đăng ký gói Trọn đời',
     bodyHtml: bodyHtml,
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL),
     ctaBg: '#ffc107', ctaColor: '#212529'
