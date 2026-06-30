@@ -99,7 +99,6 @@ export async function listItems(folderId) {
       q: "'" + folderId + "' in parents and trashed=false",
       pageSize: 1000,
       fields: 'nextPageToken,files(id,name,mimeType,size)',
-      orderBy: 'folder,name_natural',
       supportsAllDrives: true,
       includeItemsFromAllDrives: true
     };
@@ -108,7 +107,12 @@ export async function listItems(folderId) {
     res.push(...(r.files || []));
     pt = r.nextPageToken;
   } while (pt);
-  return res;
+  // Không truyền orderBy — giữ đúng thứ tự gốc Drive API trả về (không tự sort A-Z).
+  // Chỉ gom folder lên trước file cùng cấp (stable partition — giữ nguyên thứ tự
+  // tương đối gốc bên trong từng nhóm folder/file).
+  const folders = res.filter(i => i.mimeType === FMIME);
+  const files   = res.filter(i => i.mimeType !== FMIME);
+  return [...folders, ...files];
 }
 
 export async function existNames(folderId) {
