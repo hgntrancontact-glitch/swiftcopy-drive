@@ -13,6 +13,13 @@ const VIDEO_CONCUR = 6;  // max concurrent video download+reupload (memory safet
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const hdr = () => ({ Authorization: 'Bearer ' + st.gToken, 'Content-Type': 'application/json' });
 
+// 429/500/502/503/504 = transient Drive-side errors; 0 = network-level error
+// (fetch failed/timed out/reset — message has no parseable HTTP status).
+// All of these should be retried before counting an item as a real failure.
+const RETRYABLE_CODES = [429, 500, 502, 503, 504, 0];
+const RETRY_ATTEMPTS   = 6;
+const retryDelay = i => Math.min(8000, Math.pow(2, i) * 500);
+
 // ── Core HTTP helpers ─────────────────────────────────────────
 export async function dget(path, p = {}) {
   if (!st.gToken) throw new Error('NO_TOKEN');
@@ -38,6 +45,37 @@ export async function ddel(id) {
 
 export function isAuthExpiredErr(e) {
   return e && typeof e.message === 'string' && e.message.startsWith('AUTH_EXPIRED');
+}
+
+// dget/dpost wrapped with retry for transient errors — used by listItems/mkFolder
+// so a single rate-limit/network blip mid-tree doesn't crash the whole copy/scan job.
+async function dgetRetry(path, p) {
+  for (let i = 0; i < RETRY_ATTEMPTS; i++) {
+    await pausePoint();
+    if (st.stopFlag) { const e = new Error('Đã dừng'); e.name = 'AbortError'; throw e; }
+    try { return await dget(path, p); }
+    catch (e) {
+      if (e.name === 'AbortError') throw e;
+      if (isAuthExpiredErr(e)) throw e;
+      const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
+      if (RETRYABLE_CODES.includes(c) && i < RETRY_ATTEMPTS - 1) { await sleep(retryDelay(i)); continue; }
+      throw e;
+    }
+  }
+}
+async function dpostRetry(path, body) {
+  for (let i = 0; i < RETRY_ATTEMPTS; i++) {
+    await pausePoint();
+    if (st.stopFlag) { const e = new Error('Đã dừng'); e.name = 'AbortError'; throw e; }
+    try { return await dpost(path, body); }
+    catch (e) {
+      if (e.name === 'AbortError') throw e;
+      if (isAuthExpiredErr(e)) throw e;
+      const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
+      if (RETRYABLE_CODES.includes(c) && i < RETRY_ATTEMPTS - 1) { await sleep(retryDelay(i)); continue; }
+      throw e;
+    }
+  }
 }
 
 // ── Folder/file helpers ───────────────────────────────────────
@@ -66,7 +104,7 @@ export async function listItems(folderId) {
       includeItemsFromAllDrives: true
     };
     if (pt) p.pageToken = pt;
-    const r = await dget('/files', p);
+    const r = await dgetRetry('/files', p);
     res.push(...(r.files || []));
     pt = r.nextPageToken;
   } while (pt);
@@ -78,12 +116,12 @@ export async function existNames(folderId) {
 }
 
 export async function mkFolder(name, parentId) {
-  const r = await dget('/files', {
+  const r = await dgetRetry('/files', {
     q: "'" + parentId + "' in parents and name='" + name.replace(/'/g, "\\'") + "' and mimeType='" + FMIME + "' and trashed=false",
     fields: 'files(id)', supportsAllDrives: true, includeItemsFromAllDrives: true
   });
   if (r.files?.length) return r.files[0].id;
-  return (await dpost('/files', { name, mimeType: FMIME, parents: [parentId] })).id;
+  return (await dpostRetry('/files', { name, mimeType: FMIME, parents: [parentId] })).id;
 }
 
 // ── Video detection ───────────────────────────────────────────
@@ -96,7 +134,7 @@ export function isVideoItem(item) {
 // ── File copy — server-side for non-video, download+reupload for video ────
 export async function copyFileSingle(item, destId) {
   if (isVideoItem(item)) return copyVideoReUpload(item, destId);
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < RETRY_ATTEMPTS; i++) {
     await pausePoint(); if (st.stopFlag) return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
     try {
       const resp = await dpost('/files/' + item.id + '/copy?fields=id,size&supportsAllDrives=true', { parents: [destId] });
@@ -105,7 +143,7 @@ export async function copyFileSingle(item, destId) {
       if (e.name === 'AbortError') return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
       if (isAuthExpiredErr(e)) throw e;
       const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
-      if ([429, 500, 503].includes(c)) { await sleep(Math.pow(2, i) * 500); continue; }
+      if (RETRYABLE_CODES.includes(c)) { await sleep(retryDelay(i)); continue; }
       if (c === 403) return { ok: false, reason: 'Không có quyền copy', sizeMB: 0 };
       if (c === 404) return { ok: false, reason: 'File không tìm thấy', sizeMB: 0 };
       return { ok: false, reason: e.message.slice(0, 60), sizeMB: 0 };
@@ -124,7 +162,7 @@ export async function copyVideoReUpload(item, destId) {
   st._videoActive++;
   try {
     st.addLog?.('Tải xuống+ghi video: ' + item.name, 'info');
-    for (let attempt = 0; attempt < 4; attempt++) {
+    for (let attempt = 0; attempt < RETRY_ATTEMPTS; attempt++) {
       await pausePoint(); if (st.stopFlag) return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
       try {
         if (!st.gToken) throw new Error('NO_TOKEN');
@@ -154,7 +192,7 @@ export async function copyVideoReUpload(item, destId) {
         if (e.name === 'AbortError') return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
         if (isAuthExpiredErr(e)) throw e;
         const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
-        if ([429, 500, 503].includes(c)) { await sleep(Math.pow(2, attempt) * 500); continue; }
+        if (RETRYABLE_CODES.includes(c)) { await sleep(retryDelay(attempt)); continue; }
         if (c === 403) return { ok: false, reason: 'Không có quyền copy', sizeMB: 0 };
         if (c === 404) return { ok: false, reason: 'File không tìm thấy', sizeMB: 0 };
         return { ok: false, reason: e.message.slice(0, 60), sizeMB: 0 };
@@ -168,7 +206,8 @@ export async function copyVideoReUpload(item, destId) {
 }
 
 export async function testFileCopy(item, destId) {
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < RETRY_ATTEMPTS; attempt++) {
+    await pausePoint(); if (st.stopFlag) { const e = new Error('Đã dừng'); e.name = 'AbortError'; throw e; }
     try {
       const r = await dpost('/files/' + item.id + '/copy', { name: '__swtest_' + item.name, parents: [destId] });
       await ddel(r.id);
@@ -177,7 +216,7 @@ export async function testFileCopy(item, destId) {
       if (e.name === 'AbortError') throw e;
       if (isAuthExpiredErr(e)) throw e;
       const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
-      if ([429, 500, 503].includes(c)) { await sleep(Math.pow(2, attempt) * 500); continue; }
+      if (RETRYABLE_CODES.includes(c)) { await sleep(retryDelay(attempt)); continue; }
       return c === 403 ? 'Không có quyền copy' : 'Lỗi API ' + c;
     }
   }

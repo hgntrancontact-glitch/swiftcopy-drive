@@ -3,7 +3,7 @@
    Drive API   → drive-api.js
    Shared state → state.js
    ══════════════════════════════════════════════════════════════════ */
-import { st, IS_DASHBOARD, FMIME, FREE_MB_LIMIT, FREE_RESET_MS, pausePoint, ns } from './state.js';
+import { st, IS_DASHBOARD, FMIME, FREE_MB_LIMIT, FREE_RESET_MS, pausePoint, releasePauseWaiters, ns } from './state.js';
 import {
   isAuthExpiredErr, fid, fname,
   listItems, existNames, mkFolder,
@@ -101,7 +101,7 @@ window.doResume = () => {
   document.getElementById('btnResume').style.display = 'none';
   setProgress(null, null, st.runMode === 'scan' ? 'scanning' : 'running');
   addLog('Tiếp tục', 'info');
-  if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
+  releasePauseWaiters();
 };
 
 window.handleScanBtn  = () => { if (st.runMode === 'scan') doStopScan();  else startScan(); };
@@ -122,7 +122,7 @@ function doStopCopy() {
 function _execStop() {
   st.stopFlag = true; st.pauseFlag = false;
   st.abortCtrl?.abort(); st.abortCtrl = null;
-  if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
+  releasePauseWaiters();
   while (st._videoWaiters.length) st._videoWaiters.shift()();
   const f = document.getElementById('progFill');
   if (f && !f.className.includes('done')) f.className = 'prog-fill paused';
@@ -140,7 +140,7 @@ window.cancelStop = () => {
 window.doReset = () => {
   st.stopFlag = true; st.pauseFlag = false;
   st.abortCtrl?.abort(); st.abortCtrl = null;
-  if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
+  releasePauseWaiters();
   while (st._videoWaiters.length) st._videoWaiters.shift()();
   st.stats = ns(); updStats();
   _stopCalcAnim();
@@ -639,6 +639,7 @@ async function startScan() {
 
   st.stopFlag = false; st.pauseFlag = false; st.runMode = 'scan'; st._authExpiredHandled = false;
   st.abortCtrl = new AbortController();
+  st._pauseWaiters.length = 0;
   st.stats = ns();
   document.getElementById('scanRepModal')?.classList.remove('active');
   document.getElementById('statsRow').style.display = 'none';
@@ -700,6 +701,7 @@ async function scanNodes(items, destId, path, depth, srcName) {
       let children;
       try { children = await listItems(item.id); }
       catch (e) { if (isAuthExpiredErr(e)) throw e; if (e.name === 'AbortError') throw e; children = []; }
+      if (st.stopFlag) return;
       if (st._totalDeepCount === 0) st._progTotal += children.length;
       progInc(); updateProgInfo(item.name);
       st.stats.folders++; if (depth === 0) st.stats.topFolders++;
@@ -737,6 +739,7 @@ async function scanFileNodes(items, destId, path, depth, srcName) {
       let err;
       try { err = await testFileCopy(item, destId); }
       catch (e) { if (isAuthExpiredErr(e)) throw e; if (e.name === 'AbortError') throw e; err = 'Lỗi'; }
+      if (st.stopFlag) return;
       if (err) { addLog('Lỗi: ' + item.name, 'err'); st.stats.failed++; }
       else      { addLog('OK: ' + item.name, 'ok'); st.stats.copied++; }
       progInc(); updateProgInfo(item.name);
@@ -942,7 +945,7 @@ function _renderScanDetailTab(tab) {
 window.doProgressReset = () => {
   if (st.runMode !== 'idle') {
     st.stopFlag = true; st.pauseFlag = false;
-    if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
+    releasePauseWaiters();
   }
   st.stats = ns();
   const _rf = document.getElementById('progFill');
@@ -1039,6 +1042,7 @@ async function _runCopyInternal(isResume) {
 
   st.stopFlag = false; st.pauseFlag = false; st.runMode = 'copy'; st._authExpiredHandled = false;
   st.abortCtrl = new AbortController(); st._videoActive = 0; st._videoWaiters.length = 0;
+  st._pauseWaiters.length = 0;
   if (!isResume) { st.stats = ns(); st._sessionCopiedMB = 0; }
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('scanRepModal')?.classList.remove('active');
@@ -1113,6 +1117,7 @@ async function _runCopyInternal(isResume) {
           await pausePoint(); if (st.stopFlag) return;
           const item = topFolders[i];
           const nid  = await mkFolder(item.name, destId);
+          if (st.stopFlag) return;
           let node = st.stats.folderList.find(f => f.depth === 0 && f.name === item.name && f._srcId === item.id);
           if (!node) {
             st.stats.folders++; st.stats.topFolders++;
@@ -1197,6 +1202,7 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren) {
       const f  = folders[i];
       const fp = path ? path + ' > ' + f.name : f.name;
       const nid = await mkFolder(f.name, destId);
+      if (st.stopFlag) return;
       st.stats.folders++;
       const node = { name: f.name, path: fp, type: 'folder', depth, error: null, children: [] };
       st.stats.folderList.push(node); parentChildren.push(node);
@@ -1252,6 +1258,7 @@ async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, c
       const f  = folders[i];
       const fp = path ? path + ' > ' + f.name : f.name;
       const nid = await mkFolder(f.name, destId);
+      if (st.stopFlag) return;
       st.stats.folders++;
       const node = { name: f.name, path: fp, type: 'folder', depth, error: null, children: [] };
       st.stats.folderList.push(node); parentChildren.push(node);

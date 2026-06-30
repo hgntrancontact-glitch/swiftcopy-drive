@@ -10,7 +10,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { st, IS_DASHBOARD, FREE_MB_LIMIT, FREE_RESET_MS } from './state.js';
+import { st, IS_DASHBOARD, FREE_MB_LIMIT, FREE_RESET_MS, releasePauseWaiters } from './state.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDu5D6bB-FxJl2E71Ls17GwHVtqZV0FwF8",
@@ -133,7 +133,9 @@ export function handleAuthExpired() {
   st._authExpiredHandled = true;
   st.gToken = null;
   st.stopFlag = true; st.pauseFlag = false;
-  if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
+  st.abortCtrl?.abort(); st.abortCtrl = null;
+  releasePauseWaiters();
+  while (st._videoWaiters.length) st._videoWaiters.shift()();
   st._resumeAfterReauth = (st.runMode === 'copy') ? 'copy' : null;
   window.setStatus?.('Đã dừng - cần cấp quyền lại');
   st.showNoAuth?.('Phiên cấp quyền đã hết hạn', 'Quyền truy cập Google Drive đã hết hạn sau một thời gian. Vui lòng cấp quyền lại để tiếp tục.');
@@ -283,7 +285,9 @@ async function _pollKickStatus() {
     if (!snap.exists() || snap.data().status !== 'approved' || !snap.data().approved) {
       if (st._kickPollTimer) { clearInterval(st._kickPollTimer); st._kickPollTimer = null; }
       st.stopFlag = true; st.pauseFlag = false;
-      if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
+      st.abortCtrl?.abort(); st.abortCtrl = null;
+      releasePauseWaiters();
+      while (st._videoWaiters.length) st._videoWaiters.shift()();
       const d = snap.exists() ? snap.data() : {};
       st.gUserData = snap.exists() ? { id: st.gUser.uid, ...d } : null;
       st.sec?.('kicked');

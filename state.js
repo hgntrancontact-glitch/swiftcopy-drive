@@ -24,7 +24,7 @@ export const st = {
 
   // Execution control (read/written by app.js + drive-api.js)
   pauseFlag: false, stopFlag: false, runMode: 'idle',
-  _resumeResolve: null, abortCtrl: null,
+  _pauseWaiters: [], abortCtrl: null,
   stats: null, // initialised below
 
   // Video semaphore (written by drive-api.js, drained on stop by app.js)
@@ -56,8 +56,16 @@ export const st = {
 st.stats = ns();
 
 // ── pausePoint — used by both drive-api.js and app.js ─────────
+// Every concurrent caller queues its own resolver in _pauseWaiters instead of
+// overwriting a single slot, so resume/stop can wake ALL paused workers at once
+// (same pattern as the _videoWaiters semaphore below).
 export function pausePoint() {
   return st.pauseFlag
-    ? new Promise(r => { st._resumeResolve = r; })
+    ? new Promise(r => { st._pauseWaiters.push(r); })
     : Promise.resolve();
+}
+
+// ── releasePauseWaiters — wake every worker currently blocked in pausePoint() ──
+export function releasePauseWaiters() {
+  while (st._pauseWaiters.length) st._pauseWaiters.shift()();
 }
