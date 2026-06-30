@@ -36,6 +36,9 @@ window.doLogin = async () => {
     const res = await signInWithPopup(auth, provider);
     st.gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
     if (st.gToken) sessionStorage.setItem('swiftcopy_gtok', st.gToken);
+    // Drive routing directly off the popup result — onAuthStateChanged can be slow/flaky
+    // to re-fire right after a recent signOut, so don't rely on it alone (Bug: stuck on landing).
+    if (!IS_DASHBOARD && res.user) { st.gUser = res.user; await _routeLandingAuthedUser(res.user); }
   } catch (e) { st.toast?.('Đăng nhập thất bại', 'err'); }
 };
 
@@ -57,6 +60,16 @@ window.hideLoginWarn = () => {
   if (wv) wv.style.display = 'none';
 };
 
+window.hideLoginError = () => {
+  const el = document.getElementById('loginErrorMsg');
+  if (el) { el.style.display = 'none'; el.textContent = ''; }
+};
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginErrorMsg');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
 window.openLoginModal = (mode = 'register') => {
   if (IS_DASHBOARD) { window.location.href = '/'; return; }
   st._loginMode = mode;
@@ -65,14 +78,28 @@ window.openLoginModal = (mode = 'register') => {
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   document.getElementById('loginModal')?.classList.add('active');
   window.hideLoginWarn();
+  window.hideLoginError();
 };
 
 window.handleLoginContinue = () => {
+  window.hideLoginError();
   if (st._loginMode === 'login') { window.doLogin(); } else { window.showLoginWarn(); }
 };
 
 window.openRegisterModal = () => window.openLoginModal();
 window.doLogout = () => signOut(auth);
+
+// Closing the payment modal mid-registration (before the Firestore doc is created) leaves a
+// "ghost" signed-in Firebase session with no doc — the next register attempt then behaves
+// inconsistently. Sign out so every new attempt starts clean, exactly like the first time.
+// Upgrade flow (already-approved user) uses the same modal but must NOT be signed out.
+window.closePaymentModal = async () => {
+  document.getElementById('paymentModal')?.classList.remove('active');
+  if (!IS_DASHBOARD && st._paymentContext === 'new' && st.gUser && !st.gUserData) {
+    st._loginMode = null;
+    await signOut(auth);
+  }
+};
 
 window.reAuth = async () => {
   try {
@@ -133,29 +160,34 @@ function getMaintenanceResult(mode, allowedEmails, userEmail) {
   }
 }
 
-// ── onAuthStateChanged ────────────────────────────────────────
-getMaintenance(); // pre-fetch so it's cached when onAuthStateChanged fires
-
-onAuthStateChanged(auth, async u => {
-  const maint = await getMaintenance();
-  const mode = maint.mode || (maint.enabled ? 'all' : 'off');
-  const allowedEmails = maint.allowedEmails || [];
-
-  // ── LANDING ────────────────────────────────────────────────
-  if (!IS_DASHBOARD) {
-    if (!u) {
-      const mResult = getMaintenanceResult(mode, allowedEmails, null);
-      if (mResult === 'maintenance') { st.sec?.('maintenance'); return; }
-      st.sec?.('land');
-      return;
-    }
-    st.gUser = u;
+// ── Landing routing for an authenticated user ───────────────────
+// Shared by onAuthStateChanged and doLogin(). Calling it directly right after a
+// successful signInWithPopup makes routing work even when onAuthStateChanged is
+// slow/flaky to re-fire right after a recent signOut (bug: stuck on landing until F5).
+// _routingLanding re-entrancy guard avoids both callers racing the same getDoc/signOut.
+let _routingLanding = false;
+async function _routeLandingAuthedUser(u) {
+  if (_routingLanding) return;
+  _routingLanding = true;
+  try {
+    const maint = await getMaintenance();
+    const mode = maint.mode || (maint.enabled ? 'all' : 'off');
+    const allowedEmails = maint.allowedEmails || [];
     const mResult = getMaintenanceResult(mode, allowedEmails, u.email);
     if (mResult === 'maintenance') { st.sec?.('maintenance'); return; }
     document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
     try {
       const docSnap = await getDoc(doc(db, 'users', u.uid));
-      if (!docSnap.exists()) {
+      const exists = docSnap.exists();
+      if (st._loginMode === 'login' && !exists) {
+        await signOut(auth);
+        setTimeout(() => {
+          window.openLoginModal('login');
+          showLoginError('Tài khoản này chưa được đăng ký. Vui lòng thực hiện đăng ký để tiếp tục.');
+        }, 150);
+        return;
+      }
+      if (!exists) {
         st.setNavUser?.(u);
         showPlanSelect();
         return;
@@ -180,6 +212,29 @@ onAuthStateChanged(auth, async u => {
         window.location.href = '/copy-drive';
       }
     } catch (e) { window.location.href = '/copy-drive'; }
+  } finally {
+    _routingLanding = false;
+  }
+}
+
+// ── onAuthStateChanged ────────────────────────────────────────
+getMaintenance(); // pre-fetch so it's cached when onAuthStateChanged fires
+
+onAuthStateChanged(auth, async u => {
+  const maint = await getMaintenance();
+  const mode = maint.mode || (maint.enabled ? 'all' : 'off');
+  const allowedEmails = maint.allowedEmails || [];
+
+  // ── LANDING ────────────────────────────────────────────────
+  if (!IS_DASHBOARD) {
+    if (!u) {
+      const mResult = getMaintenanceResult(mode, allowedEmails, null);
+      if (mResult === 'maintenance') { st.sec?.('maintenance'); return; }
+      st.sec?.('land');
+      return;
+    }
+    st.gUser = u;
+    await _routeLandingAuthedUser(u);
     return;
   }
 

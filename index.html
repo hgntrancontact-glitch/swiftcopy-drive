@@ -458,6 +458,8 @@
         và
         <a href="/bao-mat" style="color:#6c757d;text-decoration:underline;">Chính sách bảo mật</a>
       </div>
+      <!-- Error message -->
+      <div id="loginErrorMsg" style="display:none;margin-top:14px;background:#fff5f5;border:1px solid #ffc9c9;color:#c92a2a;font-size:12.5px;font-weight:600;padding:10px 12px;border-radius:8px;text-align:center;line-height:1.5;"></div>
     </div>
     <!-- VIEW 2: Warning screen -->
     <div id="loginWarnView" style="display:none;padding:20px 28px 24px;">
@@ -526,9 +528,9 @@
 </div>
 
 <!-- ══════════════ PAYMENT MODAL ══════════════ -->
-<div class="modal-overlay" id="paymentModal" onclick="if(event.target===this)this.classList.remove('active')">
+<div class="modal-overlay" id="paymentModal" onclick="if(event.target===this)window.closePaymentModal()">
   <div class="modal-wrapper" style="max-width:520px;padding:0;border-radius:20px;overflow:hidden;position:relative;">
-    <button onclick="document.getElementById('paymentModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
+    <button onclick="window.closePaymentModal()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
     <div style="background:#212529;padding:20px 24px 16px;">
       <div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:4px;">Đăng ký gói Trọn đời</div>
       <div style="display:flex;align-items:center;gap:8px;">
