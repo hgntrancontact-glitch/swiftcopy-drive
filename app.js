@@ -495,6 +495,7 @@ function updateClInfo() {
   // tránh Y trong "X/Y mục" bị kẹt ở số cũ từ lần deep-load đầu tiên (lúc mọi mục còn checked mặc định).
   if (st.clLoaded) st._totalDeepCount = countAllDeepItems();
   refreshFreeQuotaLock();
+  refreshFreeVideoLock();
   const total    = st.clItems.length;
   const selected = st.clItems.filter(i => i.checked || i.indeterminate).length;
   document.getElementById('clTotal').textContent    = total;
@@ -1359,8 +1360,13 @@ async function saveHist(si, sn, di, dn, el) {
 }
 
 // ── COMPLETION MODAL ──────────────────────────────────────────
+// Khôi phục luồng 2 modal nối tiếp cho gói Trọn đời: complOv (Thành công/Lỗi/Thư mục)
+// đóng xong mới hiện tiếp videoWarnModal (mode 'after') nếu có video — không còn gộp
+// chung vào 1 modal duy nhất (#complVideoBox không hiện nữa, chỉ còn là dead markup).
+let _lastComplVideoCount = 0;
 window.closeComplModal = () => {
   document.getElementById('complOv').classList.remove('on');
+  if (_lastComplVideoCount > 0) showVideoWarn(_lastComplVideoCount, 'after');
 };
 function showComplModal(elapsed, videoCount) {
   // Cùng công thức suy ra X - LỖI như updStats() — xem comment ở đó.
@@ -1369,9 +1375,7 @@ function showComplModal(elapsed, videoCount) {
   document.getElementById('complFolders').textContent = st.stats.folders;
   document.getElementById('complTime').textContent    = elapsed + 's';
   document.getElementById('complSub').textContent     = 'Hoàn thành trong ' + elapsed + 's';
-  const vbox = document.getElementById('complVideoBox');
-  if (videoCount > 0) { document.getElementById('complVideoCount').textContent = videoCount; vbox.style.display = 'block'; }
-  else { vbox.style.display = 'none'; }
+  _lastComplVideoCount = videoCount || 0;
   document.getElementById('complOv').classList.add('on');
 }
 
@@ -1458,8 +1462,60 @@ function refreshFreeQuotaLock() {
   if (!_freeQuotaLockTimer) _freeQuotaLockTimer = setInterval(refreshFreeQuotaLock, 60000);
 }
 
+// Real-time lock for "Kiểm tra trước" + "Bắt đầu sao chép" khi gói Free đang
+// chọn file/thư mục chứa video — gói Free không hỗ trợ copy video. Chỉ áp
+// dụng style khoá sẵn có (mờ đi, disabled), không thêm icon/text phụ. Mở
+// khoá lại real-time ngay khi user bỏ tick hết video khỏi lựa chọn.
+function collectSelectedVideoFiles() {
+  const found = [];
+  function walk(items) {
+    for (const item of items) {
+      if (!item.checked && !item.indeterminate) continue;
+      if (item.mimeType === FMIME) { if (item.children) walk(item.children); continue; }
+      if (item.mimeType === SMIME) continue;
+      if (isVideoItem(item)) found.push(item.name);
+    }
+  }
+  walk(st.clItems);
+  return found;
+}
+
+let _freeVideoBlockShown = false;
+function refreshFreeVideoLock() {
+  const bs  = document.getElementById('btnScan');
+  const bst = document.getElementById('btnStart');
+  if (!bs || !bst) return;
+  if (!st.gUserData || st.gUserData.plan !== 'free') { _freeVideoBlockShown = false; return; }
+  const videoFiles = collectSelectedVideoFiles();
+  const locked = videoFiles.length > 0;
+  if (st.runMode === 'idle') {
+    bs.disabled  = locked;
+    bst.disabled = bst.disabled || locked;
+    bs.style.opacity  = bs.disabled  ? '.4' : '1';
+    bst.style.opacity = bst.disabled ? '.4' : '1';
+  }
+  if (locked && !_freeVideoBlockShown) {
+    _freeVideoBlockShown = true;
+    showFreeVideoBlockModal(videoFiles);
+  } else if (!locked) {
+    _freeVideoBlockShown = false;
+  }
+}
+
+function showFreeVideoBlockModal(videoFiles) {
+  const modal = document.getElementById('freeVideoBlockModal');
+  if (!modal) return;
+  const listEl = document.getElementById('freeVideoBlockList');
+  if (listEl) listEl.innerHTML = videoFiles.map(n => '<div style="background:#fff5f5;border:1px solid #ffe3e3;border-radius:8px;padding:7px 11px;font-size:12.5px;color:#862e2e;margin-bottom:6px;">' + escH(n) + '</div>').join('');
+  modal.classList.add('active');
+}
+window.closeFreeVideoBlockModal = () => {
+  document.getElementById('freeVideoBlockModal')?.classList.remove('active');
+};
+
 function updateFreeBanner() {
   refreshFreeQuotaLock();
+  refreshFreeVideoLock();
   const banner       = document.getElementById('freeBanner');
   const premiumBadge = document.getElementById('premiumBadge');
   if (!banner) return;
@@ -1596,6 +1652,7 @@ function setBtnMode(mode) {
     bp.style.display = 'block'; br.style.display = 'none'; bR.disabled = true; bR.style.opacity = '.4';
   }
   refreshFreeQuotaLock();
+  refreshFreeVideoLock();
 }
 
 let _pvLocal = 0, _pmLocal = 1;
