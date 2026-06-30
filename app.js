@@ -3,7 +3,7 @@
    Drive API   → drive-api.js
    Shared state → state.js
    ══════════════════════════════════════════════════════════════════ */
-import { st, IS_DASHBOARD, FMIME, FREE_MB_LIMIT, FREE_RESET_MS, pausePoint, releasePauseWaiters, ns } from './state.js';
+import { st, IS_DASHBOARD, FMIME, FREE_MB_LIMIT, FREE_MB_MARGIN, FREE_RESET_MS, pausePoint, releasePauseWaiters, ns } from './state.js';
 import {
   isAuthExpiredErr, fid, fname,
   listItems, existNames, mkFolder,
@@ -492,6 +492,7 @@ function _tickCalcAnim() {
 }
 
 function updateClInfo() {
+  refreshFreeQuotaLock();
   const total    = st.clItems.length;
   const selected = st.clItems.filter(i => i.checked || i.indeterminate).length;
   document.getElementById('clTotal').textContent    = total;
@@ -1145,7 +1146,6 @@ async function _runCopyInternal(isResume) {
       setStatus('Hoàn thành ' + elapsed + 's');
       clearSession();
       if (st.gUserData?.plan !== 'free') await saveHist(srcId, sn, destId, dn, elapsed);
-      if (st.gUserData?.plan === 'free') await updateFreeUsedMB();
       showComplModal(elapsed, st._videoFilesCount);
     } else if (!st._authExpiredHandled) {
       setStatus('Đã dừng sao chép');
@@ -1158,6 +1158,11 @@ async function _runCopyInternal(isResume) {
     addLog('Lỗi nghiêm trọng: ' + (e.message || e), 'err'); setStatus('Lỗi sao chép');
     if (e.message === 'NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!', 'Nhấn nút bên dưới để cấp quyền.');
   } finally {
+    // Deduct quota for whatever copied successfully before any interruption
+    // (stop/abort/auth-expired/error) — never the in-flight/aborted file, since
+    // _sessionCopiedMB is only incremented after a confirmed successful copy.
+    // Runs on every exit path so a dropped connection still counts real usage.
+    if (st.gUserData?.plan === 'free' && st._sessionCopiedMB > 0) await updateFreeUsedMB();
     st.runMode = 'idle'; setBtnMode('idle');
   }
 }
@@ -1314,6 +1319,9 @@ function getSession()       { try { return JSON.parse(localStorage.getItem(SK) |
 function clearSession()     { localStorage.removeItem(SK); document.getElementById('resumeBanner').style.display = 'none'; }
 function checkResume() {
   const s = getSession(); if (!s) return;
+  // Auto-resume is a paid-only feature — Free plan must stop hard on interruption
+  // and have the user restart manually, never offer to continue a stale session.
+  if (st.gUserData?.plan === 'free') { clearSession(); return; }
   if ((Date.now() - s.ts) / 1000 / 60 > 120) { clearSession(); return; }
   const b = document.getElementById('resumeBanner'); b.style.display = 'flex';
   document.getElementById('srcInput').value  = s.sv || '';
@@ -1322,6 +1330,7 @@ function checkResume() {
   if (s.dv) window.onInputChange('dest');
 }
 window.resumeSession = async () => {
+  if (st.gUserData?.plan === 'free') { clearSession(); return; }
   const s = getSession(); if (!s) { clearSession(); return; }
   if (s.stats) { st.stats = s.stats; updStats(); document.getElementById('statsRow').style.display = 'grid'; }
   if (s.progDone) st.progDone = s.progDone;
@@ -1373,7 +1382,54 @@ window.openModal = (type) => {
 window.closeModal = () => document.getElementById('modalOv').classList.remove('active');
 
 // ── FREE PLAN ─────────────────────────────────────────────────
+// Real-time lock for "Bắt đầu sao chép": locked if the cycle quota is already
+// exhausted (usedMB >= 500, regardless of current selection — quota used is
+// quota used, even if the user later unticks files), OR if used+selected would
+// push the cycle past the 50MB margin (usedMB + selMB > 550). "Kiểm tra trước"
+// is never touched by this — only btnStart, and only while runMode is idle.
+let _freeQuotaLockTimer = null;
+function refreshFreeQuotaLock() {
+  const box = document.getElementById('freeQuotaLockBox');
+  const bst = document.getElementById('btnStart');
+  if (!bst) return;
+  if (!st.gUserData || st.gUserData.plan !== 'free') {
+    if (box) box.style.display = 'none';
+    if (_freeQuotaLockTimer) { clearInterval(_freeQuotaLockTimer); _freeQuotaLockTimer = null; }
+    return;
+  }
+  const usedMB = st.gUserData.freeUsedMB || 0;
+  let selMB = 0;
+  if (st.clLoaded && st.clItems.length && countUnloadedSelectedFolders() === 0) {
+    const raw = calcSelectedBytes() / (1024 * 1024);
+    selMB = isNaN(raw) ? 0 : raw;
+  }
+  const locked = usedMB >= FREE_MB_LIMIT || (usedMB + selMB) > (FREE_MB_LIMIT + FREE_MB_MARGIN);
+  if (st.runMode === 'idle') bst.disabled = locked;
+  if (!box) return;
+  if (!locked) {
+    box.style.display = 'none';
+    if (_freeQuotaLockTimer) { clearInterval(_freeQuotaLockTimer); _freeQuotaLockTimer = null; }
+    return;
+  }
+  const remainMB    = Math.max(0, FREE_MB_LIMIT - usedMB);
+  const pct          = Math.min(100, (usedMB / FREE_MB_LIMIT) * 100);
+  const resetAt       = st.gUserData.freeResetAt?.toMillis ? st.gUserData.freeResetAt.toMillis() : Date.now();
+  const remainingMs   = Math.max(0, resetAt + FREE_RESET_MS - Date.now());
+  const h = Math.floor(remainingMs / 3600000), m = Math.floor((remainingMs % 3600000) / 60000);
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div style="display:flex;align-items:center;gap:7px;color:#c92a2a;font-weight:800;font-size:13.5px;margin-bottom:4px;"><span>⚠</span><span>Đã đạt giới hạn gói Miễn phí</span></div>
+    <div style="font-size:12.5px;color:#862e2e;margin-bottom:8px;">Bạn đã sao chép <b>${Math.round(usedMB)}</b>/500 MB trong chu kỳ 5 giờ hiện tại</div>
+    <div style="height:6px;background:#ffe3e3;border-radius:999px;overflow:hidden;margin-bottom:8px;"><div style="height:100%;width:${pct}%;background:#e03131;border-radius:999px;"></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:11.5px;color:#a14b4b;">${Math.round(remainMB)} MB còn lại trong chu kỳ này — reset sau ${h}h${String(m).padStart(2, '0')}p</span>
+      <button onclick="openUpgradeModal()" style="flex-shrink:0;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:800;cursor:pointer;">Nâng cấp Trọn đời — Không giới hạn dung lượng</button>
+    </div>`;
+  if (!_freeQuotaLockTimer) _freeQuotaLockTimer = setInterval(refreshFreeQuotaLock, 60000);
+}
+
 function updateFreeBanner() {
+  refreshFreeQuotaLock();
   const banner       = document.getElementById('freeBanner');
   const premiumBadge = document.getElementById('premiumBadge');
   if (!banner) return;
@@ -1424,6 +1480,7 @@ async function updateFreeUsedMB() {
   try {
     await updateDoc(doc(db, 'users', st.gUser.uid), { freeUsedMB: newUsed });
     st.gUserData.freeUsedMB = newUsed;
+    st._sessionCopiedMB = 0; // guard against double-deducting the same copied bytes on a later call
     updateFreeBanner();
   } catch (e) { console.warn('updateFreeUsedMB', e); }
 }
@@ -1508,6 +1565,7 @@ function setBtnMode(mode) {
     bst.className = BTN_BASE.start + ' ' + BTN_STYLE.startCopy; bstT.textContent = 'Dừng sao chép';
     bp.style.display = 'block'; br.style.display = 'none'; bR.disabled = true; bR.style.opacity = '.4';
   }
+  refreshFreeQuotaLock();
 }
 
 let _pvLocal = 0, _pmLocal = 1;

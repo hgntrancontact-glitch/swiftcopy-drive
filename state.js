@@ -5,6 +5,7 @@ export const IS_DASHBOARD = !!document.getElementById('s-app');
 
 // ── Shared constants ──────────────────────────────────────────
 export const FREE_MB_LIMIT = 500;
+export const FREE_MB_MARGIN = 50; // allowed overshoot for a fresh selection vs. the 500MB cycle limit
 export const FREE_RESET_MS = 5 * 60 * 60 * 1000;
 export const FMIME = 'application/vnd.google-apps.folder';
 
