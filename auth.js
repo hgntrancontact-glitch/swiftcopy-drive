@@ -414,11 +414,15 @@ window.confirmPayment = async () => {
 };
 
 // ── Readd welcome ─────────────────────────────────────────────
+// Flag is keyed to the specific readdedAt timestamp (not just the uid) so the
+// modal shows again on every new re-add event, not just once ever per account
+// (bug: a user re-added a 2nd time never saw the welcome modal again).
 function checkReaddWelcome() {
   if (!st.gUser || !st.gUserData || !st.gUserData.readdedAt) return false;
+  const readdedMs = st.gUserData.readdedAt?.toMillis?.() ?? Date.now();
   const flagKey = 'swiftcopy_readd_' + st.gUser.uid;
-  if (localStorage.getItem(flagKey)) return false;
-  localStorage.setItem(flagKey, '1');
+  if (localStorage.getItem(flagKey) === String(readdedMs)) return false;
+  localStorage.setItem(flagKey, String(readdedMs));
   const el = document.getElementById('readdWelcomeModal');
   if (el) { el.classList.add('active'); return true; }
   return false;
