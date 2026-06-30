@@ -247,6 +247,8 @@ pollKickStatus() (30s interval khi đang ở sec='app'):
 
 **SITE_URL trong email:** `admin.html` khai báo `const SITE_URL = "https://swiftcopydrive.com"` và truyền qua payload `siteUrl`. GAS dùng `data.siteUrl || SITE_URL` (SITE_URL trong GAS chỉ là fallback).
 
+**Template HTML email (`gas-email.js`):** Cả 7 loại đều dùng chung `buildEmailHtml(opts)` — header `#212529` chứa logo SVG vẽ tay theo `favicon.svg` (`_LOGO_SVG` const, không dùng `<img>`) + chữ "SwiftCopy.Drive", body trắng padding 28px với icon tròn 52px (ký tự Unicode đơn giản, colorable qua CSS — không dùng emoji nhiều-codepoint vì email client không áp được màu), tiêu đề, nội dung, nút CTA `<a>` `display:block`, footer `border-top:1px solid #e9ecef` text `#aaa`. Toàn bộ style inline (Gmail strip `<style>` ngoài). Gửi qua `GmailApp.sendEmail(to, subject, '', { htmlBody })` — plain text body để trống. `_esc()` escape HTML cho mọi field lấy từ user input (userName/reason/note) để tránh injection vào email HTML. `_fieldRow`/`_fieldTable` dựng bảng Email/Tên/Gói/Lý do/Thời gian cho 3 email gửi Admin (`new_registration`, `kick_alert`, `upgrade_request`) — `kick_alert` và `upgrade_request` không có field thời gian trong payload từ client nên GAS tự sinh bằng `_nowStr()` (`Utilities.formatDate`, timezone `Asia/Ho_Chi_Minh`), không cần sửa payload ở `auth.js`/`admin.html`. Màu icon/nút CTA theo từng loại: xem bảng 7 loại trên — `new_registration` xanh dương nhạt, `kick_alert`/`account_kicked` đỏ, `account_approved`/`account_readded`/`upgrade_approved` xanh lá, `upgrade_request` cam vàng.
+
 ---
 
 ## Firestore schema — users collection
@@ -516,6 +518,7 @@ export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Đang deploy**: Vercel (`swiftcopydrive.vercel.app`) — sắp mua domain `swiftcopydrive.com`
 - **CI/CD**: Vercel tự động deploy khi push lên GitHub
 - **Email system**: ĐÃ hoạt động — `GAS_URL` lưu trong Vercel env var, proxy qua `api/email.js`, confirmed working (kick/readd/approve/upgrade đều gửi được)
+- **Email template HTML**: ĐÃ redesign cả 7 loại trong `gas-email.js` từ plain text sang HTML chuyên nghiệp (`buildEmailHtml()` dùng chung, logo SVG vẽ theo `favicon.svg`, icon tròn màu theo loại, nút CTA). Gửi qua `htmlBody`. Xem chi tiết ở mục "Email system" phía trên. **Sau khi đổi `gas-email.js` phải vào script.google.com → Deploy → Manage deployments → Edit → New version → Deploy thì code mới mới có hiệu lực** (URL không đổi).
 - **SITE_URL trong email**: đã set `https://swiftcopydrive.com` trong `admin.html` — khi mua domain xong chỉ cần trỏ domain về Vercel, không cần sửa code
 - **Auth flow**: ĐÃ implement luồng mới — #loginModal premium + #planSelectModal (chọn Free/Paid sau login), #startModal đã bị xóa
 - **loginModal UI**: tiêu đề "Đăng ký", backdrop `rgba(0,0,0,0.85)` không blur — tạo cảm giác tập trung; có 2 view: `#loginView` (form mặc định) + `#loginWarnView` (cảnh báo Google chưa xét duyệt — hiện trước khi gọi popup)
