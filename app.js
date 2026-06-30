@@ -319,6 +319,55 @@ async function deepLoadAllFolders(scanId) {
   if (st._deepScanId === scanId) updateClInfo();
 }
 
+// Quét nhanh ưu tiên phát hiện video (gói Free) — deepLoadAllFolders() ở trên quét
+// TOÀN BỘ cây theo thứ tự thu thập (không ưu tiên mục vừa tick) với concurrency thấp
+// (DEEP_CONCUR=4) để tránh lag UI, nên video nằm sâu trong 1 thư mục vừa tick có thể
+// mất vài giây mới được phát hiện → khoá nút bị trễ. fastVideoScan() chạy SONG SONG,
+// concurrency cao hơn, CHỈ trong phạm vi thư mục vừa tick, và dừng ngay khi gặp video
+// đầu tiên (best-effort, không cần quét hết để tính dung lượng — đó vẫn là việc của
+// deepLoadAllFolders). Không thay thế lưới an toàn ở tầng copy thực tế (vẫn giữ nguyên).
+const FAST_VIDEO_CONCUR = 8;
+async function fastVideoScan(scanId, rootItem) {
+  if (rootItem.mimeType !== FMIME) return;
+  let queue = [rootItem];
+  while (queue.length > 0) {
+    if (st._deepScanId !== scanId || st.gUserData?.plan !== 'free') return;
+    const batch = queue.splice(0, FAST_VIDEO_CONCUR);
+    let foundVideo = false;
+    const nextFolders = [];
+    await Promise.all(batch.map(async (folder) => {
+      if (st._deepScanId !== scanId) return;
+      let children = folder.children;
+      if (children === null) {
+        try {
+          const raw = await listItemsRetry(folder.id);
+          if (st._deepScanId !== scanId) return;
+          if (folder.children === null) {
+            folder.children = raw.map(c => ({
+              id: c.id, name: c.name, mimeType: c.mimeType,
+              size: parseInt(c.size) || 0,
+              depth: folder.depth + 1, expanded: false,
+              checked: folder.checked, indeterminate: false,
+              children: c.mimeType === FMIME ? null : [],
+              parentId: folder.id
+            }));
+          }
+          children = folder.children;
+        } catch (e2) {
+          if (isAuthExpiredErr(e2)) handleAuthExpired();
+          return;
+        }
+      }
+      if (!children) return;
+      if (children.some(c => c.mimeType !== SMIME && isVideoItem(c))) foundVideo = true;
+      nextFolders.push(...children.filter(c => c.mimeType === FMIME));
+    }));
+    if (st._deepScanId !== scanId) return;
+    if (foundVideo) { updateClInfo(); return; }
+    queue.push(...nextFolders);
+  }
+}
+
 function renderChecklist() {
   const body = document.getElementById('checklistBody');
   if (!st.clItems.length) { body.innerHTML = '<div class="cl-empty">Không có mục nào.</div>'; return; }
@@ -363,12 +412,18 @@ function buildClRow(item) {
   </div>`;
 }
 
+function _maybeFastVideoScan(item, turningOn) {
+  if (turningOn && item.mimeType === FMIME && st.gUserData?.plan === 'free') fastVideoScan(st._deepScanId, item);
+}
+
 window.clRowClick = (e, id) => {
   if (e.target.closest('.cl-expand')) return;
   const item = findClItem(id);
   if (!item) return;
+  const turningOn = !item.checked;
   setItemCheck(item, !item.checked);
   updateClInfo(); renderChecklist();
+  _maybeFastVideoScan(item, turningOn);
 };
 
 window.clToggleExpand = async (e, id) => {
@@ -553,7 +608,7 @@ function updateSrcTotalInfo() {
   el.style.display = 'block';
 }
 
-window.clSelectAll   = () => { st.clItems.forEach(i => setItemCheck(i, true));  updateClInfo(); renderChecklist(); };
+window.clSelectAll   = () => { st.clItems.forEach(i => setItemCheck(i, true));  updateClInfo(); renderChecklist(); st.clItems.forEach(i => _maybeFastVideoScan(i, true)); };
 window.clDeselectAll = () => { st.clItems.forEach(i => setItemCheck(i, false)); updateClInfo(); renderChecklist(); };
 
 window.dragStart = (e) => {
@@ -561,14 +616,14 @@ window.dragStart = (e) => {
   if (!row || e.target.closest('.cl-expand')) return;
   st._dragActive = true;
   const item = findClItem(row.dataset.id);
-  if (item) { st._dragCheckValue = !item.checked; setItemCheck(item, st._dragCheckValue); updateClInfo(); renderChecklist(); }
+  if (item) { st._dragCheckValue = !item.checked; setItemCheck(item, st._dragCheckValue); updateClInfo(); renderChecklist(); _maybeFastVideoScan(item, st._dragCheckValue); }
 };
 window.dragOver = (e) => {
   if (!st._dragActive) return;
   const row = e.target.closest('.cl-row');
   if (!row || e.target.closest('.cl-expand')) return;
   const item = findClItem(row.dataset.id);
-  if (item && item.checked !== st._dragCheckValue) { setItemCheck(item, st._dragCheckValue); updateClInfo(); renderChecklist(); }
+  if (item && item.checked !== st._dragCheckValue) { setItemCheck(item, st._dragCheckValue); updateClInfo(); renderChecklist(); _maybeFastVideoScan(item, st._dragCheckValue); }
 };
 window.dragEnd = () => { st._dragActive = false; };
 document.addEventListener('mouseup', () => { st._dragActive = false; });
