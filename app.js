@@ -310,11 +310,10 @@ async function deepLoadAllFolders(scanId) {
       }
     }));
     if (st._deepScanId !== scanId) return;
-    updateClInfo();
-    st._totalDeepCount = countAllDeepItems();
+    updateClInfo(); // tự tính lại _totalDeepCount bên trong
     unloaded = collectUnloaded();
   }
-  if (st._deepScanId === scanId) { updateClInfo(); st._totalDeepCount = countAllDeepItems(); }
+  if (st._deepScanId === scanId) updateClInfo();
 }
 
 function renderChecklist() {
@@ -492,6 +491,9 @@ function _tickCalcAnim() {
 }
 
 function updateClInfo() {
+  // Tính lại theo đúng selection hiện tại mỗi lần checklist thay đổi (tick/bỏ tick) —
+  // tránh Y trong "X/Y mục" bị kẹt ở số cũ từ lần deep-load đầu tiên (lúc mọi mục còn checked mặc định).
+  if (st.clLoaded) st._totalDeepCount = countAllDeepItems();
   refreshFreeQuotaLock();
   const total    = st.clItems.length;
   const selected = st.clItems.filter(i => i.checked || i.indeterminate).length;
@@ -1233,10 +1235,10 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren, isResume)
 async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, clItem, isResume) {
   await pausePoint(); if (st.stopFlag) return;
   const items = await listItems(srcId);
-  if (st._totalDeepCount === 0) st._progTotal += items.length;
   const dnames = isResume ? await existNames(destId) : new Set();
   const checkedChildIds = clItem.children ? new Set(clItem.children.filter(c => c.checked || c.indeterminate).map(c => c.id)) : null;
   const filteredItems   = checkedChildIds ? items.filter(i => checkedChildIds.has(i.id)) : items;
+  if (st._totalDeepCount === 0) st._progTotal += filteredItems.length;
   const folders      = filteredItems.filter(i => i.mimeType === FMIME);
   const files        = filteredItems.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && !dnames.has(i.name));
   const skippedFiles = filteredItems.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && dnames.has(i.name));
@@ -1577,7 +1579,7 @@ function setBtnMode(mode) {
   const bsT = document.getElementById('btnScanTxt'), bstT = document.getElementById('btnStartTxt');
   const bp  = document.getElementById('btnPause'), br  = document.getElementById('btnResume');
   const bR  = document.getElementById('btnReset');
-  bs.disabled = false; bst.disabled = false;
+  bs.disabled = false; bst.disabled = false; bs.style.opacity = '1'; bst.style.opacity = '1';
   if (mode === 'idle') {
     bs.className  = BTN_BASE.scan  + ' ' + BTN_STYLE.scanIdle;  bsT.textContent  = 'Kiểm tra trước';
     bst.className = BTN_BASE.start + ' ' + BTN_STYLE.startIdle; bstT.textContent = 'Bắt đầu sao chép';
@@ -1585,11 +1587,11 @@ function setBtnMode(mode) {
   } else if (mode === 'scan') {
     bs.className  = BTN_BASE.scan  + ' ' + BTN_STYLE.scanScan;  bsT.textContent  = 'Dừng kiểm tra';
     bst.className = BTN_BASE.start + ' ' + BTN_STYLE.startIdle; bstT.textContent = 'Bắt đầu sao chép';
-    bst.disabled = true; // Bug 1: khoá nút kia khi đang scan
+    bst.disabled = true; bst.style.opacity = '.4'; // khoá nút kia khi đang scan
     bp.style.display = 'block'; br.style.display = 'none'; bR.disabled = true; bR.style.opacity = '.4';
   } else if (mode === 'copy') {
     bs.className  = BTN_BASE.scan  + ' ' + BTN_STYLE.scanIdle;  bsT.textContent  = 'Kiểm tra trước';
-    bs.disabled = true; // Bug 1: khoá nút kia khi đang copy
+    bs.disabled = true; bs.style.opacity = '.4'; // khoá nút kia khi đang copy
     bst.className = BTN_BASE.start + ' ' + BTN_STYLE.startCopy; bstT.textContent = 'Dừng sao chép';
     bp.style.display = 'block'; br.style.display = 'none'; bR.disabled = true; bR.style.opacity = '.4';
   }
