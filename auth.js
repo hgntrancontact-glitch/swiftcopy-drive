@@ -21,6 +21,8 @@ const firebaseConfig = {
   appId: "1:477488339991:web:7d47100631b846b1189052"
 };
 
+const ADMIN_EMAIL = "hgntran.contact@gmail.com";
+
 const fbApp    = initializeApp(firebaseConfig);
 const auth     = getAuth(fbApp);
 export const db = getFirestore(fbApp);
@@ -195,6 +197,15 @@ async function _routeLandingAuthedUser(u) {
         return;
       }
       if (st._loginMode === 'register') {
+        // Admin test account: skip the "already registered" block so the admin can
+        // repeatedly re-register (re-pick Free/Paid) without manually deleting the
+        // Firestore doc each time — createFreeUser()/createPaidPendingUser() overwrite
+        // the doc via setDoc(). Normal users still get blocked below.
+        if (u.email === ADMIN_EMAIL) {
+          st.setNavUser?.(u);
+          showPlanSelect();
+          return;
+        }
         await signOut(auth);
         setTimeout(() => {
           st.toast?.('Tài khoản này đã được đăng ký. Vui lòng chọn Đăng nhập.', 'err');
