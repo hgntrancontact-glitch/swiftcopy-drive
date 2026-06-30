@@ -1083,7 +1083,10 @@ async function _runCopyInternal(isResume) {
     }
     addLog((isResume ? 'Tiếp tục sao chép' : 'Bắt đầu sao chép') + ' (' + CONCUR + ' luồng song song)...', 'info');
 
-    const dex = await existNames(destId);
+    // Fresh runs always re-copy everything (no dedup against the destination).
+    // Only a true resume (paid plan, after an interruption) skips names already
+    // present at destId, so the same file isn't re-uploaded a second time.
+    const dex = isResume ? await existNames(destId) : new Set();
     const topFolders = top.filter(i => i.mimeType === FMIME);
     const topFiles   = top.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME);
 
@@ -1129,9 +1132,9 @@ async function _runCopyInternal(isResume) {
           progInc(); updateProgInfo(item.name);
           const clItem = st.clItems.find(ci => ci.id === item.id);
           if (clItem && clItem.indeterminate && clItem.children) {
-            await copyRecTreeFiltered(item.id, nid, item.name, 1, node.children, clItem);
+            await copyRecTreeFiltered(item.id, nid, item.name, 1, node.children, clItem, isResume);
           } else {
-            await copyRecTree(item.id, nid, item.name, 1, node.children);
+            await copyRecTree(item.id, nid, item.name, 1, node.children, isResume);
           }
         }
       }
@@ -1167,11 +1170,11 @@ async function _runCopyInternal(isResume) {
   }
 }
 
-async function copyRecTree(srcId, destId, path, depth, parentChildren) {
+async function copyRecTree(srcId, destId, path, depth, parentChildren, isResume) {
   await pausePoint(); if (st.stopFlag) return;
   const items = await listItems(srcId);
   if (st._totalDeepCount === 0) st._progTotal += items.length;
-  const dnames = await existNames(destId);
+  const dnames = isResume ? await existNames(destId) : new Set();
   const folders      = items.filter(i => i.mimeType === FMIME);
   const files        = items.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && !dnames.has(i.name));
   const skippedFiles = items.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && dnames.has(i.name));
@@ -1213,7 +1216,7 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren) {
       st.stats.folderList.push(node); parentChildren.push(node);
       addLog('Thư mục: ' + f.name, 'folder'); updStats();
       progInc(); updateProgInfo(f.name);
-      await copyRecTree(f.id, nid, fp, depth + 1, node.children);
+      await copyRecTree(f.id, nid, fp, depth + 1, node.children, isResume);
     }
   }
   const workers = [];
@@ -1221,11 +1224,11 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren) {
   await Promise.all(workers);
 }
 
-async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, clItem) {
+async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, clItem, isResume) {
   await pausePoint(); if (st.stopFlag) return;
   const items = await listItems(srcId);
   if (st._totalDeepCount === 0) st._progTotal += items.length;
-  const dnames = await existNames(destId);
+  const dnames = isResume ? await existNames(destId) : new Set();
   const checkedChildIds = clItem.children ? new Set(clItem.children.filter(c => c.checked || c.indeterminate).map(c => c.id)) : null;
   const filteredItems   = checkedChildIds ? items.filter(i => checkedChildIds.has(i.id)) : items;
   const folders      = filteredItems.filter(i => i.mimeType === FMIME);
@@ -1270,8 +1273,8 @@ async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, c
       addLog('Thư mục: ' + f.name, 'folder'); updStats();
       progInc(); updateProgInfo(f.name);
       const subCl = clItem.children ? clItem.children.find(c => c.id === f.id) : null;
-      if (subCl && subCl.indeterminate) await copyRecTreeFiltered(f.id, nid, fp, depth + 1, node.children, subCl);
-      else await copyRecTree(f.id, nid, fp, depth + 1, node.children);
+      if (subCl && subCl.indeterminate) await copyRecTreeFiltered(f.id, nid, fp, depth + 1, node.children, subCl, isResume);
+      else await copyRecTree(f.id, nid, fp, depth + 1, node.children, isResume);
     }
   }
   const workers = [];
@@ -1351,7 +1354,7 @@ window.closeComplModal = () => {
   document.getElementById('complOv').classList.remove('on');
 };
 function showComplModal(elapsed, videoCount) {
-  document.getElementById('complCopied').textContent  = st.stats.copied;
+  document.getElementById('complCopied').textContent  = st.stats.copied + st.stats.folders;
   document.getElementById('complFailed').textContent  = st.stats.failed;
   document.getElementById('complFolders').textContent = st.stats.folders;
   document.getElementById('complTime').textContent    = elapsed + 's';
@@ -1362,10 +1365,27 @@ function showComplModal(elapsed, videoCount) {
   document.getElementById('complOv').classList.add('on');
 }
 
+// Drops failed-file nodes from a folder's children, recursively, without
+// mutating the original stats arrays — used to build a "successful items only"
+// tree for the THÀNH CÔNG/ĐÃ COPY detail view (folders are never marked failed).
+function _filterSuccessChildren(nodes) {
+  const out = [];
+  for (const n of nodes) {
+    if (n.type === 'file') { if (!n.error) out.push(n); continue; }
+    out.push({ ...n, children: _filterSuccessChildren(n.children) });
+  }
+  return out;
+}
+function buildSuccessTree() {
+  const rootFolders = st.stats.folderList.filter(f => f.depth === 0);
+  const rootFiles    = st.stats.copiedFiles.filter(f => f.depth === 0);
+  return _filterSuccessChildren([...rootFolders, ...rootFiles]);
+}
+
 // ── MODAL ─────────────────────────────────────────────────────
 window.openModal = (type) => {
   const cfgMap = {
-    result:  { label: 'Kết quả sao chép', nodes: st.stats.folderList.length ? st.stats.folderList : [...st.stats.copiedFiles, ...st.stats.failedFiles] },
+    result:  { label: 'Đã copy thành công', nodes: buildSuccessTree() },
     failed:  { label: 'Lỗi',     nodes: st.stats.failedFiles },
     folders: { label: 'Thư mục', nodes: st.stats.folderList }
   };
@@ -1599,7 +1619,7 @@ function addLog(msg, lv = 'ok') {
 function updStats() {
   document.getElementById('sCopied').textContent  = st.stats.copied + st.stats.folders;
   document.getElementById('sFailed').textContent  = st.stats.failed;
-  document.getElementById('sFolders').textContent = st.stats.topFolders;
+  document.getElementById('sFolders').textContent = st.stats.folders;
 }
 
 function toast(msg, type = 'info') {
