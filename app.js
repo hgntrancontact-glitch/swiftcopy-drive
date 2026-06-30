@@ -33,6 +33,12 @@ const BTN_STYLE = {
   startCopy: 'bg-[#212529] text-white hover:bg-black'
 };
 
+// ── Module-level state (app.js only) ─────────────────────────
+let _stopPendingFn = null;
+let _calcAnimTimer = null;
+let _calcAnimStep  = 0;
+let _calcAnimSel   = 0;
+
 // ── Init ──────────────────────────────────────────────────────
 st.stats = ns();
 
@@ -97,14 +103,18 @@ window.handleScanBtn  = () => { if (st.runMode === 'scan') doStopScan();  else s
 window.handleStartBtn = () => { if (st.runMode === 'copy') doStopCopy();  else window.startCopy(); };
 
 function doStopScan() {
-  st.stopFlag = true; st.pauseFlag = false;
-  st.abortCtrl?.abort(); st.abortCtrl = null;
-  if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
-  while (st._videoWaiters.length) st._videoWaiters.shift()();
-  const f = document.getElementById('progFill');
-  if (f && !f.className.includes('done')) f.className = 'prog-fill paused';
+  const t = document.getElementById('stopConfirmTitle');
+  if (t) t.textContent = 'Dừng kiểm tra?';
+  document.getElementById('stopConfirmModal').classList.add('active');
+  _stopPendingFn = _execStop;
 }
 function doStopCopy() {
+  const t = document.getElementById('stopConfirmTitle');
+  if (t) t.textContent = 'Dừng sao chép?';
+  document.getElementById('stopConfirmModal').classList.add('active');
+  _stopPendingFn = _execStop;
+}
+function _execStop() {
   st.stopFlag = true; st.pauseFlag = false;
   st.abortCtrl?.abort(); st.abortCtrl = null;
   if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
@@ -112,6 +122,15 @@ function doStopCopy() {
   const f = document.getElementById('progFill');
   if (f && !f.className.includes('done')) f.className = 'prog-fill paused';
 }
+window.confirmStop = () => {
+  document.getElementById('stopConfirmModal').classList.remove('active');
+  _stopPendingFn?.();
+  _stopPendingFn = null;
+};
+window.cancelStop = () => {
+  document.getElementById('stopConfirmModal').classList.remove('active');
+  _stopPendingFn = null;
+};
 
 window.doReset = () => {
   st.stopFlag = true; st.pauseFlag = false;
@@ -119,6 +138,7 @@ window.doReset = () => {
   if (st._resumeResolve) { st._resumeResolve(); st._resumeResolve = null; }
   while (st._videoWaiters.length) st._videoWaiters.shift()();
   st.stats = ns(); updStats();
+  _stopCalcAnim();
   st.clItems = []; st.clLoaded = false; st._totalDeepCount = 0;
   document.getElementById('srcInput').value  = '';
   document.getElementById('destInput').value = '';
@@ -421,6 +441,35 @@ function countUnloadedSelectedFolders() {
   walk(st.clItems); return n;
 }
 
+// ── Calc animation helpers ────────────────────────────────────
+function _startCalcAnim(selected) {
+  _calcAnimSel = selected;
+  if (_calcAnimTimer) return;
+  _calcAnimStep = 0;
+  _tickCalcAnim();
+}
+function _stopCalcAnim() {
+  if (_calcAnimTimer) { clearTimeout(_calcAnimTimer); _calcAnimTimer = null; }
+}
+function _tickCalcAnim() {
+  _calcAnimTimer = null;
+  const sizeEl = document.getElementById('clSizeInfo');
+  if (!sizeEl) return;
+  if (countUnloadedSelectedFolders() === 0) { updateClInfo(); return; }
+  const step = _calcAnimStep;
+  _calcAnimStep = (_calcAnimStep + 1) % 4;
+  const sel = _calcAnimSel;
+  sizeEl.style.display = 'block';
+  if (step < 3) {
+    const dots = '.'.repeat(step + 1);
+    sizeEl.innerHTML = `Đã chọn: <b>${sel} mục</b> <span class="calc-dot-pulse">●</span> <span style="color:#adb5bd;font-size:11px">Đang tính dung lượng${dots}</span>`;
+    _calcAnimTimer = setTimeout(_tickCalcAnim, 500);
+  } else {
+    sizeEl.innerHTML = `Đã chọn: <b>${sel} mục</b> <span class="calc-shimmer-wrap"><span class="calc-shimmer-bar"></span></span>`;
+    _calcAnimTimer = setTimeout(_tickCalcAnim, 1500);
+  }
+}
+
 function updateClInfo() {
   const total    = st.clItems.length;
   const selected = st.clItems.filter(i => i.checked || i.indeterminate).length;
@@ -429,14 +478,15 @@ function updateClInfo() {
 
   const sizeEl = document.getElementById('clSizeInfo');
   if (!sizeEl) return;
-  if (!st.clLoaded || !total) { sizeEl.style.display = 'none'; return; }
+  if (!st.clLoaded || !total) { _stopCalcAnim(); sizeEl.style.display = 'none'; return; }
   sizeEl.style.display = 'block';
 
   const unloaded = countUnloadedSelectedFolders();
   if (unloaded > 0) {
-    sizeEl.innerHTML = `Đã chọn: <b>${selected} mục</b> <span style="color:#adb5bd;font-size:11px">— đang tính dung lượng...</span>`;
+    _startCalcAnim(selected);
     return;
   }
+  _stopCalcAnim();
   const rawMb = calcSelectedBytes() / (1024 * 1024);
   const mb = isNaN(rawMb) ? 0 : rawMb;
   const sizeStr = mb >= 1024 ? (mb / 1024).toFixed(2) + ' GB' : mb.toFixed(1) + ' MB';

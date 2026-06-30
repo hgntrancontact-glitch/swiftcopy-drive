@@ -239,7 +239,7 @@
                     <svg class="w-2.5 h-2.5 text-[#099268]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-folder"/></svg>
                   </span>
                   <span class="text-[11px] font-bold text-[#495057] uppercase tracking-[.04em]">Drive Nguồn</span>
-                  <span class="text-[10px] text-[#adb5bd]">(Shared Drive)</span>
+                  <span class="text-[10px] text-[#adb5bd]">(Bản gốc tải về)</span>
                 </div>
                 <input id="srcInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive nguồn" oninput="onInputChange('src')" onpaste="setTimeout(()=>onInputChange('src'),100)"/>
                 <div id="srcPreview" class="folder-preview" style="display:none"></div>
@@ -255,7 +255,7 @@
                     <svg class="w-2.5 h-2.5 text-[#1d6ece]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-folder"/></svg>
                   </span>
                   <span class="text-[11px] font-bold text-[#495057] uppercase tracking-[.04em]">Drive Đích</span>
-                  <span class="text-[10px] text-[#adb5bd]">(Drive của bạn)</span>
+                  <span class="text-[10px] text-[#adb5bd]">(Tải về Drive bạn)</span>
                 </div>
                 <input id="destInput" class="fi" placeholder="Dán URL hoặc Folder ID Drive đích" oninput="onInputChange('dest')" onpaste="setTimeout(()=>onInputChange('dest'),100)"/>
                 <div id="destPreview" class="folder-preview" style="display:none"></div>
@@ -632,6 +632,21 @@
 </div>
 
 <!-- ══════════════ FREE LIMIT MODAL ══════════════ -->
+<!-- ══════════════ STOP CONFIRM MODAL ══════════════ -->
+<div class="modal-overlay" id="stopConfirmModal">
+  <div class="modal-wrapper" style="max-width:360px;padding:28px 24px 24px;border-radius:18px;text-align:center;">
+    <div style="width:52px;height:52px;background:#fff9db;border:2px solid #ffe066;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2.5"/></svg>
+    </div>
+    <div id="stopConfirmTitle" style="font-size:17px;font-weight:900;color:#212529;margin-bottom:8px;">Dừng sao chép?</div>
+    <div style="font-size:13px;color:#868e96;line-height:1.65;margin-bottom:22px;">Tiến trình đang chạy sẽ bị huỷ.<br>Các file đã sao chép xong sẽ được giữ lại.</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="confirmStop()" style="flex:1;background:#e24b4a;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;">Xác nhận</button>
+      <button onclick="cancelStop()" style="flex:1;background:transparent;color:#495057;border:2px solid #dee2e6;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">Huỷ</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="freeLimitModal" onclick="if(event.target===this)closeFreeLimitModal()">
   <div class="modal-wrapper" style="max-width:400px;padding:0;border-radius:18px;overflow:hidden;text-align:center;">
     <div style="background:#212529;padding:18px 22px 14px;">
