@@ -1236,7 +1236,6 @@ async function _runCopyInternal(isResume) {
       clearSession();
       if (st.gUserData?.plan !== 'free') await saveHist(srcId, sn, destId, dn, elapsed);
       showComplModal(elapsed, st._videoFilesCount);
-      showCopyResultBanner();
     } else if (!st._authExpiredHandled) {
       setStatus('Đã dừng sao chép');
     }
@@ -1461,6 +1460,9 @@ async function saveHist(si, sn, di, dn, el) {
 let _lastComplVideoCount = 0;
 window.closeComplModal = () => {
   document.getElementById('complOv').classList.remove('on');
+  // Sau khi user đóng modal "Sao chép hoàn tất": ẩn 3 ô badge sống, hiện bảng kết quả thu gọn
+  document.getElementById('statsRow').style.display = 'none';
+  showCopyResultBanner();
   if (_lastComplVideoCount > 0) showVideoWarn(_lastComplVideoCount, 'after');
 };
 function showComplModal(elapsed, videoCount) {
@@ -1517,7 +1519,7 @@ function buildErrorListHTML(nodes) {
   return nodes.map(n => {
     const breadcrumb = (n.path || n.name).split(' > ').join(' → ');
     const linkBtn = n.link ? '<a href="' + n.link + '" target="_blank" style="color:var(--text3);flex-shrink:0;display:inline-flex;margin-left:6px"><svg class="ic"><use href="#ic-ext"/></svg></a>' : '';
-    return '<div style="padding:10px 16px;border-bottom:1px solid #f1f3f5">' +
+    return '<div style="padding:10px 16px;border-bottom:1px solid #ffe3e3;background:#fff5f5">' +
       '<div style="font-size:13px;display:flex;align-items:center"><span style="font-weight:700;color:var(--text)">' + escH(n.name) + '</span><span style="color:var(--red);font-weight:600;margin-left:4px">— Lỗi: ' + escH(n.error || '') + '</span>' + linkBtn + '</div>' +
       '<div style="font-size:11.5px;color:var(--text3);margin-top:3px">' + escH(breadcrumb) + '</div>' +
     '</div>';
