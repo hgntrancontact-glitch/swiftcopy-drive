@@ -1165,10 +1165,6 @@ async function _runCopyInternal(isResume) {
     const topFolders = top.filter(i => i.mimeType === FMIME);
     const topFiles   = top.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME);
 
-    // Mọi node được ghi vào ô (slot) theo đúng index gốc trong topFiles/topFolders
-    // (đã giữ đúng thứ tự Drive API trả về, xem listItems() trong drive-api.js) thay
-    // vì push() ngay lúc worker hoàn thành (thứ tự đua, không phản ánh thứ tự Drive
-    // gốc) — rồi mới gộp vào mảng kết quả thật theo đúng thứ tự sau khi cả nhóm xong.
     const topFileNodes = new Array(topFiles.length);
     if (topFiles.length) {
       let fIdx = 0;
@@ -1184,6 +1180,7 @@ async function _runCopyInternal(isResume) {
           if (st.stopFlag) return;
           const node = { name: item.name, path: item.name, type: 'file', depth: 0, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
           topFileNodes[i] = node;
+          st.stats.rootFiles.push(node); (node.error ? st.stats.failedFiles : st.stats.copiedFiles).push(node);
           if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
           else        { st.stats.failed++; addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
           progInc(); updateProgInfo(item.name);
@@ -1193,7 +1190,6 @@ async function _runCopyInternal(isResume) {
       const fw = [];
       for (let w = 0; w < Math.min(CONCUR, topFiles.length); w++) fw.push(topFileWorker());
       await Promise.all(fw);
-      for (const n of topFileNodes) { if (!n) continue; st.stats.rootFiles.push(n); (n.error ? st.stats.failedFiles : st.stats.copiedFiles).push(n); }
     }
 
     if (!st.stopFlag && topFolders.length) {
@@ -1211,6 +1207,7 @@ async function _runCopyInternal(isResume) {
             st.stats.folders++; st.stats.topFolders++;
             node = { name: item.name, path: item.name, type: 'folder', depth: 0, error: null, children: [], _srcId: item.id };
             topFolderNodes[i] = node;
+            st.stats.folderList.push(node);
           }
           addLog('Thư mục: ' + item.name, 'folder'); progInc(); updateProgInfo(item.name);
           updStats(); saveSession();
@@ -1224,11 +1221,7 @@ async function _runCopyInternal(isResume) {
       }
       const workers = [];
       for (let w = 0; w < Math.min(FOLDER_CONCUR, topFolders.length); w++) workers.push(folderWorker());
-      // try/finally đảm bảo topFolderNodes luôn được commit vào folderList
-      // ngay cả khi Promise.all throw (vd: Lỗi nghiêm trọng / rate limit 403) —
-      // tránh modal THÀNH CÔNG thiếu folder cấp gốc sau khi copy bị ngắt đột ngột.
-      try { await Promise.all(workers); }
-      finally { for (const n of topFolderNodes) { if (n) st.stats.folderList.push(n); } }
+      await Promise.all(workers);
     }
 
     const elapsed = Math.round((Date.now() - t0) / 1000);
