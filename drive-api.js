@@ -16,9 +16,17 @@ const hdr = () => ({ Authorization: 'Bearer ' + st.gToken, 'Content-Type': 'appl
 // 429/500/502/503/504 = transient Drive-side errors; 0 = network-level error
 // (fetch failed/timed out/reset — message has no parseable HTTP status).
 // All of these should be retried before counting an item as a real failure.
+// 403 is handled separately: Drive uses it for both permission errors (real,
+// don't retry) and rate limits (temporary, must retry). See is403RateLimit().
 const RETRYABLE_CODES = [429, 500, 502, 503, 504, 0];
 const RETRY_ATTEMPTS   = 6;
 const retryDelay = i => Math.min(8000, Math.pow(2, i) * 500);
+// "User rate limit exceeded" / "rateLimitExceeded" — temporary quota hit,
+// retry with double backoff (up to 16s). Distinct from permission-denied 403.
+function is403RateLimit(e) {
+  const m = (e?.message || '').toLowerCase();
+  return m.includes('rate') && m.includes('limit');
+}
 
 // ── Core HTTP helpers ─────────────────────────────────────────
 export async function dget(path, p = {}) {
@@ -59,6 +67,7 @@ async function dgetRetry(path, p) {
       if (isAuthExpiredErr(e)) throw e;
       const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
       if (RETRYABLE_CODES.includes(c) && i < RETRY_ATTEMPTS - 1) { await sleep(retryDelay(i)); continue; }
+      if (c === 403 && is403RateLimit(e) && i < RETRY_ATTEMPTS - 1) { await sleep(Math.min(16000, retryDelay(i) * 2)); continue; }
       throw e;
     }
   }
@@ -73,6 +82,7 @@ async function dpostRetry(path, body) {
       if (isAuthExpiredErr(e)) throw e;
       const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
       if (RETRYABLE_CODES.includes(c) && i < RETRY_ATTEMPTS - 1) { await sleep(retryDelay(i)); continue; }
+      if (c === 403 && is403RateLimit(e) && i < RETRY_ATTEMPTS - 1) { await sleep(Math.min(16000, retryDelay(i) * 2)); continue; }
       throw e;
     }
   }
@@ -149,6 +159,7 @@ export async function copyFileSingle(item, destId) {
       if (isAuthExpiredErr(e)) throw e;
       const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
       if (RETRYABLE_CODES.includes(c)) { await sleep(retryDelay(i)); continue; }
+      if (c === 403 && is403RateLimit(e)) { await sleep(Math.min(16000, retryDelay(i) * 2)); continue; }
       if (c === 403) return { ok: false, reason: 'Không có quyền copy', sizeMB: 0 };
       if (c === 404) return { ok: false, reason: 'File không tìm thấy', sizeMB: 0 };
       return { ok: false, reason: e.message.slice(0, 60), sizeMB: 0 };
@@ -198,6 +209,7 @@ export async function copyVideoReUpload(item, destId) {
         if (isAuthExpiredErr(e)) throw e;
         const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
         if (RETRYABLE_CODES.includes(c)) { await sleep(retryDelay(attempt)); continue; }
+        if (c === 403 && is403RateLimit(e)) { await sleep(Math.min(16000, retryDelay(attempt) * 2)); continue; }
         if (c === 403) return { ok: false, reason: 'Không có quyền copy', sizeMB: 0 };
         if (c === 404) return { ok: false, reason: 'File không tìm thấy', sizeMB: 0 };
         return { ok: false, reason: e.message.slice(0, 60), sizeMB: 0 };
@@ -222,6 +234,7 @@ export async function testFileCopy(item, destId) {
       if (isAuthExpiredErr(e)) throw e;
       const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
       if (RETRYABLE_CODES.includes(c)) { await sleep(retryDelay(attempt)); continue; }
+      if (c === 403 && is403RateLimit(e)) { await sleep(Math.min(16000, retryDelay(attempt) * 2)); continue; }
       return c === 403 ? 'Không có quyền copy' : 'Lỗi API ' + c;
     }
   }
