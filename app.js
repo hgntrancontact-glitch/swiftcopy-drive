@@ -1700,7 +1700,7 @@ function updateFreeBanner() {
   const resetStr = new Date(resetAt + FREE_RESET_MS).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   banner.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;"><span>⚡</span><span>Gói Miễn phí — Còn <b>${remainMB}</b> MB / 500 MB (reset lúc <b>${resetStr}</b>)</span></div>
-    <button onclick="openUpgradeModal()" style="flex-shrink:0;background:#212529;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Nâng cấp lên Trọn đời →</button>`;
+    <button onclick="openUpgradeModal()" style="flex-shrink:0;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Nâng cấp lên Trọn đời →</button>`;
   banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;';
 }
 

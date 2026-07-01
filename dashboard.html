@@ -147,7 +147,7 @@
         Đang chờ xác nhận thanh toán
       </div>
       <p style="font-size:13.5px;color:#6c757d;line-height:1.75;margin-bottom:28px;">Yêu cầu của bạn đã được ghi nhận.<br>Admin sẽ kích hoạt tài khoản trong thời gian sớm nhất sau khi xác nhận thanh toán.</p>
-      <button onclick="location.reload()" style="display:inline-flex;align-items:center;gap:7px;background:#212529;color:#fff;border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:20px;">
+      <button onclick="location.reload()" style="display:inline-flex;align-items:center;gap:7px;background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:20px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-reset"/></svg>
         Kiểm tra lại
       </button>
@@ -318,23 +318,23 @@
             </div>
 
             <!-- SCAN SUMMARY BANNER (hiện sau khi bấm "Để tôi kiểm tra lại" trong scan modal) -->
-            <div id="scanSummaryBanner" style="display:none;margin-bottom:14px;border:1.5px solid #dc3545;border-radius:12px;background:#fff;overflow:hidden;flex-shrink:0">
-              <div style="display:flex;align-items:center;gap:7px;padding:10px 14px;background:#dc3545">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>
-                <span style="font-size:12.5px;font-weight:800;color:#fff;letter-spacing:.3px">KẾT QUẢ KIỂM TRA TRƯỚC</span>
+            <div id="scanSummaryBanner" style="display:none;margin-bottom:14px;border:1px solid #e9ecef;border-radius:12px;background:#fff;overflow:hidden;flex-shrink:0">
+              <div style="display:flex;align-items:center;gap:7px;padding:8px 14px;background:#f8f9fa;border-bottom:1px solid #e9ecef">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>
+                <span style="font-size:11px;font-weight:700;color:#495057;letter-spacing:.06em;text-transform:uppercase">Kết quả kiểm tra trước</span>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr">
-                <div id="scanSumOkCell" onclick="window.openScanDetailModal('ok')" style="padding:11px 10px;text-align:center;border-right:1px solid #f1f3f5;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px">
+                <div id="scanSumOkCell" onclick="window.openScanDetailModal('ok')" style="padding:10px 8px;text-align:center;background:#f8f9fa;border-radius:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#e6fcf5'" onmouseout="this.style.background='#f8f9fa'">
                   <div id="scanSumOkNum" style="font-size:22px;font-weight:900;color:#099268;line-height:1.1">0</div>
                   <div style="font-size:11px;color:#099268;font-weight:700;margin-top:3px">sẽ copy thành công</div>
                 </div>
-                <div id="scanSumErrCell" style="padding:11px 10px;text-align:center">
+                <div id="scanSumErrCell" style="padding:10px 8px;text-align:center;background:#f8f9fa;border-radius:8px">
                   <div id="scanSumErrNum" style="font-size:22px;font-weight:900;color:#adb5bd;line-height:1.1">0</div>
                   <div id="scanSumErrLabel" style="font-size:11px;color:#adb5bd;font-weight:700;margin-top:3px">sẽ lỗi</div>
                 </div>
               </div>
-              <div style="padding:9px 14px;border-top:1px solid #f1f3f5">
-                <button onclick="window.openScanDetailModal()" style="width:100%;background:#dc3545;color:#fff;border:none;border-radius:8px;padding:8px;font-size:13px;font-weight:800;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#c0202e'" onmouseout="this.style.background='#dc3545'">Xem chi tiết</button>
+              <div style="padding:0 10px 10px">
+                <button onclick="window.openScanDetailModal()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:8px;font-size:13px;font-weight:800;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Xem chi tiết</button>
               </div>
             </div>
 
@@ -708,7 +708,7 @@
       <div style="font-size:12px;color:#868e96;text-align:center;">Cần hỗ trợ? <a href="mailto:hgntran.contact@gmail.com" style="color:#212529;font-weight:700;text-decoration:none;">hgntran.contact@gmail.com</a></div>
       <!-- Button -->
       <div id="paymentUpgradeBtn" style="display:flex;flex-direction:column;gap:6px;">
-        <button onclick="showPaymentConfirm()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;">Hoàn tất thanh toán</button>
+        <button onclick="showPaymentConfirm()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;">Hoàn tất thanh toán</button>
         <div style="font-size:11px;color:#adb5bd;text-align:center;">Nhấn để gửi yêu cầu — admin sẽ xác nhận và kích hoạt sớm nhất</div>
       </div>
       <!-- Không dùng nữa — ẩn -->
@@ -769,7 +769,7 @@
     <div style="font-size:13px;color:#495057;margin-bottom:20px;line-height:1.7;">Sau khi bấm xác nhận, admin sẽ kiểm tra và kích hoạt gói <b>Premium trọn đời</b> của bạn sớm nhất có thể. Bạn có thể quay lại trang web để trải nghiệm ngay khi được kích hoạt.</div>
     <!-- Buttons -->
     <div style="display:flex;flex-direction:column;gap:8px;">
-      <button onclick="confirmPayment()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">Xác nhận — Đã chuyển khoản</button>
+      <button onclick="confirmPayment()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">Xác nhận — Đã chuyển khoản</button>
       <button onclick="backToPaymentModal()" style="width:100%;background:#f1f3f5;color:#495057;border:1.5px solid #e9ecef;border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Kiểm tra lại</button>
     </div>
   </div>

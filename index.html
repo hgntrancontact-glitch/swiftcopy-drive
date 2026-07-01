@@ -450,7 +450,7 @@
       </div>
       <!-- Email input -->
       <input id="loginEmailHint" type="email" placeholder="Nhập email Google của bạn" style="width:100%;box-sizing:border-box;border:1.5px solid #dee2e6;border-radius:10px;padding:10px 12px;font-size:14px;outline:none;color:#212529;margin-bottom:10px;" onfocus="this.style.borderColor='#ffc107'" onblur="this.style.borderColor='#dee2e6'"/>
-      <button onclick="handleLoginContinue()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:16px;">Tiếp tục →</button>
+      <button onclick="handleLoginContinue()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:16px;">Tiếp tục →</button>
       <!-- Terms -->
       <div style="font-size:11px;color:#adb5bd;text-align:center;line-height:1.65;">
         Bằng cách tiếp tục, bạn đồng ý với
@@ -478,7 +478,7 @@
         <input type="checkbox" id="loginWarnCheck" onchange="var btn=document.getElementById('loginWarnBtn');btn.disabled=!this.checked;btn.style.opacity=this.checked?'1':'0.5';" style="margin-top:2px;width:15px;height:15px;accent-color:#212529;flex-shrink:0;cursor:pointer;" />
         <span style="font-size:13px;color:#495057;line-height:1.65;">Tôi đã hiểu và muốn tiếp tục đăng nhập</span>
       </label>
-      <button id="loginWarnBtn" onclick="doLogin()" disabled style="width:100%;background:#212529;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;opacity:0.5;">
+      <button id="loginWarnBtn" onclick="doLogin()" disabled style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;opacity:0.5;">
         Xác nhận &amp; Đăng nhập với Google
       </button>
     </div>
@@ -495,11 +495,11 @@
     </div>
     <div class="plan-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
       <!-- FREE COLUMN -->
-      <div style="padding:20px 22px 22px;border-right:1px solid #e9ecef;">
+      <div style="padding:20px 22px 22px;border-right:1px solid #e9ecef;display:flex;flex-direction:column;">
         <div style="font-size:11px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Miễn phí</div>
         <div style="font-size:26px;font-weight:900;color:#212529;margin-bottom:4px;">0₫</div>
         <div style="font-size:11px;color:#adb5bd;margin-bottom:14px;">Không cần thanh toán</div>
-        <ul style="list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:7px;font-size:13px;">
+        <ul style="list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:7px;font-size:13px;flex:1;">
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Sao chép tốc độ cao file & thư mục</li>
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>500 MB / 5 giờ (tự reset)</li>
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Kiểm tra quyền trước khi copy</li>
@@ -509,16 +509,16 @@
         <button onclick="createFreeUser()" style="width:100%;background:#f1f3f5;color:#212529;border:1.5px solid #dee2e6;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">Dùng miễn phí</button>
       </div>
       <!-- PAID COLUMN -->
-      <div style="padding:20px 22px 22px;background:#fffbea;position:relative;">
+      <div style="padding:20px 22px 22px;background:#fffbea;position:relative;display:flex;flex-direction:column;">
         <div class="plan-badge-wobble" style="position:absolute;top:14px;right:14px;background:#ffc107;color:#212529;font-size:10px;font-weight:900;padding:2px 10px;border-radius:999px;">PHỔ BIẾN</div>
         <div style="font-size:11px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Trọn đời</div>
         <div style="margin-bottom:4px;"><span style="font-size:16px;font-weight:700;color:#adb5bd;text-decoration:line-through;">450.000 ₫</span> <span style="font-size:26px;font-weight:900;color:#212529;">250.000 ₫</span></div>
         <div style="font-size:11px;color:#adb5bd;margin-bottom:14px;">Mua 1 lần, dùng mãi mãi</div>
-        <ul style="list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:7px;font-size:13px;">
+        <ul style="list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:7px;font-size:13px;flex:1;">
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Sao chép tốc độ cao file & thư mục</b></li>
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Không giới hạn dung lượng</b></li>
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Sao chép video không giới hạn</b></li>
-          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Sao chép được file không có nút tải về</b></li>
+          <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Sao chép file không có nút tải về</b></li>
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Tự tiếp tục sau mất mạng/máy tắt</b></li>
         </ul>
         <button onclick="openPlanSelectPaid()" style="width:100%;background:#ffc107;color:#212529;border:1px solid #e6a800;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;">Đăng ký gói Trọn đời →</button>
@@ -569,7 +569,7 @@
       </div>
       <div style="font-size:12px;color:#868e96;text-align:center;">Cần hỗ trợ? <a href="mailto:hgntran.contact@gmail.com" style="color:#212529;font-weight:700;text-decoration:none;">hgntran.contact@gmail.com</a></div>
       <div id="paymentUpgradeBtn" style="display:flex;flex-direction:column;gap:6px;">
-        <button onclick="showPaymentConfirm()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;">Hoàn tất thanh toán</button>
+        <button onclick="showPaymentConfirm()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;">Hoàn tất thanh toán</button>
         <div style="font-size:11px;color:#adb5bd;text-align:center;">Nhấn để gửi yêu cầu — admin sẽ xác nhận và kích hoạt sớm nhất</div>
       </div>
       <div id="paymentLoginBtn" style="display:none;"></div>
@@ -590,7 +590,7 @@
     </div>
     <div style="font-size:13px;color:#495057;margin-bottom:20px;line-height:1.7;">Sau khi bấm xác nhận, admin sẽ kiểm tra và kích hoạt gói <b>Premium trọn đời</b> của bạn sớm nhất có thể. Bạn có thể quay lại trang web để trải nghiệm ngay khi được kích hoạt.</div>
     <div style="display:flex;flex-direction:column;gap:8px;">
-      <button onclick="confirmPayment()" style="width:100%;background:#212529;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">Xác nhận — Đã chuyển khoản</button>
+      <button onclick="confirmPayment()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">Xác nhận — Đã chuyển khoản</button>
       <button onclick="backToPaymentModal()" style="width:100%;background:#f1f3f5;color:#495057;border:1.5px solid #e9ecef;border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Kiểm tra lại</button>
     </div>
   </div>
