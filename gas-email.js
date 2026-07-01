@@ -126,7 +126,7 @@ function buildEmailHtml(opts) {
 // Gửi khi: người dùng lần đầu đăng nhập bằng Google, tài khoản được tạo trong Firestore
 // Payload: { type, userEmail, userName, plan }
 function handleNewUser(data) {
-  const subject = '[' + SITE_NAME + '] Người dùng mới đăng ký';
+  const subject = 'Người dùng mới đăng ký';
   const bodyHtml =
     '<p style="margin:0 0 4px;font-family:Arial,sans-serif">Có người dùng mới vừa đăng ký tài khoản trên ' + SITE_NAME + '.</p>' +
     _fieldTable(
@@ -141,14 +141,14 @@ function handleNewUser(data) {
     ctaText: 'Vào Admin Panel', ctaUrl: (data.siteUrl || SITE_URL) + '/admin.html',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
 // ── 2. CẢNH BÁO ADMIN: user bị kick đang cố đăng nhập lại ─────────
 // Gửi khi: người dùng có status='kicked' trong Firestore đăng nhập thành công
 // Payload: { type, userEmail, userName, reason }
 function handleKickAlert(data) {
-  const subject = '[' + SITE_NAME + '] Cảnh báo: user bị kick đăng nhập lại';
+  const subject = 'Cảnh báo: user bị kick đăng nhập lại';
   const bodyHtml =
     '<p style="margin:0 0 4px;font-family:Arial,sans-serif">Một user đã bị kick đang cố đăng nhập lại. Vui lòng kiểm tra.</p>' +
     _fieldTable(
@@ -164,14 +164,14 @@ function handleKickAlert(data) {
     ctaText: 'Vào Admin Panel', ctaUrl: (data.siteUrl || SITE_URL) + '/admin.html',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
 // ── 3. THÔNG BÁO USER: tài khoản đã được kích hoạt ────────────────
 // Gửi khi: admin nhấn "Kích hoạt" trong admin.html
 // Payload: { type, toEmail, userName, siteUrl }
 function handleApprove(data) {
-  const subject = '[' + SITE_NAME + '] Tài khoản đã được kích hoạt';
+  const subject = 'Tài khoản đã được kích hoạt';
   const bodyHtml =
     '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
     '<p style="margin:0;font-family:Arial,sans-serif">Tài khoản của bạn trên ' + SITE_NAME + ' đã được kích hoạt thành công. Bạn có thể bắt đầu sao chép Drive ngay bây giờ.</p>';
@@ -182,14 +182,14 @@ function handleApprove(data) {
     ctaText: 'Bắt đầu sao chép', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
 // ── 4. THÔNG BÁO USER: tài khoản bị khoá ──────────────────────────
 // Gửi khi: admin nhấn "Kick" và xác nhận trong admin.html
 // Payload: { type, toEmail, userName, reason, siteUrl }
 function handleKick(data) {
-  const subject = '[' + SITE_NAME + '] Tài khoản của bạn đã bị khoá';
+  const subject = 'Tài khoản của bạn đã bị khoá';
   const bodyHtml =
     '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
     '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Tài khoản của bạn trên ' + SITE_NAME + ' đã bị khoá.</p>' +
@@ -201,14 +201,14 @@ function handleKick(data) {
     ctaText: 'Liên hệ hỗ trợ', ctaUrl: (data.siteUrl || SITE_URL),
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
 // ── 6. THÔNG BÁO ADMIN: user yêu cầu nâng cấp lên Trọn đời ────────
 // Gửi khi: free user bấm "Tôi đã thanh toán — Chờ xác nhận" trong paymentModal
 // Payload: { type, userEmail, userName }
 function handleUpgradeRequest(data) {
-  const subject = '[' + SITE_NAME + '] Yêu cầu nâng cấp lên gói Trọn đời';
+  const subject = 'Yêu cầu nâng cấp lên gói Trọn đời';
   const bodyHtml =
     '<p style="margin:0 0 4px;font-family:Arial,sans-serif">Có người dùng vừa yêu cầu nâng cấp lên gói Trọn đời.</p>' +
     _fieldTable(
@@ -223,14 +223,14 @@ function handleUpgradeRequest(data) {
     ctaText: 'Duyệt nâng cấp', ctaUrl: (data.siteUrl || SITE_URL) + '/admin.html',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
 // ── 7. THÔNG BÁO USER: đã được nâng cấp lên gói Trọn đời ──────────
 // Gửi khi: admin nhấn "Duyệt nâng cấp" trong admin.html
 // Payload: { type, toEmail, userName, siteUrl }
 function handleUpgradeApproved(data) {
-  const subject = '[' + SITE_NAME + '] Tài khoản đã được nâng cấp lên gói Trọn đời';
+  const subject = 'Tài khoản đã được nâng cấp lên gói Trọn đời';
   const bodyHtml =
     '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
     '<p style="margin:0;font-family:Arial,sans-serif">Chúc mừng! Tài khoản của bạn trên ' + SITE_NAME + ' đã được nâng cấp thành công lên gói <b>Trọn đời</b>. Từ bây giờ bạn có thể sao chép không giới hạn, bao gồm video và lưu lịch sử đầy đủ.</p>';
@@ -241,14 +241,14 @@ function handleUpgradeApproved(data) {
     ctaText: 'Vào dashboard', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
 // ── 5. THÔNG BÁO USER: tài khoản được kích hoạt trở lại ───────────
 // Gửi khi: admin nhấn "Thêm lại" với user đã bị kick
 // Payload: { type, toEmail, userName, note, siteUrl }
 function handleReadd(data) {
-  const subject = '[' + SITE_NAME + '] Tài khoản của bạn đã được kích hoạt trở lại';
+  const subject = 'Tài khoản của bạn đã được kích hoạt trở lại';
   const bodyHtml =
     '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
     '<p style="margin:0' + (data.note ? ' 0 10px' : '') + ';font-family:Arial,sans-serif">Tài khoản của bạn trên ' + SITE_NAME + ' đã được khôi phục với gói <b>Trọn đời</b>.</p>' +
@@ -260,14 +260,14 @@ function handleReadd(data) {
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL),
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });;
 }
 
 // ── 8. THÔNG BÁO USER: đăng ký gói Miễn phí thành công ────────────
 // Gửi khi: user hoàn tất đăng ký gói Free (createFreeUser trong auth.js)
 // Payload: { type, toEmail, userName, siteUrl }
 function handleRegisterFreeSuccess(data) {
-  const subject = '[' + SITE_NAME + '] Đăng ký thành công gói Miễn phí!';
+  const subject = 'Đăng ký thành công gói Miễn phí!';
   const compareRow = (label, freeVal, freeColor, paidVal) =>
     '<tr>' +
       '<td style="padding:7px 6px;color:#495057;font-size:12.5px;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + label + '</td>' +
@@ -296,14 +296,14 @@ function handleRegisterFreeSuccess(data) {
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL),
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
 // ── 10. THÔNG BÁO USER: tài khoản bị xoá vĩnh viễn ─────────────────
 // Gửi khi: admin nhấn "Xoá" trong admin.html (deleteDoc Firestore)
 // Payload: { type, toEmail, userName, siteUrl }
 function handleAccountDeletedPermanently(data) {
-  const subject = '[' + SITE_NAME + '] Tài khoản của bạn đã bị xoá';
+  const subject = 'Tài khoản của bạn đã bị xoá';
   const bodyHtml =
     '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
     '<p style="margin:0;font-family:Arial,sans-serif">Tài khoản SwiftCopy.Drive gắn với email này đã bị xoá vĩnh viễn khỏi hệ thống, bao gồm toàn bộ lịch sử sử dụng. Nếu muốn tiếp tục sử dụng dịch vụ, bạn có thể dùng email này đăng ký lại như một tài khoản hoàn toàn mới bất kỳ lúc nào.</p>';
@@ -314,14 +314,14 @@ function handleAccountDeletedPermanently(data) {
     ctaText: 'Đăng ký lại', ctaUrl: (data.siteUrl || SITE_URL),
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
 // ── 11. THÔNG BÁO USER: admin nâng cấp lên Trọn đời ─────────────────
 // Gửi khi: admin đổi plan từ Free → Paid qua dropdown trong admin.html
 // Payload: { type, toEmail, userName, siteUrl }
 function handlePlanUpgradedByAdmin(data) {
-  const subject = '[' + SITE_NAME + '] Bạn vừa được nâng cấp lên gói Trọn đời!';
+  const subject = 'Bạn vừa được nâng cấp lên gói Trọn đời!';
   const bodyHtml =
     '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
     '<p style="margin:0;font-family:Arial,sans-serif">Tài khoản của bạn trên ' + SITE_NAME + ' vừa được admin nâng cấp lên gói <b>Trọn đời</b>. Từ bây giờ bạn có thể sao chép không giới hạn, bao gồm video và tự tiếp tục sau mất mạng/máy tắt.</p>';
@@ -332,14 +332,14 @@ function handlePlanUpgradedByAdmin(data) {
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
 // ── 12. THÔNG BÁO USER: admin hạ cấp xuống Miễn phí ─────────────────
 // Gửi khi: admin đổi plan từ Paid → Free qua dropdown trong admin.html
 // Payload: { type, toEmail, userName, siteUrl }
 function handlePlanDowngradedByAdmin(data) {
-  const subject = '[' + SITE_NAME + '] Tài khoản của bạn đã được chuyển về gói Miễn phí';
+  const subject = 'Tài khoản của bạn đã được chuyển về gói Miễn phí';
   const compareRow = (label, freeVal, freeColor, paidVal) =>
     '<tr>' +
       '<td style="padding:7px 6px;color:#495057;font-size:12.5px;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + label + '</td>' +
@@ -378,7 +378,7 @@ function handlePlanDowngradedByAdmin(data) {
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
 // ── 9. THÔNG BÁO USER: đã ghi nhận đăng ký gói Trọn đời, chờ duyệt ─
@@ -386,7 +386,7 @@ function handlePlanDowngradedByAdmin(data) {
 // (createPaidPendingUser trong auth.js)
 // Payload: { type, toEmail, userName, siteUrl }
 function handleRegisterPaidPending(data) {
-  const subject = '[' + SITE_NAME + '] Đã ghi nhận đăng ký gói Trọn đời';
+  const subject = 'Đã ghi nhận đăng ký gói Trọn đời';
   const bodyHtml =
     '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>, chúng tôi đã ghi nhận yêu cầu đăng ký gói <b>Trọn đời</b> của bạn trên ' + SITE_NAME + '. Đơn hàng đang được xác nhận thanh toán.</p>' +
     '<div style="background:#f8f9fa;border-radius:10px;padding:14px 16px;margin-bottom:14px;font-family:Arial,sans-serif">' +
@@ -401,5 +401,5 @@ function handleRegisterPaidPending(data) {
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL),
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
-  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
