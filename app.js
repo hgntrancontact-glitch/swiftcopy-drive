@@ -92,14 +92,16 @@ window.doPause = () => {
   st.pauseFlag = true;
   document.getElementById('btnPause').style.display  = 'none';
   document.getElementById('btnResume').style.display = 'block';
-  setProgress(null, null, 'paused');
+  const _pf = document.getElementById('progFill');
+  if (_pf && !_pf.className.includes('done')) _pf.className = 'prog-fill paused';
   addLog('Tạm dừng', 'warn');
 };
 window.doResume = () => {
   st.pauseFlag = false;
   document.getElementById('btnPause').style.display  = 'block';
   document.getElementById('btnResume').style.display = 'none';
-  setProgress(null, null, st.runMode === 'scan' ? 'scanning' : 'running');
+  const _pf = document.getElementById('progFill');
+  if (_pf && _pf.className.includes('paused')) _pf.className = 'prog-fill';
   addLog('Tiếp tục', 'info');
   releasePauseWaiters();
 };
@@ -291,7 +293,7 @@ async function deepLoadAllFolders(scanId) {
     walk(st.clItems);
     return found;
   }
-  const DEEP_CONCUR = 4;
+  const DEEP_CONCUR = 8;
   let unloaded = collectUnloaded();
   while (unloaded.length > 0) {
     if (st._deepScanId !== scanId) return;
@@ -1189,13 +1191,15 @@ async function _runCopyInternal(isResume) {
           const i = fIdx++; if (i >= topFiles.length) return;
           const item = topFiles[i];
           await pausePoint(); if (st.stopFlag) return;
-          if (dex.has(item.name)) { addLog('Đã có: ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
+          if (dex.has(item.name)) { addLog('Đã có: ' + item.name, 'skip'); updateProgInfo(item.name); updStats(); continue; }
           if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
           const res = await copyFileSingle(item, destId);
           if (st.stopFlag) return;
           const node = { name: item.name, path: item.name, type: 'file', depth: 0, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
           topFileNodes[i] = node;
-          st.stats.rootFiles.push(node); (node.error ? st.stats.failedFiles : st.stats.copiedFiles).push(node);
+          // Rebuild rootFiles from indexed array to keep Drive order (push = completion order).
+          st.stats.rootFiles = topFileNodes.filter(Boolean);
+          (node.error ? st.stats.failedFiles : st.stats.copiedFiles).push(node);
           if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
           else        { st.stats.failed++; addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
           progInc(); updateProgInfo(item.name);
@@ -1222,9 +1226,12 @@ async function _runCopyInternal(isResume) {
             st.stats.folders++; st.stats.topFolders++;
             node = { name: item.name, path: item.name, type: 'folder', depth: 0, error: null, children: [], _srcId: item.id };
             topFolderNodes[i] = node;
-            st.stats.folderList.push(node);
+            // Rebuild top-level slice in Drive order after each worker completes —
+            // live-push would insert in completion order (racing), not Drive order.
+            st.stats.folderList = [...topFolderNodes.filter(Boolean), ...st.stats.folderList.filter(f => f.depth > 0)];
+            progInc(); updateProgInfo(item.name);
           }
-          addLog('Thư mục: ' + item.name, 'folder'); progInc(); updateProgInfo(item.name);
+          addLog('Thư mục: ' + item.name, 'folder');
           updStats(); saveSession();
           const clItem = st.clItems.find(ci => ci.id === item.id);
           if (clItem && clItem.indeterminate && clItem.children) {
@@ -1274,7 +1281,8 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren, isResume)
   const folders      = items.filter(i => i.mimeType === FMIME);
   const files        = items.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && !dnames.has(i.name));
   const skippedFiles = items.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && dnames.has(i.name));
-  skippedFiles.forEach(i => { addLog('Đã có: ' + i.name, 'skip'); progInc(); updateProgInfo(i.name); });
+  // During resume, skipped files are already counted in _startDone — don't call progInc again.
+  skippedFiles.forEach(i => { addLog('Đã có: ' + i.name, 'skip'); if (!isResume) progInc(); updateProgInfo(i.name); });
   if (skippedFiles.length) updStats();
   const fileNodes = new Array(files.length);
   let fIdx = 0;
@@ -1312,7 +1320,10 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren, isResume)
       st.stats.folders++;
       const node = { name: f.name, path: fp, type: 'folder', depth, error: null, children: [] };
       folderNodes[i] = node;
-      addLog('Thư mục: ' + f.name, 'folder'); progInc(); updateProgInfo(f.name);
+      addLog('Thư mục: ' + f.name, 'folder');
+      // Resume: folder already existed in dest (dnames.has) → already counted in _startDone.
+      if (!isResume || !dnames.has(f.name)) progInc();
+      updateProgInfo(f.name);
       updStats();
       await copyRecTree(f.id, nid, fp, depth + 1, node.children, isResume);
     }
@@ -1340,7 +1351,8 @@ async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, c
   const folders      = filteredItems.filter(i => i.mimeType === FMIME);
   const files        = filteredItems.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && !dnames.has(i.name));
   const skippedFiles = filteredItems.filter(i => i.mimeType !== FMIME && i.mimeType !== SMIME && dnames.has(i.name));
-  skippedFiles.forEach(i => { addLog('Đã có: ' + i.name, 'skip'); progInc(); updateProgInfo(i.name); });
+  // During resume, skipped files are already counted in _startDone — don't call progInc again.
+  skippedFiles.forEach(i => { addLog('Đã có: ' + i.name, 'skip'); if (!isResume) progInc(); updateProgInfo(i.name); });
   if (skippedFiles.length) updStats();
   const fileNodes = new Array(files.length);
   let fIdx = 0;
@@ -1378,7 +1390,10 @@ async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, c
       st.stats.folders++;
       const node = { name: f.name, path: fp, type: 'folder', depth, error: null, children: [] };
       folderNodes[i] = node;
-      addLog('Thư mục: ' + f.name, 'folder'); progInc(); updateProgInfo(f.name);
+      addLog('Thư mục: ' + f.name, 'folder');
+      // Resume: folder already existed in dest (dnames.has) → already counted in _startDone.
+      if (!isResume || !dnames.has(f.name)) progInc();
+      updateProgInfo(f.name);
       updStats();
       const subCl = clItem.children ? clItem.children.find(c => c.id === f.id) : null;
       if (subCl && subCl.indeterminate) await copyRecTreeFiltered(f.id, nid, fp, depth + 1, node.children, subCl, isResume);

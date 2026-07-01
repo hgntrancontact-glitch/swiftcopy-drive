@@ -9,7 +9,7 @@ import { st, FMIME, pausePoint } from './state.js';
 const BASE = 'https://www.googleapis.com/drive/v3';
 const VIDEO_EXT  = /\.(mp4|mov|mkv|avi|wmv|flv|webm|m4v|mpg|mpeg|3gp|ts|m2ts)$/i;
 const VIDEO_MIME = /^video\//;
-const VIDEO_CONCUR = 6;  // max concurrent video download+reupload (memory safety)
+const VIDEO_CONCUR = 8;  // max concurrent video download+reupload (memory safety)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const hdr = () => ({ Authorization: 'Bearer ' + st.gToken, 'Content-Type': 'application/json' });
 
