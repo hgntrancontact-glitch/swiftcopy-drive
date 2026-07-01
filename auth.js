@@ -22,6 +22,7 @@ const firebaseConfig = {
 };
 
 const ADMIN_EMAIL = "hgntran.contact@gmail.com";
+const SITE_URL    = "https://swiftcopydrive.com";
 
 const fbApp    = initializeApp(firebaseConfig);
 const auth     = getAuth(fbApp);
@@ -329,8 +330,8 @@ function _gasPost(payload) {
 export function sendRegEmail(u)           { _gasPost({ type: 'new_registration', userEmail: u.email, userName: u.displayName || u.email, plan: 'free' }); }
 export function sendUpgradeRequestEmail(u){ _gasPost({ type: 'upgrade_request',  userEmail: u.email, userName: u.displayName || u.email }); }
 function _notifyAdminKicked(u, reason)    { _gasPost({ type: 'kick_alert',       userEmail: u.email, userName: u.displayName || u.email, reason: reason || '?' }); }
-function _sendRegisterFreeSuccessEmail(u) { _gasPost({ type: 'register_free_success', toEmail: u.email, userName: u.displayName || u.email }); }
-function _sendRegisterPaidPendingEmail(u) { _gasPost({ type: 'register_paid_pending',  toEmail: u.email, userName: u.displayName || u.email }); }
+function _sendRegisterFreeSuccessEmail(u) { _gasPost({ type: 'register_free_success', toEmail: u.email, userName: u.displayName || u.email, siteUrl: SITE_URL }); }
+function _sendRegisterPaidPendingEmail(u) { _gasPost({ type: 'register_paid_pending',  toEmail: u.email, userName: u.displayName || u.email, siteUrl: SITE_URL }); }
 
 // ── Plan selection ────────────────────────────────────────────
 function showPlanSelect() {
