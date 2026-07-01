@@ -91,13 +91,13 @@ function showAuthOK() {
 window.doPause = () => {
   st.pauseFlag = true;
   document.getElementById('btnPause').style.display  = 'none';
-  document.getElementById('btnResume').style.display = 'inline-flex';
+  document.getElementById('btnResume').style.display = 'block';
   setProgress(null, null, 'paused');
   addLog('Tạm dừng', 'warn');
 };
 window.doResume = () => {
   st.pauseFlag = false;
-  document.getElementById('btnPause').style.display  = 'inline-flex';
+  document.getElementById('btnPause').style.display  = 'block';
   document.getElementById('btnResume').style.display = 'none';
   setProgress(null, null, st.runMode === 'scan' ? 'scanning' : 'running');
   addLog('Tiếp tục', 'info');
