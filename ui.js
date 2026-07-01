@@ -49,7 +49,7 @@ function triggerFaqModal() { document.getElementById('helpPopover').style.displa
 function openEarnModal() { document.getElementById('earnModal').classList.add('active'); }
 function openStartModal() { document.getElementById('startModal').classList.add('active'); }
 
-document.getElementById('reviewBtn').addEventListener('click', function() {
+document.getElementById('reviewBtn')?.addEventListener('click', function() {
     selectedStars = 0; updateStarUI();
     document.getElementById('reviewTextArea').value = '';
     document.getElementById('feedbackField').classList.add('hidden');
