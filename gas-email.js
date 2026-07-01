@@ -91,11 +91,10 @@ function _fieldTable(rowsHtml) {
   return '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin-top:8px">' + rowsHtml + '</table>';
 }
 
-// logo SVG — vẽ lại đúng theo favicon.svg (rect bo góc vàng + chữ "S" + dấu mũi tên đỏ)
+// logo SVG — vẽ lại đúng theo favicon.svg (rect bo góc vàng + dấu mũi tên đỏ)
 const _LOGO_SVG =
   '<svg width="26" height="26" viewBox="0 0 64 64" style="display:block" xmlns="http://www.w3.org/2000/svg">' +
     '<rect x="2" y="2" width="60" height="60" rx="14" fill="#f5c518"/>' +
-    '<text x="32" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="38" fill="#111110">S</text>' +
     '<path d="M 45 17 L 53 17 M 49 13 L 53 17 L 49 21" fill="none" stroke="#e8291c" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>' +
   '</svg>';
 
