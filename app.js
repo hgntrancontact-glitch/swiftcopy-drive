@@ -38,6 +38,8 @@ let _stopPendingFn = null;
 let _calcAnimTimer = null;
 let _calcAnimStep  = 0;
 let _calcAnimSel   = 0;
+let _selectedBytesDirty = true;
+let _selectedBytesCache = 0;
 let _lastScanOkNodes     = [];
 let _lastScanErrNodes    = [];
 let _lastScanOkCount     = 0;
@@ -146,7 +148,7 @@ window.doReset = () => {
   while (st._videoWaiters.length) st._videoWaiters.shift()();
   st.stats = ns(); updStats();
   _stopCalcAnim();
-  st.clItems = []; st.clLoaded = false; st._totalDeepCount = 0;
+  st.clItems = []; st.clLoaded = false; st._totalDeepCount = 0; _selectedBytesDirty = true;
   document.getElementById('srcInput').value  = '';
   document.getElementById('destInput').value = '';
   document.getElementById('srcPreview').style.display  = 'none';
@@ -177,7 +179,7 @@ window.onInputChange = async (which) => {
 
   clearTimeout(st._previewTimers[which]);
   if (which === 'src') {
-    st.clItems = []; st.clLoaded = false; st._totalDeepCount = 0;
+    st.clItems = []; st.clLoaded = false; st._totalDeepCount = 0; _selectedBytesDirty = true;
     document.getElementById('checklistWrap').style.display = 'none';
     // Bug 2: reset khu vực Tiến trình đồng bộ khi đổi link nguồn
     if (st.runMode === 'idle') {
@@ -227,6 +229,7 @@ async function loadChecklist(srcId) {
 
   try {
     const top = await listItems(srcId);
+    _selectedBytesDirty = true;
     st.clItems = top.map(item => ({
       id: item.id, name: item.name,
       mimeType: item.mimeType,
@@ -311,6 +314,7 @@ async function deepLoadAllFolders(scanId) {
           children: c.mimeType === FMIME ? null : [],
           parentId: item.id
         }));
+        _selectedBytesDirty = true;
       } catch (e2) {
         if (isAuthExpiredErr(e2)) { handleAuthExpired(); return; }
         item.children = [];
@@ -355,6 +359,7 @@ async function fastVideoScan(scanId, rootItem) {
               children: c.mimeType === FMIME ? null : [],
               parentId: folder.id
             }));
+            _selectedBytesDirty = true;
           }
           children = folder.children;
         } catch (e2) {
@@ -447,6 +452,7 @@ window.clToggleExpand = async (e, id) => {
         children: c.mimeType === FMIME ? null : [],
         parentId: item.id
       }));
+      _selectedBytesDirty = true;
       item.expanded = true;
     } catch (e) { if (isAuthExpiredErr(e)) { handleAuthExpired(); return; } toast('Lỗi tải thư mục: ' + e.message, 'err'); }
   } else {
@@ -456,6 +462,7 @@ window.clToggleExpand = async (e, id) => {
 };
 
 function setItemCheck(item, val) {
+  _selectedBytesDirty = true;
   item.checked = val; item.indeterminate = false;
   if (item.children) item.children.forEach(c => setItemCheck(c, val));
   updateParentState(item.parentId);
@@ -485,9 +492,13 @@ function findClItem(id) {
 }
 
 function calcSelectedBytes() {
+  if (!_selectedBytesDirty) return _selectedBytesCache;
   let total = 0;
   function walk(items) { for (const item of items) { if (item.mimeType !== FMIME && (item.checked || item.indeterminate)) total += (parseInt(item.size) || 0); if (item.children) walk(item.children); } }
-  walk(st.clItems); return total;
+  walk(st.clItems);
+  _selectedBytesCache = total;
+  _selectedBytesDirty = false;
+  return total;
 }
 
 function collectSelectedExtensions() {

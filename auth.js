@@ -8,7 +8,7 @@ import { initializeApp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp }
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { st, IS_DASHBOARD, FREE_MB_LIMIT, FREE_RESET_MS, releasePauseWaiters } from './state.js';
 
@@ -257,6 +257,7 @@ onAuthStateChanged(auth, async u => {
     st.gUser = null; st.gToken = null; st.gUserData = null;
     sessionStorage.removeItem('swiftcopy_gtok');
     if (st._kickPollTimer) { clearInterval(st._kickPollTimer); st._kickPollTimer = null; }
+    _stopUserDocListener();
     const mResult0 = getMaintenanceResult(mode, allowedEmails, null);
     if (mResult0 === 'maintenance') { st.sec?.('maintenance'); return; }
     window.location.href = '/';
@@ -280,6 +281,7 @@ onAuthStateChanged(auth, async u => {
       st.sec?.('app'); st.checkResume?.(); st.updateFreeBanner?.();
       if (st._kickPollTimer) clearInterval(st._kickPollTimer);
       st._kickPollTimer = setInterval(_pollKickStatus, 30000);
+      _startUserDocListener(u.uid);
     } else if (st.gUserData?.status === 'kicked') {
       st.sec?.('kicked');
       const el = document.getElementById('kickedReasonText');
@@ -307,6 +309,40 @@ async function _pollKickStatus() {
       if (el) el.textContent = d.kickReason ? `Lý do: ${d.kickReason}` : 'Lý do: Vi phạm điều khoản sử dụng.';
     }
   } catch (e) { console.warn('pollKickStatus', e); }
+}
+
+// ── Realtime kick/delete listener (onSnapshot) ────────────────
+let _userDocUnsubscribe = null;
+
+function _stopUserDocListener() {
+  if (_userDocUnsubscribe) { _userDocUnsubscribe(); _userDocUnsubscribe = null; }
+}
+
+function _startUserDocListener(uid) {
+  _stopUserDocListener();
+  _userDocUnsubscribe = onSnapshot(
+    doc(db, 'users', uid),
+    (snap) => {
+      // First snapshot fires immediately after subscribe — user is already approved at this point,
+      // so we skip it to avoid false positive. Only react to subsequent changes.
+      if (!snap.exists()) { _stopUserDocListener(); _reactToKick(null); return; }
+      const d = snap.data();
+      if (d.status === 'kicked' || !d.approved) { _stopUserDocListener(); _reactToKick(d); }
+    },
+    (err) => { console.warn('userDoc listener:', err.code); }
+  );
+}
+
+function _reactToKick(d) {
+  if (st._kickPollTimer) { clearInterval(st._kickPollTimer); st._kickPollTimer = null; }
+  st.stopFlag = true; st.pauseFlag = false;
+  st.abortCtrl?.abort(); st.abortCtrl = null;
+  releasePauseWaiters();
+  while (st._videoWaiters.length) st._videoWaiters.shift()();
+  st.gUserData = d ? { id: st.gUser?.uid, ...d } : null;
+  st.sec?.('kicked');
+  const el = document.getElementById('kickedReasonText');
+  if (el) el.textContent = d?.kickReason ? `Lý do: ${d.kickReason}` : 'Lý do: Vi phạm điều khoản sử dụng.';
 }
 
 async function checkApproval(u) {

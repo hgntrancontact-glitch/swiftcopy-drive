@@ -147,7 +147,7 @@
         Đang chờ xác nhận thanh toán
       </div>
       <p style="font-size:13.5px;color:#6c757d;line-height:1.75;margin-bottom:28px;">Yêu cầu của bạn đã được ghi nhận.<br>Admin sẽ kích hoạt tài khoản trong thời gian sớm nhất sau khi xác nhận thanh toán.</p>
-      <button onclick="location.reload()" style="display:inline-flex;align-items:center;gap:7px;background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:20px;">
+      <button onclick="location.reload()" style="display:inline-flex;align-items:center;gap:7px;background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:20px;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-reset"/></svg>
         Kiểm tra lại
       </button>
@@ -167,9 +167,9 @@
       </div>
       <p id="kickedReasonText" style="font-size:13.5px;color:#c0392b;font-weight:600;line-height:1.75;margin-bottom:8px;font-style:italic;min-height:20px;"></p>
       <p style="font-size:13.5px;color:#6c757d;line-height:1.75;margin-bottom:28px;">Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ admin để được hỗ trợ mở lại.</p>
-      <a href="mailto:hgntran.contact@gmail.com" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#212529;color:#fff;border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:16px;text-decoration:none;">Liên hệ admin</a>
+      <a href="mailto:hgntran.contact@gmail.com" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#212529;color:#fff;border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:16px;text-decoration:none;" onmouseover="this.style.background='#000'" onmouseout="this.style.background='#212529'">Liên hệ admin</a>
       <br>
-      <button onclick="window.doLogout()" style="background:none;border:none;color:#adb5bd;font-size:12px;font-weight:600;cursor:pointer;margin-top:8px;text-decoration:underline;">Đăng xuất</button>
+      <button onclick="window.doLogout()" style="background:none;border:none;color:#adb5bd;font-size:12px;font-weight:600;cursor:pointer;margin-top:8px;text-decoration:underline;" onmouseover="this.style.color='#868e96'" onmouseout="this.style.color='#adb5bd'">Đăng xuất</button>
     </div>
   </div>
 </div>
@@ -466,8 +466,8 @@
     <div id="freeVideoBlockList" style="max-height:160px;overflow-y:auto;margin-bottom:14px;"></div>
     <div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#7c5a00;margin-bottom:16px;line-height:1.5;">Nâng cấp Trọn đời để sao chép video không giới hạn — chỉ 250.000đ, dùng mãi mãi.</div>
     <div style="display:flex;flex-direction:column;gap:8px;">
-      <button onclick="closeFreeVideoBlockModal();openUpgradeModal()" style="background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">Nâng cấp Trọn đời</button>
-      <button onclick="closeFreeVideoBlockModal()" style="background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Đã hiểu, để tôi bỏ chọn video</button>
+      <button onclick="closeFreeVideoBlockModal();openUpgradeModal()" style="background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Nâng cấp Trọn đời</button>
+      <button onclick="closeFreeVideoBlockModal()" style="background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f1f3f5'">Đã hiểu, để tôi bỏ chọn video</button>
     </div>
   </div>
 </div>
@@ -652,7 +652,7 @@
 <!-- ══════════════ PAYMENT MODAL (giữ lại cho upgrade flow từ dashboard) ══════════════ -->
 <div class="modal-overlay" id="paymentModal" onclick="if(event.target===this)this.classList.remove('active')">
   <div class="modal-wrapper" style="max-width:520px;padding:0;border-radius:20px;overflow:hidden;position:relative;">
-    <button onclick="document.getElementById('paymentModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;">✕</button>
+    <button onclick="document.getElementById('paymentModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;" onmouseover="this.style.background='rgba(255,255,255,.3)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">✕</button>
     <!-- Header -->
     <div style="background:#212529;padding:20px 24px 16px;">
       <div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:4px;">Đăng ký gói Trọn đời</div>
@@ -708,7 +708,7 @@
       <div style="font-size:12px;color:#868e96;text-align:center;">Cần hỗ trợ? <a href="mailto:hgntran.contact@gmail.com" style="color:#212529;font-weight:700;text-decoration:none;">hgntran.contact@gmail.com</a></div>
       <!-- Button -->
       <div id="paymentUpgradeBtn" style="display:flex;flex-direction:column;gap:6px;">
-        <button onclick="showPaymentConfirm()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;">Hoàn tất thanh toán</button>
+        <button onclick="showPaymentConfirm()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Hoàn tất thanh toán</button>
         <div style="font-size:11px;color:#adb5bd;text-align:center;">Nhấn để gửi yêu cầu — admin sẽ xác nhận và kích hoạt sớm nhất</div>
       </div>
       <!-- Không dùng nữa — ẩn -->
@@ -727,8 +727,8 @@
     <div id="stopConfirmTitle" style="font-size:17px;font-weight:900;color:#212529;margin-bottom:8px;">Dừng sao chép?</div>
     <div style="font-size:13px;color:#868e96;line-height:1.65;margin-bottom:22px;">Tiến trình đang chạy sẽ bị huỷ.<br>Các file đã sao chép xong sẽ được giữ lại.</div>
     <div style="display:flex;gap:10px;">
-      <button onclick="confirmStop()" style="flex:1;background:#e24b4a;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;">Xác nhận</button>
-      <button onclick="cancelStop()" style="flex:1;background:transparent;color:#495057;border:2px solid #dee2e6;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">Huỷ</button>
+      <button onclick="confirmStop()" style="flex:1;background:#e24b4a;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e24b4a'">Xác nhận</button>
+      <button onclick="cancelStop()" style="flex:1;background:transparent;color:#495057;border:2px solid #dee2e6;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='#f1f3f5'" onmouseout="this.style.background='transparent'">Huỷ</button>
     </div>
   </div>
 </div>
@@ -744,8 +744,8 @@
       <div style="font-size:13px;color:#495057;margin-bottom:6px;">Đã sử dụng: <b id="freeLimitUsedMB">500</b> MB / 500 MB</div>
       <div style="font-size:13px;color:#495057;margin-bottom:18px;">Hạn mức tự reset sau: <b id="freeLimitCountdown" style="font-size:18px;color:#212529;font-family:monospace;">0:00:00</b></div>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <button onclick="openUpgradeFromLimit()" style="background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">Nâng cấp lên Trọn đời — Không giới hạn</button>
-        <button onclick="closeFreeLimitModal()" style="background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Chờ reset tự động</button>
+        <button onclick="openUpgradeFromLimit()" style="background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Nâng cấp lên Trọn đời — Không giới hạn</button>
+        <button onclick="closeFreeLimitModal()" style="background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f1f3f5'">Chờ reset tự động</button>
       </div>
     </div>
   </div>
@@ -769,8 +769,8 @@
     <div style="font-size:13px;color:#495057;margin-bottom:20px;line-height:1.7;">Sau khi bấm xác nhận, admin sẽ kiểm tra và kích hoạt gói <b>Premium trọn đời</b> của bạn sớm nhất có thể. Bạn có thể quay lại trang web để trải nghiệm ngay khi được kích hoạt.</div>
     <!-- Buttons -->
     <div style="display:flex;flex-direction:column;gap:8px;">
-      <button onclick="confirmPayment()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;">Xác nhận — Đã chuyển khoản</button>
-      <button onclick="backToPaymentModal()" style="width:100%;background:#f1f3f5;color:#495057;border:1.5px solid #e9ecef;border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;">Kiểm tra lại</button>
+      <button onclick="confirmPayment()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Xác nhận — Đã chuyển khoản</button>
+      <button onclick="backToPaymentModal()" style="width:100%;background:#f1f3f5;color:#495057;border:1.5px solid #e9ecef;border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f1f3f5'">Kiểm tra lại</button>
     </div>
   </div>
 </div>

@@ -10,6 +10,7 @@ const BASE = 'https://www.googleapis.com/drive/v3';
 const VIDEO_EXT  = /\.(mp4|mov|mkv|avi|wmv|flv|webm|m4v|mpg|mpeg|3gp|ts|m2ts)$/i;
 const VIDEO_MIME = /^video\//;
 const VIDEO_CONCUR = 8;  // max concurrent video download+reupload (memory safety)
+const STREAM_THRESHOLD = 50 * 1024 * 1024; // ≥50MB: stream download→upload without blob buffering
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const hdr = () => ({ Authorization: 'Bearer ' + st.gToken, 'Content-Type': 'application/json' });
 
@@ -197,28 +198,61 @@ export async function copyVideoReUpload(item, destId) {
       await pausePoint(); if (st.stopFlag) return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
       try {
         if (!st.gToken) throw new Error('NO_TOKEN');
+        const mime     = item.mimeType || 'application/octet-stream';
+        const fileSize = parseInt(item.size) || 0;
         const dlRes = await fetch(BASE + '/files/' + item.id + '?alt=media&supportsAllDrives=true',
           { headers: { Authorization: 'Bearer ' + st.gToken }, signal: st.abortCtrl?.signal });
         if (dlRes.status === 401) throw new Error('AUTH_EXPIRED: video dl');
         if (!dlRes.ok) { const t = await dlRes.text(); throw new Error('Drive ' + dlRes.status + ': ' + t.slice(0, 80)); }
-        const blob = await dlRes.blob();
-        const mime = item.mimeType || 'application/octet-stream';
-        const meta = JSON.stringify({ name: item.name, parents: [destId], mimeType: mime });
-        const boundary = 'swiftcopy_vid_' + Date.now().toString(36);
-        const CRLF = '\r\n';
-        const upBody = new Blob([
-          '--' + boundary + CRLF + 'Content-Type: application/json; charset=UTF-8' + CRLF + CRLF + meta + CRLF,
-          '--' + boundary + CRLF + 'Content-Type: ' + mime + CRLF + CRLF,
-          blob,
-          CRLF + '--' + boundary + '--'
-        ]);
-        const upRes = await fetch(
-          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,size',
-          { method: 'POST', headers: { Authorization: 'Bearer ' + st.gToken, 'Content-Type': 'multipart/related; boundary=' + boundary }, body: upBody, signal: st.abortCtrl?.signal });
-        if (upRes.status === 401) throw new Error('AUTH_EXPIRED: video ul');
-        if (!upRes.ok) { const t = await upRes.text(); throw new Error('Drive ' + upRes.status + ': ' + t.slice(0, 80)); }
-        const resp = await upRes.json();
-        return { ok: true, sizeMB: (parseInt(resp.size) || 0) / (1024 * 1024) };
+
+        let resp;
+        if (fileSize > STREAM_THRESHOLD) {
+          // ── Streaming path: pipe download ReadableStream directly into a resumable upload.
+          // Avoids materialising the entire video as a Blob in browser RAM.
+          // Step 1: initiate a resumable upload session → get session URI.
+          const initRes = await fetch(
+            'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,size',
+            { method: 'POST',
+              headers: { Authorization: 'Bearer ' + st.gToken,
+                         'Content-Type': 'application/json',
+                         'X-Upload-Content-Type': mime,
+                         'X-Upload-Content-Length': String(fileSize) },
+              body: JSON.stringify({ name: item.name, parents: [destId], mimeType: mime }),
+              signal: st.abortCtrl?.signal });
+          if (!initRes.ok) { const t = await initRes.text(); throw new Error('Drive ' + initRes.status + ': ' + t.slice(0, 80)); }
+          const sessionUri = initRes.headers.get('Location');
+          if (!sessionUri) throw new Error('Drive: no upload session URI');
+          // Step 2: PUT the download body (ReadableStream) straight into the resumable session.
+          const upRes = await fetch(sessionUri,
+            { method: 'PUT',
+              headers: { 'Content-Type': mime, 'Content-Length': String(fileSize) },
+              body: dlRes.body,
+              // duplex is required by some browsers when body is a stream
+              duplex: 'half',
+              signal: st.abortCtrl?.signal });
+          if (upRes.status === 401) throw new Error('AUTH_EXPIRED: video ul');
+          if (!upRes.ok) { const t = await upRes.text(); throw new Error('Drive ' + upRes.status + ': ' + t.slice(0, 80)); }
+          resp = await upRes.json();
+        } else {
+          // ── Blob path for small videos (< 50 MB): keep original multipart approach.
+          const blob = await dlRes.blob();
+          const meta = JSON.stringify({ name: item.name, parents: [destId], mimeType: mime });
+          const boundary = 'swiftcopy_vid_' + Date.now().toString(36);
+          const CRLF = '\r\n';
+          const upBody = new Blob([
+            '--' + boundary + CRLF + 'Content-Type: application/json; charset=UTF-8' + CRLF + CRLF + meta + CRLF,
+            '--' + boundary + CRLF + 'Content-Type: ' + mime + CRLF + CRLF,
+            blob,
+            CRLF + '--' + boundary + '--'
+          ]);
+          const upRes = await fetch(
+            'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,size',
+            { method: 'POST', headers: { Authorization: 'Bearer ' + st.gToken, 'Content-Type': 'multipart/related; boundary=' + boundary }, body: upBody, signal: st.abortCtrl?.signal });
+          if (upRes.status === 401) throw new Error('AUTH_EXPIRED: video ul');
+          if (!upRes.ok) { const t = await upRes.text(); throw new Error('Drive ' + upRes.status + ': ' + t.slice(0, 80)); }
+          resp = await upRes.json();
+        }
+        return { ok: true, sizeMB: (parseInt(resp.size) || fileSize) / (1024 * 1024) };
       } catch (e) {
         if (e.name === 'AbortError') return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
         if (isAuthExpiredErr(e)) throw e;
