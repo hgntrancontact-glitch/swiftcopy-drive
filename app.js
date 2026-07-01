@@ -1277,53 +1277,54 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren, isResume)
   skippedFiles.forEach(i => { addLog('Đã có: ' + i.name, 'skip'); progInc(); updateProgInfo(i.name); });
   if (skippedFiles.length) updStats();
   const fileNodes = new Array(files.length);
-  if (files.length) {
-    let fIdx = 0;
-    const fw = async () => {
-      while (true) {
-        if (st.stopFlag) return;
-        const i = fIdx++; if (i >= files.length) return;
-        const item = files[i];
-        await pausePoint(); if (st.stopFlag) return;
-        const fp = path ? path + ' > ' + item.name : item.name;
-        if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
-        const res = await copyFileSingle(item, destId);
-        if (st.stopFlag) return;
-        const node = { name: item.name, path: fp, type: 'file', depth, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
-        fileNodes[i] = node;
-        if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
-        else        { st.stats.failed++; addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
-        progInc(); updateProgInfo(item.name);
-        updStats(); saveSession();
-      }
-    };
-    const ww = [];
-    for (let w = 0; w < Math.min(CONCUR, files.length); w++) ww.push(fw());
-    await Promise.all(ww);
-  }
+  let fIdx = 0;
+  const fileFn = async () => {
+    while (true) {
+      if (st.stopFlag) return;
+      const i = fIdx++; if (i >= files.length) return;
+      const item = files[i];
+      await pausePoint(); if (st.stopFlag) return;
+      const fp = path ? path + ' > ' + item.name : item.name;
+      if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
+      const res = await copyFileSingle(item, destId);
+      if (st.stopFlag) return;
+      const node = { name: item.name, path: fp, type: 'file', depth, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
+      fileNodes[i] = node;
+      if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
+      else        { st.stats.failed++; addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
+      progInc(); updateProgInfo(item.name);
+      updStats(); saveSession();
+    }
+  };
+  const fileW = [];
+  for (let w = 0; w < Math.min(CONCUR, files.length); w++) fileW.push(fileFn());
+
   const folderNodes = new Array(folders.length);
-  if (!st.stopFlag && folders.length) {
-    let idx = 0;
-    const worker = async () => {
-      while (true) {
-        const i = idx++; if (i >= folders.length) return;
-        await pausePoint(); if (st.stopFlag) return;
-        const f  = folders[i];
-        const fp = path ? path + ' > ' + f.name : f.name;
-        const nid = await mkFolder(f.name, destId);
-        if (st.stopFlag) return;
-        st.stats.folders++;
-        const node = { name: f.name, path: fp, type: 'folder', depth, error: null, children: [] };
-        folderNodes[i] = node;
-        addLog('Thư mục: ' + f.name, 'folder'); progInc(); updateProgInfo(f.name);
-        updStats();
-        await copyRecTree(f.id, nid, fp, depth + 1, node.children, isResume);
-      }
-    };
-    const workers = [];
-    for (let w = 0; w < Math.min(FOLDER_CONCUR, folders.length); w++) workers.push(worker());
-    await Promise.all(workers);
-  }
+  let fldIdx = 0;
+  const folderFn = async () => {
+    while (true) {
+      const i = fldIdx++; if (i >= folders.length) return;
+      await pausePoint(); if (st.stopFlag) return;
+      const f  = folders[i];
+      const fp = path ? path + ' > ' + f.name : f.name;
+      const nid = await mkFolder(f.name, destId);
+      if (st.stopFlag) return;
+      st.stats.folders++;
+      const node = { name: f.name, path: fp, type: 'folder', depth, error: null, children: [] };
+      folderNodes[i] = node;
+      addLog('Thư mục: ' + f.name, 'folder'); progInc(); updateProgInfo(f.name);
+      updStats();
+      await copyRecTree(f.id, nid, fp, depth + 1, node.children, isResume);
+    }
+  };
+  const folderW = [];
+  for (let w = 0; w < Math.min(FOLDER_CONCUR, folders.length); w++) folderW.push(folderFn());
+
+  // Files và folders ở cùng cấp chạy SONG SONG — không đợi hết file mới bắt đầu
+  // subfolder. Tránh throughput collapse khi folder chứa video nặng/rate-limit:
+  // subfolder workers khai thác băng thông song song thay vì chờ video xong.
+  await Promise.all([Promise.all(fileW), Promise.all(folderW)]);
+
   // Gom folder lên trước file ở cùng cấp, thứ tự tương đối giữ đúng thứ tự Drive gốc.
   for (const n of folderNodes) { if (!n) continue; st.stats.folderList.push(n); parentChildren.push(n); }
   for (const n of fileNodes)   { if (!n) continue; (n.error ? st.stats.failedFiles : st.stats.copiedFiles).push(n); parentChildren.push(n); }
@@ -1342,55 +1343,54 @@ async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, c
   skippedFiles.forEach(i => { addLog('Đã có: ' + i.name, 'skip'); progInc(); updateProgInfo(i.name); });
   if (skippedFiles.length) updStats();
   const fileNodes = new Array(files.length);
-  if (files.length) {
-    let fIdx = 0;
-    const fw = async () => {
-      while (true) {
-        if (st.stopFlag) return;
-        const i = fIdx++; if (i >= files.length) return;
-        const item = files[i];
-        await pausePoint(); if (st.stopFlag) return;
-        const fp = path ? path + ' > ' + item.name : item.name;
-        if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
-        const res = await copyFileSingle(item, destId);
-        if (st.stopFlag) return;
-        const node = { name: item.name, path: fp, type: 'file', depth, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
-        fileNodes[i] = node;
-        if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
-        else        { st.stats.failed++; addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
-        progInc(); updateProgInfo(item.name);
-        updStats(); saveSession();
-      }
-    };
-    const ww = [];
-    for (let w = 0; w < Math.min(CONCUR, files.length); w++) ww.push(fw());
-    await Promise.all(ww);
-  }
+  let fIdx = 0;
+  const fileFn = async () => {
+    while (true) {
+      if (st.stopFlag) return;
+      const i = fIdx++; if (i >= files.length) return;
+      const item = files[i];
+      await pausePoint(); if (st.stopFlag) return;
+      const fp = path ? path + ' > ' + item.name : item.name;
+      if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
+      const res = await copyFileSingle(item, destId);
+      if (st.stopFlag) return;
+      const node = { name: item.name, path: fp, type: 'file', depth, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
+      fileNodes[i] = node;
+      if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
+      else        { st.stats.failed++; addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
+      progInc(); updateProgInfo(item.name);
+      updStats(); saveSession();
+    }
+  };
+  const fileW = [];
+  for (let w = 0; w < Math.min(CONCUR, files.length); w++) fileW.push(fileFn());
+
   const folderNodes = new Array(folders.length);
-  if (!st.stopFlag && folders.length) {
-    let idx = 0;
-    const worker = async () => {
-      while (true) {
-        const i = idx++; if (i >= folders.length) return;
-        await pausePoint(); if (st.stopFlag) return;
-        const f  = folders[i];
-        const fp = path ? path + ' > ' + f.name : f.name;
-        const nid = await mkFolder(f.name, destId);
-        if (st.stopFlag) return;
-        st.stats.folders++;
-        const node = { name: f.name, path: fp, type: 'folder', depth, error: null, children: [] };
-        folderNodes[i] = node;
-        addLog('Thư mục: ' + f.name, 'folder'); progInc(); updateProgInfo(f.name);
-        updStats();
-        const subCl = clItem.children ? clItem.children.find(c => c.id === f.id) : null;
-        if (subCl && subCl.indeterminate) await copyRecTreeFiltered(f.id, nid, fp, depth + 1, node.children, subCl, isResume);
-        else await copyRecTree(f.id, nid, fp, depth + 1, node.children, isResume);
-      }
-    };
-    const workers = [];
-    for (let w = 0; w < Math.min(FOLDER_CONCUR, folders.length); w++) workers.push(worker());
-    await Promise.all(workers);
-  }
+  let fldIdx = 0;
+  const folderFn = async () => {
+    while (true) {
+      const i = fldIdx++; if (i >= folders.length) return;
+      await pausePoint(); if (st.stopFlag) return;
+      const f  = folders[i];
+      const fp = path ? path + ' > ' + f.name : f.name;
+      const nid = await mkFolder(f.name, destId);
+      if (st.stopFlag) return;
+      st.stats.folders++;
+      const node = { name: f.name, path: fp, type: 'folder', depth, error: null, children: [] };
+      folderNodes[i] = node;
+      addLog('Thư mục: ' + f.name, 'folder'); progInc(); updateProgInfo(f.name);
+      updStats();
+      const subCl = clItem.children ? clItem.children.find(c => c.id === f.id) : null;
+      if (subCl && subCl.indeterminate) await copyRecTreeFiltered(f.id, nid, fp, depth + 1, node.children, subCl, isResume);
+      else await copyRecTree(f.id, nid, fp, depth + 1, node.children, isResume);
+    }
+  };
+  const folderW = [];
+  for (let w = 0; w < Math.min(FOLDER_CONCUR, folders.length); w++) folderW.push(folderFn());
+
+  // Files và folders ở cùng cấp chạy SONG SONG (cùng pattern với copyRecTree).
+  await Promise.all([Promise.all(fileW), Promise.all(folderW)]);
+
   // Gom folder lên trước file ở cùng cấp, thứ tự tương đối giữ đúng thứ tự Drive gốc.
   for (const n of folderNodes) { if (!n) continue; st.stats.folderList.push(n); parentChildren.push(n); }
   for (const n of fileNodes)   { if (!n) continue; (n.error ? st.stats.failedFiles : st.stats.copiedFiles).push(n); parentChildren.push(n); }

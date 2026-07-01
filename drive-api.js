@@ -169,16 +169,31 @@ export async function copyFileSingle(item, destId) {
 }
 
 export async function copyVideoReUpload(item, destId) {
-  // Promise-based semaphore — waiter wakes instantly when a slot frees
+  // Acquire one slot from the Promise-based semaphore
   while (st._videoActive >= VIDEO_CONCUR) {
     if (st.stopFlag) return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
     await new Promise(r => st._videoWaiters.push(r));
     if (st.stopFlag) return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
   }
   st._videoActive++;
+  // Track whether this call currently holds a semaphore slot.
+  // On 403 rate-limit backoff we release the slot so other videos can proceed
+  // during the sleep, then re-acquire before retrying. The finally block only
+  // decrements when the slot is actually held to avoid double-decrement.
+  let slotHeld = true;
   try {
     st.addLog?.('Tải xuống+ghi video: ' + item.name, 'info');
     for (let attempt = 0; attempt < RETRY_ATTEMPTS; attempt++) {
+      // Re-acquire slot if we released it during a rate-limit sleep
+      if (!slotHeld) {
+        while (st._videoActive >= VIDEO_CONCUR) {
+          if (st.stopFlag) return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
+          await new Promise(r => st._videoWaiters.push(r));
+          if (st.stopFlag) return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
+        }
+        st._videoActive++;
+        slotHeld = true;
+      }
       await pausePoint(); if (st.stopFlag) return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
       try {
         if (!st.gToken) throw new Error('NO_TOKEN');
@@ -209,7 +224,15 @@ export async function copyVideoReUpload(item, destId) {
         if (isAuthExpiredErr(e)) throw e;
         const c = parseInt(e.message.match(/\d+/)?.[0] || '0');
         if (RETRYABLE_CODES.includes(c)) { await sleep(retryDelay(attempt)); continue; }
-        if (c === 403 && is403RateLimit(e)) { await sleep(Math.min(16000, retryDelay(attempt) * 2)); continue; }
+        if (c === 403 && is403RateLimit(e)) {
+          // Release slot during backoff so other videos can proceed in the meantime.
+          // Without this, all VIDEO_CONCUR slots stay blocked while sleeping → 0 throughput.
+          st._videoActive--;
+          st._videoWaiters.shift()?.();
+          slotHeld = false;
+          await sleep(Math.min(16000, retryDelay(attempt) * 2));
+          continue;
+        }
         if (c === 403) return { ok: false, reason: 'Không có quyền copy', sizeMB: 0 };
         if (c === 404) return { ok: false, reason: 'File không tìm thấy', sizeMB: 0 };
         return { ok: false, reason: e.message.slice(0, 60), sizeMB: 0 };
@@ -217,8 +240,10 @@ export async function copyVideoReUpload(item, destId) {
     }
     return { ok: false, reason: 'Hết số lần thử', sizeMB: 0 };
   } finally {
-    st._videoActive--;
-    st._videoWaiters.shift()?.(); // wake next waiter immediately
+    if (slotHeld) {
+      st._videoActive--;
+      st._videoWaiters.shift()?.();
+    }
   }
 }
 
