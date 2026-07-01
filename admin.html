@@ -288,11 +288,9 @@ tbody tr:last-child td{border-bottom:none}
 <!-- DELETE MODAL -->
 <div id="deleteModal" class="modal-ov">
   <div class="modal">
-    <div class="modal-h"><h3>Xoá tài khoản</h3></div>
+    <div class="modal-h"><h3>Xoá tài khoản vĩnh viễn</h3></div>
     <div class="modal-b">
-      <p id="deleteMsg">Xoá tài khoản này? User sẽ nhận email thông báo bị khoá và mất quyền truy cập.</p>
-      <label class="modal-label">Lý do khoá (bắt buộc — sẽ gửi trong email)</label>
-      <textarea id="deleteReason" class="modal-textarea" placeholder="Nhập lý do..."></textarea>
+      <p id="deleteMsg">Xoá tài khoản này? Thao tác không thể hoàn tác — toàn bộ dữ liệu và lịch sử sử dụng sẽ bị xoá vĩnh viễn.</p>
     </div>
     <div class="modal-f">
       <button class="btn-cancel" onclick="closeDeleteModal()">Huỷ</button>
@@ -431,6 +429,9 @@ function renderUsers(filter){
     const upgradeBadge = (u.upgradeRequestedAt && u.plan!=='paid')
       ? `<span class="badge yellow" style="margin-top:2px"><span class="badge-dot"></span>⬆ Chờ nâng cấp</span>`
       : '';
+    const planSelect = (u.status !== 'kicked')
+      ? `<select style="margin-top:5px;font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit" onchange="changePlan('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}',this.value)"><option value="free"${u.plan==='free'?' selected':''}>Miễn phí</option><option value="paid"${u.plan==='paid'?' selected':''}>Trọn đời</option></select>`
+      : '';
 
     // Trạng thái badge
     let statusBadge = '';
@@ -494,7 +495,7 @@ function renderUsers(filter){
         </div>
       </td>
       <td><span class="uid-txt">${u.id.slice(0,10)}…</span></td>
-      <td><div style="display:flex;flex-direction:column;gap:2px">${planBadge}${upgradeBadge}</div></td>
+      <td><div style="display:flex;flex-direction:column;gap:2px">${planBadge}${upgradeBadge}${planSelect}</div></td>
       <td>${statusBadge}</td>
       <td><span class="dt-txt">${dt}</span></td>
       <td>${actions}</td>
@@ -506,17 +507,14 @@ function esc(s){ return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 
 window.openDeleteModal = (uid, email, name) => {
   _deleteUid=uid; _deleteEmail=email; _deleteName=name;
-  document.getElementById('deleteMsg').textContent = `Xoá tài khoản "${name}" (${email})? User sẽ nhận email thông báo bị khoá và mất quyền truy cập vĩnh viễn.`;
-  document.getElementById('deleteReason').value = '';
+  document.getElementById('deleteMsg').textContent = `Xoá tài khoản "${name}" (${email})? Thao tác không thể hoàn tác — toàn bộ dữ liệu và lịch sử sử dụng sẽ bị xoá vĩnh viễn.`;
   document.getElementById('deleteModal').classList.add('on');
 };
 window.closeDeleteModal = () => { document.getElementById('deleteModal').classList.remove('on'); };
 window.doDeleteUser = async () => {
-  const reason = document.getElementById('deleteReason').value.trim();
-  if (!reason){ toast('Vui lòng nhập lý do!','warn'); return; }
   closeDeleteModal();
   try {
-    await callGAS({ type: 'account_kicked', toEmail: _deleteEmail, userName: _deleteName, reason, siteUrl: SITE_URL });
+    await callGAS({ type: 'account_deleted_permanently', toEmail: _deleteEmail, userName: _deleteName, siteUrl: SITE_URL });
     await deleteDoc(doc(db,'users',_deleteUid));
     toast(`✓ Đã xoá tài khoản ${_deleteEmail}`,'ok');
     await loadUsers(); await loadStats();
@@ -600,6 +598,17 @@ window.doReadd = async () => {
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };
 
+
+window.changePlan = async (uid, email, name, newPlan) => {
+  if (!newPlan) return;
+  try {
+    await updateDoc(doc(db,'users',uid),{ plan: newPlan });
+    const type = newPlan === 'paid' ? 'plan_upgraded_by_admin' : 'plan_downgraded_by_admin';
+    await callGAS({ type, toEmail: email, userName: name, siteUrl: SITE_URL });
+    toast(newPlan==='paid' ? '✓ Đã nâng cấp lên Trọn đời' : '✓ Đã hạ xuống gói Miễn phí', 'ok');
+    await loadUsers(); await loadStats();
+  } catch(e){ toast('Lỗi đổi gói: '+e.message,'err'); }
+};
 
 function sec(name){ ['login','denied','panel'].forEach(s=>{ const el=document.getElementById('s-'+s); if(el) el.style.display=s===name?'block':'none'; }); }
 

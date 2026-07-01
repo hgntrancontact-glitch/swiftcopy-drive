@@ -44,8 +44,11 @@ function doPost(e) {
       case 'account_readded':   handleReadd(data);          break;
       case 'upgrade_request':   handleUpgradeRequest(data); break;
       case 'upgrade_approved':  handleUpgradeApproved(data);break;
-      case 'register_free_success': handleRegisterFreeSuccess(data); break;
-      case 'register_paid_pending': handleRegisterPaidPending(data); break;
+      case 'register_free_success':       handleRegisterFreeSuccess(data);       break;
+      case 'register_paid_pending':        handleRegisterPaidPending(data);        break;
+      case 'account_deleted_permanently':  handleAccountDeletedPermanently(data);  break;
+      case 'plan_upgraded_by_admin':       handlePlanUpgradedByAdmin(data);        break;
+      case 'plan_downgraded_by_admin':     handlePlanDowngradedByAdmin(data);      break;
       default:
         throw new Error('Unknown type: ' + data.type);
     }
@@ -159,7 +162,7 @@ function handleKickAlert(data) {
     title: 'User bị kick đăng nhập lại',
     bodyHtml: bodyHtml,
     ctaText: 'Vào Admin Panel', ctaUrl: (data.siteUrl || SITE_URL) + '/admin.html',
-    ctaBg: '#dc3545', ctaColor: '#ffffff'
+    ctaBg: '#ffc107', ctaColor: '#212529'
   });
   GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html });
 }
@@ -196,7 +199,7 @@ function handleKick(data) {
     title: 'Tài khoản của bạn đã bị khoá',
     bodyHtml: bodyHtml,
     ctaText: 'Liên hệ hỗ trợ', ctaUrl: (data.siteUrl || SITE_URL),
-    ctaBg: '#212529', ctaColor: '#ffffff'
+    ctaBg: '#ffc107', ctaColor: '#212529'
   });
   GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
 }
@@ -291,6 +294,88 @@ function handleRegisterFreeSuccess(data) {
     title: 'Đăng ký thành công gói Miễn phí!',
     bodyHtml: bodyHtml,
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL),
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+}
+
+// ── 10. THÔNG BÁO USER: tài khoản bị xoá vĩnh viễn ─────────────────
+// Gửi khi: admin nhấn "Xoá" trong admin.html (deleteDoc Firestore)
+// Payload: { type, toEmail, userName, siteUrl }
+function handleAccountDeletedPermanently(data) {
+  const subject = '[' + SITE_NAME + '] Tài khoản của bạn đã bị xoá';
+  const bodyHtml =
+    '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
+    '<p style="margin:0;font-family:Arial,sans-serif">Tài khoản SwiftCopy.Drive gắn với email này đã bị xoá vĩnh viễn khỏi hệ thống, bao gồm toàn bộ lịch sử sử dụng. Nếu muốn tiếp tục sử dụng dịch vụ, bạn có thể dùng email này đăng ký lại như một tài khoản hoàn toàn mới bất kỳ lúc nào.</p>';
+  const html = buildEmailHtml({
+    iconBg: '#fff5f5', iconColor: '#dc3545', iconChar: '✕',
+    title: 'Tài khoản của bạn đã bị xoá',
+    bodyHtml: bodyHtml,
+    ctaText: 'Đăng ký lại', ctaUrl: (data.siteUrl || SITE_URL),
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+}
+
+// ── 11. THÔNG BÁO USER: admin nâng cấp lên Trọn đời ─────────────────
+// Gửi khi: admin đổi plan từ Free → Paid qua dropdown trong admin.html
+// Payload: { type, toEmail, userName, siteUrl }
+function handlePlanUpgradedByAdmin(data) {
+  const subject = '[' + SITE_NAME + '] Bạn vừa được nâng cấp lên gói Trọn đời!';
+  const bodyHtml =
+    '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
+    '<p style="margin:0;font-family:Arial,sans-serif">Tài khoản của bạn trên ' + SITE_NAME + ' vừa được admin nâng cấp lên gói <b>Trọn đời</b>. Từ bây giờ bạn có thể sao chép không giới hạn, bao gồm video và tự tiếp tục sau mất mạng/máy tắt.</p>';
+  const html = buildEmailHtml({
+    iconBg: '#e6fcf5', iconColor: '#099268', iconChar: '★',
+    title: 'Bạn vừa được nâng cấp lên Trọn đời!',
+    bodyHtml: bodyHtml,
+    ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });
+}
+
+// ── 12. THÔNG BÁO USER: admin hạ cấp xuống Miễn phí ─────────────────
+// Gửi khi: admin đổi plan từ Paid → Free qua dropdown trong admin.html
+// Payload: { type, toEmail, userName, siteUrl }
+function handlePlanDowngradedByAdmin(data) {
+  const subject = '[' + SITE_NAME + '] Tài khoản của bạn đã được chuyển về gói Miễn phí';
+  const compareRow = (label, freeVal, freeColor, paidVal) =>
+    '<tr>' +
+      '<td style="padding:7px 6px;color:#495057;font-size:12.5px;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + label + '</td>' +
+      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;color:' + freeColor + ';border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + freeVal + '</td>' +
+      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;font-weight:700;color:#a07820;background:#fffdf5;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + paidVal + '</td>' +
+    '</tr>';
+  const bodyHtml =
+    '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Tài khoản của bạn vừa được admin hạ từ gói <b>Trọn đời</b> về gói <b>Miễn phí</b>.</p>' +
+    '<div style="background:#fff5f5;border:1px solid #ffe3e3;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-family:Arial,sans-serif">' +
+      '<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#dc3545;font-family:Arial,sans-serif">Một số tính năng đã bị cắt giảm như:</p>' +
+      '<ul style="margin:0;padding-left:16px;color:#dc3545;font-size:13px;line-height:1.8">' +
+        '<li>Copy video không giới hạn</li>' +
+        '<li>Không giới hạn dung lượng</li>' +
+        '<li>Sao chép được file không có nút tải về</li>' +
+        '<li>Tự tiếp tục sau mất mạng/máy tắt</li>' +
+      '</ul>' +
+    '</div>' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:14px">' +
+      '<tr>' +
+        '<td style="padding:8px 6px;border-bottom:1px solid #e9ecef"></td>' +
+        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#495057;font-weight:700;border-bottom:1px solid #e9ecef;font-family:Arial,sans-serif">Miễn phí</td>' +
+        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#a07820;font-weight:800;background:#fffdf5;border-bottom:1px solid #f0d060;font-family:Arial,sans-serif">Trọn đời</td>' +
+      '</tr>' +
+      compareRow('Sao chép file &amp; thư mục', '✓', '#495057', '✓') +
+      compareRow('Dung lượng', '500MB / 5 giờ', '#495057', 'Không giới hạn') +
+      compareRow('Copy video', '✕', '#dc3545', '✓ Không giới hạn') +
+      compareRow('File không có nút tải', '✕', '#dc3545', '✓') +
+      compareRow('Tự resume mất mạng', '✕', '#dc3545', '✓') +
+    '</table>' +
+    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Quay lại <b>Trọn đời</b> chỉ <b>250.000đ</b> — dùng mãi mãi, không lo giới hạn lần nữa.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#fffbea', iconColor: '#d97706', iconChar: '↓',
+    title: 'Bạn vừa được hạ cấp xuống tài khoản Miễn phí',
+    bodyHtml: bodyHtml,
+    ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
   GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html });

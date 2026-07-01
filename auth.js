@@ -187,7 +187,7 @@ async function _routeLandingAuthedUser(u) {
         await signOut(auth);
         setTimeout(() => {
           window.openLoginModal('login');
-          showLoginError('Tài khoản này chưa được đăng ký. Vui lòng thực hiện đăng ký để tiếp tục.');
+          showLoginError('Tài khoản của bạn đã bị xoá trước đó. Vui lòng đăng ký lại trên trang chủ để tiếp tục sử dụng.');
         }, 150);
         return;
       }
