@@ -1191,7 +1191,7 @@ async function _runCopyInternal(isResume) {
       const fw = [];
       for (let w = 0; w < Math.min(CONCUR, topFiles.length); w++) fw.push(topFileWorker());
       await Promise.all(fw);
-      for (const n of topFileNodes) { if (!n) continue; (n.error ? st.stats.failedFiles : st.stats.copiedFiles).push(n); }
+      for (const n of topFileNodes) { if (!n) continue; st.stats.rootFiles.push(n); (n.error ? st.stats.failedFiles : st.stats.copiedFiles).push(n); }
     }
 
     if (!st.stopFlag && topFolders.length) {
@@ -1222,8 +1222,11 @@ async function _runCopyInternal(isResume) {
       }
       const workers = [];
       for (let w = 0; w < Math.min(FOLDER_CONCUR, topFolders.length); w++) workers.push(folderWorker());
-      await Promise.all(workers);
-      for (const n of topFolderNodes) { if (n) st.stats.folderList.push(n); }
+      // try/finally đảm bảo topFolderNodes luôn được commit vào folderList
+      // ngay cả khi Promise.all throw (vd: Lỗi nghiêm trọng / rate limit 403) —
+      // tránh modal THÀNH CÔNG thiếu folder cấp gốc sau khi copy bị ngắt đột ngột.
+      try { await Promise.all(workers); }
+      finally { for (const n of topFolderNodes) { if (n) st.stats.folderList.push(n); } }
     }
 
     const elapsed = Math.round((Date.now() - t0) / 1000);
@@ -1500,8 +1503,11 @@ function _filterSuccessChildren(nodes) {
 }
 function buildSuccessTree() {
   const rootFolders = st.stats.folderList.filter(f => f.depth === 0);
-  const rootFiles    = st.stats.copiedFiles.filter(f => f.depth === 0);
-  return _filterSuccessChildren([...rootFolders, ...rootFiles]);
+  // rootFiles = tất cả file cấp gốc (thành công + lỗi) theo đúng thứ tự Drive gốc.
+  // Không dùng _filterSuccessChildren — giữ lại mục lỗi trong children của folder
+  // để user có thể navigate vào từng cấp và thấy được nơi xảy ra lỗi.
+  const rootFiles = st.stats.rootFiles;
+  return [...rootFolders, ...rootFiles];
 }
 
 // Modal "LỖI" — danh sách phẳng các mục lỗi ở mọi cấp độ sâu.

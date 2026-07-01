@@ -100,16 +100,17 @@ export async function listItems(folderId) {
       pageSize: 1000,
       fields: 'nextPageToken,files(id,name,mimeType,size)',
       supportsAllDrives: true,
-      includeItemsFromAllDrives: true
+      includeItemsFromAllDrives: true,
+      orderBy: 'folder,name_natural'
     };
     if (pt) p.pageToken = pt;
     const r = await dgetRetry('/files', p);
     res.push(...(r.files || []));
     pt = r.nextPageToken;
   } while (pt);
-  // Không truyền orderBy — giữ đúng thứ tự gốc Drive API trả về (không tự sort A-Z).
-  // Chỉ gom folder lên trước file cùng cấp (stable partition — giữ nguyên thứ tự
-  // tương đối gốc bên trong từng nhóm folder/file).
+  // orderBy:'folder,name_natural' — Drive API trả folder trước (theo thứ tự tên tự nhiên),
+  // rồi file (theo thứ tự tên tự nhiên) — khớp với thứ tự Google Drive UI hiển thị dạng lưới.
+  // Stable partition giữ đúng grouping dù API có thể đôi khi trả xen kẽ.
   const folders = res.filter(i => i.mimeType === FMIME);
   const files   = res.filter(i => i.mimeType !== FMIME);
   return [...folders, ...files];

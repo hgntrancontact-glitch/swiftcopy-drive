@@ -11,7 +11,7 @@ export const FMIME = 'application/vnd.google-apps.folder';
 
 // ── Stats factory ─────────────────────────────────────────────
 export function ns() {
-  return { copied:0, failed:0, folders:0, topFolders:0, copiedFiles:[], failedFiles:[], folderList:[] };
+  return { copied:0, failed:0, folders:0, topFolders:0, copiedFiles:[], failedFiles:[], folderList:[], rootFiles:[] };
 }
 
 // ── Mutable state object ──────────────────────────────────────
