@@ -713,6 +713,8 @@ async function startScan() {
   document.getElementById('scanRepModal')?.classList.remove('active');
   document.getElementById('statsRow').style.display = 'none';
   document.getElementById('logBox').innerHTML = '';
+  hideScanSummaryBanner();
+  hideCopyResultBanner();
   setBtnMode('scan');
   setStatus('Đang chuẩn bị kiểm tra...');
 
