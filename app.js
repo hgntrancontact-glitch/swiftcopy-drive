@@ -844,6 +844,15 @@ function splitScanTree(nodes) {
   return { okNodes, errNodes };
 }
 
+function flattenScanErrors(nodes) {
+  const result = [];
+  for (const n of nodes) {
+    if (n.error) result.push(n);
+    if (n.children?.length) result.push(...flattenScanErrors(n.children));
+  }
+  return result;
+}
+
 function renderScanResult(tree, totalErr) {
   const modal   = document.getElementById('scanRepModal');
   const content = document.getElementById('scanRepContent');
@@ -858,13 +867,10 @@ function renderScanResult(tree, totalErr) {
   const headerIcon = '<svg style="width:26px;height:26px;color:#fff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>';
   const headerTitle = totalErr === 0 ? 'Kiểm tra xong — Không có lỗi!' : 'Phát hiện ' + totalErr + ' mục có vấn đề';
 
-  const okBtnStyle  = 'display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #c3fae8;background:#e6fcf5;color:#099268;transition:all .15s';
-  const errBtnStyle = totalErr > 0
-    ? 'display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #ffc9c9;background:#fff5f5;color:#dc3545;transition:all .15s'
-    : 'display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:default;pointer-events:none;opacity:0.6;border:1.5px solid #e9ecef;background:#f8f9fa;color:#adb5bd';
-  const errBtnClick = totalErr > 0 ? 'onclick="window.toggleScanDetail(\'err\')"' : '';
-  const okHover  = `onmouseenter="this.style.background='#d3f9d8';this.style.borderColor='#8ce99a'" onmouseleave="this.style.background='#e6fcf5';this.style.borderColor='#c3fae8'"`;
-  const errHover = totalErr > 0 ? `onmouseenter="this.style.background='#ffe3e3';this.style.borderColor='#ffa8a8'" onmouseleave="this.style.background='#fff5f5';this.style.borderColor='#ffe3e3'"` : '';
+  const okBadgeStyle  = 'display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;border:1.5px solid #c3fae8;background:#e6fcf5;color:#099268';
+  const errBadgeStyle = totalErr > 0
+    ? 'display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;border:1.5px solid #ffc9c9;background:#fff5f5;color:#dc3545'
+    : 'display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;opacity:0.6;border:1.5px solid #e9ecef;background:#f8f9fa;color:#adb5bd';
 
   content.innerHTML = `
   <div style="text-align:center;padding-bottom:20px;border-bottom:1px solid #f1f3f5;margin-bottom:20px">
@@ -872,26 +878,26 @@ function renderScanResult(tree, totalErr) {
     <div style="font-size:18px;font-weight:800;color:#212529;margin-bottom:4px">${headerTitle}</div>
     <div style="font-size:13px;color:#868e96">Kết quả kiểm tra quyền trước khi bắt đầu sao chép</div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-    <button id="scanRepOkBtn" onclick="window.toggleScanDetail('ok')" ${okHover} style="${okBtnStyle}">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+    <div id="scanRepOkBtn" style="${okBadgeStyle}">
       <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-check-c"/></svg>
       <b>${okCount}</b> sẽ copy thành công
-    </button>
-    <button id="scanRepErrBtn" ${errBtnClick} ${errHover} style="${errBtnStyle}">
+    </div>
+    <div id="scanRepErrBtn" style="${errBadgeStyle}">
       <svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><use href="#ic-warn"/></svg>
       <b>${totalErr}</b> sẽ lỗi
-    </button>
+    </div>
   </div>
-  <div id="scanDetailOk" style="display:none;margin-bottom:14px;border:1px solid #c3fae8;border-radius:10px;overflow:hidden;max-height:300px;overflow-y:auto">
-    <div class="tree-body" id="scanDetailOkBody"></div>
-  </div>
-  <div id="scanDetailErr" style="display:none;margin-bottom:14px;border:1px solid #ffe3e3;border-radius:10px;overflow:hidden;max-height:300px;overflow-y:auto">
+  <div id="scanDetailErr" style="display:${totalErr > 0 ? 'block' : 'none'};margin-bottom:12px;border:1px solid #ffe3e3;border-radius:10px;overflow:hidden;max-height:280px;overflow-y:auto">
     <div style="padding:10px 14px 4px;font-size:12px;color:#868e96;border-bottom:1px solid #fff0f0"><svg style="width:13px;height:13px;vertical-align:-2px;color:#adb5bd;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg>Vào Drive nguồn → chuột phải → <b>Chia sẻ</b> → thêm email bạn quyền <b>Người chỉnh sửa</b></div>
-    <div class="tree-body" id="scanDetailErrBody"></div>
+    <div id="scanDetailErrBody"></div>
+  </div>
+  <div id="scanDetailOk" style="display:block;margin-bottom:12px;border:1px solid #c3fae8;border-radius:10px;overflow:hidden;max-height:280px;overflow-y:auto">
+    <div class="tree-body" id="scanDetailOkBody"></div>
   </div>
   <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding-top:16px;border-top:1px solid #f1f3f5">
     <button onclick="window.closeScanReportReview()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1.5px solid #ffc9c9;background:#fff5f5;color:#fa5252;transition:all .15s">Để tôi kiểm tra lại</button>
-    <button onclick="window.closeScanReportAndStart()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;background:#dc3545;color:#fff;box-shadow:0 2px 8px rgba(220,53,69,.35);transition:all .15s">Bắt đầu sao chép ngay →</button>
+    <button onclick="window.closeScanReportAndStart()" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:1px solid #e6a800;background:#ffc107;color:#212529;box-shadow:0 2px 8px rgba(255,193,7,.35);transition:all .15s">Bắt đầu sao chép ngay →</button>
   </div>`;
 
   _setupScanDetailTree('ok', okNodes);
@@ -900,17 +906,21 @@ function renderScanResult(tree, totalErr) {
 }
 
 function _setupScanDetailTree(type, nodes) {
-  const bodyId = type === 'ok' ? 'scanDetailOkBody' : 'scanDetailErrBody';
-  const fnName = type === 'ok' ? '_scanRepOkToggle' : '_scanRepErrToggle';
-  const firstFolder = nodes.find(n => n.type === 'folder' && n.depth === 0);
+  const body = document.getElementById(type === 'ok' ? 'scanDetailOkBody' : 'scanDetailErrBody');
+  if (!body) return;
+  if (type === 'err') {
+    const flat = flattenScanErrors(nodes);
+    body.innerHTML = flat.length ? buildErrorListHTML(flat) : '<p style="color:#868e96;text-align:center;padding:20px;font-size:13px">Không có mục nào.</p>';
+    return;
+  }
+  const fnName = '_scanRepOkToggle';
   const openSet = new Set();
   window[fnName] = function (path) {
     togglePathSet(openSet, path);
-    const body = document.getElementById(bodyId);
-    if (body) body.innerHTML = buildTreeHTML(nodes, openSet, fnName);
+    body.innerHTML = buildTreeHTML(nodes, openSet, fnName);
   };
-  const body = document.getElementById(bodyId);
-  if (body) body.innerHTML = nodes.length ? buildTreeHTML(nodes, openSet, fnName) : '<p style="color:#868e96;text-align:center;padding:20px;font-size:13px">Không có mục nào.</p>';
+  body.innerHTML = nodes.length ? buildTreeHTML(nodes, openSet, fnName) : '<p style="color:#868e96;text-align:center;padding:20px;font-size:13px">Không có mục nào.</p>';
+  const firstFolder = nodes.find(n => n.type === 'folder' && n.depth === 0);
   if (firstFolder) window[fnName](firstFolder.path);
 }
 
@@ -999,11 +1009,15 @@ function _renderScanDetailTab(tab) {
     if (_lastScanTotalErr === 0) { errBtn.style.pointerEvents = 'none'; errBtn.style.opacity = '0.45'; }
   }
   if (hint) hint.style.display = tab === 'err' ? 'block' : 'none';
-  const isOk   = tab === 'ok';
-  const nodes  = isOk ? _lastScanOkNodes : _lastScanErrNodes;
-  const fnName = isOk ? '_scanDtlOkToggle' : '_scanDtlErrToggle';
+  const isOk  = tab === 'ok';
+  const nodes = isOk ? _lastScanOkNodes : _lastScanErrNodes;
+  if (!isOk) {
+    const flat = flattenScanErrors(nodes);
+    content.innerHTML = flat.length ? buildErrorListHTML(flat) : '<p style="color:#868e96;text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>';
+    return;
+  }
+  const fnName = '_scanDtlOkToggle';
   const openSet = new Set();
-  const firstFolder = nodes.find(n => n.type === 'folder' && n.depth === 0);
   window[fnName] = function (path) {
     togglePathSet(openSet, path);
     content.innerHTML = nodes.length
@@ -1013,6 +1027,7 @@ function _renderScanDetailTab(tab) {
   content.innerHTML = nodes.length
     ? buildTreeHTML(nodes, openSet, fnName)
     : '<p style="color:#868e96;text-align:center;padding:28px;font-size:13px">Không có mục nào.</p>';
+  const firstFolder = nodes.find(n => n.type === 'folder' && n.depth === 0);
   if (firstFolder) window[fnName](firstFolder.path);
 }
 

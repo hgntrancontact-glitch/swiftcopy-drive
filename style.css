@@ -1,3 +1,15 @@
+        @keyframes planBadgeWobble {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            20%       { transform: rotate(-6deg) scale(1.08); }
+            40%       { transform: rotate(6deg) scale(1.08); }
+            60%       { transform: rotate(-3deg) scale(1.04); }
+            80%       { transform: rotate(3deg) scale(1.04); }
+        }
+        .plan-badge-wobble {
+            animation: planBadgeWobble 2s ease-in-out infinite;
+            display: inline-block;
+        }
+
         @keyframes smoothPulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.6); }
             50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(255, 193, 7, 0); }
