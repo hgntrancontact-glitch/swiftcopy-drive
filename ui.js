@@ -21,11 +21,6 @@ const adminFaqData = [
 ];
 
 // Nội dung 3 trang chính sách — cập nhật trực tiếp tại đây khi có nội dung thật
-const policyData = {
-    terms:   { title: 'Điều khoản sử dụng',   content: 'Nội dung sẽ được cập nhật sớm.' },
-    privacy: { title: 'Chính sách bảo mật',   content: 'Nội dung sẽ được cập nhật sớm.' },
-    refund:  { title: 'Chính sách hoàn tiền', content: 'Nội dung sẽ được cập nhật sớm.' }
-};
 
 let selectedStars = 0;
 
@@ -47,7 +42,6 @@ function openZaloHelp() { document.getElementById('supportModal').classList.add(
 function openLangModal() { document.getElementById('langModal').classList.add('active'); }
 function triggerFaqModal() { document.getElementById('helpPopover').style.display = 'none'; openFaqModal(); }
 function openEarnModal() { document.getElementById('earnModal').classList.add('active'); }
-function openStartModal() { document.getElementById('startModal').classList.add('active'); }
 
 document.getElementById('reviewBtn')?.addEventListener('click', function() {
     selectedStars = 0; updateStarUI();
@@ -72,29 +66,7 @@ function submitReviewForm() {
     closeAllModals();
 }
 
-function openReviewListModal() {
-    const container = document.getElementById('reviewListContent'); container.innerHTML = "";
-    let html = "";
-    initialReviews.forEach((item, index) => {
-        let anonymized = anonymizeUserEmail(item.email);
-        let starString = "★".repeat(item.stars) + "☆".repeat(5 - item.stars);
-        const borderStyle = index === initialReviews.length - 1 ? '' : 'border-bottom:1px solid #f1f3f5;';
-        html += `<div style="padding:10px 0;${borderStyle}" id="reviewItem-${index}"><div class="flex justify-between" style="font-weight:700;font-size:12px;margin-bottom:4px;"><span class="text-black">${anonymized}</span><span class="text-[#ffca28]">${starString}</span></div><div style="font-size:12px;color:#6c757d;line-height:1.625;">${item.comment}</div></div>`;
-    });
-    container.innerHTML = html;
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            if (initialReviews.length > 6) {
-                const sixthItem = container.children[5];
-                const h = sixthItem.offsetTop + sixthItem.offsetHeight;
-                container.style.maxHeight = h + 'px';
-            } else {
-                container.style.maxHeight = '';
-            }
-            document.getElementById('reviewListModal').classList.add('active');
-        });
-    });
-}
+
 function anonymizeUserEmail(email) {
     if (!email.includes("@")) return email;
     let parts = email.split("@"); let name = parts[0]; let domain = parts[1];
@@ -125,12 +97,19 @@ function renderReviewsInAddModal() {
     });
 }
 
-// Mở modal chính sách với nội dung từ policyData
+// Mở modal chính sách — fetch nội dung từ legal/*.txt
 function openPolicyModal(type) {
-    const p = policyData[type]; if (!p) return;
-    document.getElementById('policyModalTitle').textContent = p.title;
-    document.getElementById('policyModalContent').innerHTML = p.content;
+    const titles = { terms: 'Điều khoản sử dụng', privacy: 'Chính sách bảo mật', refund: 'Chính sách hoàn tiền' };
+    const files  = { terms: 'legal/dieu-khoan.txt', privacy: 'legal/bao-mat.txt', refund: 'legal/hoan-tien.txt' };
+    if (!files[type]) return;
+    document.getElementById('policyModalTitle').textContent = titles[type];
+    const contentEl = document.getElementById('policyModalContent');
+    contentEl.textContent = 'Đang tải...';
     document.getElementById('policyModal').classList.add('active');
+    fetch(files[type])
+        .then(r => r.text())
+        .then(text => { contentEl.textContent = text; })
+        .catch(() => { contentEl.textContent = 'Không thể tải nội dung.'; });
 }
 
 // Mở hub modal "Chính sách & đánh giá" từ header dropdown

@@ -28,7 +28,7 @@
 
 const ADMIN_EMAIL = 'hgntran.contact@gmail.com'; // ← Email nhận thông báo admin
 const SITE_NAME   = 'SwiftCopy.Drive';
-const SITE_URL    = 'https://your-domain.com';    // ← URL web thật (dùng làm fallback)
+const SITE_URL    = 'https://swiftcopydrive.com';  // ← URL web thật (dùng làm fallback)
 
 // ── ENTRY POINT ────────────────────────────────────────────────────
 // GAS gọi doPost() mỗi khi web app nhận POST request

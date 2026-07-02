@@ -223,13 +223,36 @@ export async function copyVideoReUpload(item, destId) {
           const sessionUri = initRes.headers.get('Location');
           if (!sessionUri) throw new Error('Drive: no upload session URI');
           // Step 2: PUT the download body (ReadableStream) straight into the resumable session.
-          const upRes = await fetch(sessionUri,
-            { method: 'PUT',
-              headers: { 'Content-Type': mime, 'Content-Length': String(fileSize) },
-              body: dlRes.body,
-              // duplex is required by some browsers when body is a stream
-              duplex: 'half',
-              signal: st.abortCtrl?.signal });
+          // duplex:'half' is not supported on Firefox/Safari — fall back to blob+multipart on TypeError.
+          let upRes;
+          try {
+            upRes = await fetch(sessionUri,
+              { method: 'PUT',
+                headers: { 'Content-Type': mime, 'Content-Length': String(fileSize) },
+                body: dlRes.body,
+                duplex: 'half',
+                signal: st.abortCtrl?.signal });
+          } catch (duplexErr) {
+            if (!(duplexErr instanceof TypeError && duplexErr.message.toLowerCase().includes('duplex'))) throw duplexErr;
+            // Re-download fresh — dlRes.body stream may be partially consumed
+            const fbDl = await fetch(BASE + '/files/' + item.id + '?alt=media&supportsAllDrives=true',
+              { headers: { Authorization: 'Bearer ' + st.gToken }, signal: st.abortCtrl?.signal });
+            if (fbDl.status === 401) throw new Error('AUTH_EXPIRED: video dl');
+            if (!fbDl.ok) { const t = await fbDl.text(); throw new Error('Drive ' + fbDl.status + ': ' + t.slice(0, 80)); }
+            const blob = await fbDl.blob();
+            const meta = JSON.stringify({ name: item.name, parents: [destId], mimeType: mime });
+            const boundary = 'swiftcopy_vid_' + Date.now().toString(36);
+            const CRLF = '\r\n';
+            const upBody = new Blob([
+              '--' + boundary + CRLF + 'Content-Type: application/json; charset=UTF-8' + CRLF + CRLF + meta + CRLF,
+              '--' + boundary + CRLF + 'Content-Type: ' + mime + CRLF + CRLF,
+              blob,
+              CRLF + '--' + boundary + '--'
+            ]);
+            upRes = await fetch(
+              'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,size',
+              { method: 'POST', headers: { Authorization: 'Bearer ' + st.gToken, 'Content-Type': 'multipart/related; boundary=' + boundary }, body: upBody, signal: st.abortCtrl?.signal });
+          }
           if (upRes.status === 401) throw new Error('AUTH_EXPIRED: video ul');
           if (!upRes.ok) { const t = await upRes.text(); throw new Error('Drive ' + upRes.status + ': ' + t.slice(0, 80)); }
           resp = await upRes.json();

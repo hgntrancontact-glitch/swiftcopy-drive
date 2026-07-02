@@ -19,7 +19,6 @@ const CONCUR         = 16;
 const FOLDER_CONCUR  = 8;
 const SCAN_FILE_CONCUR   = 12;
 const SCAN_FOLDER_CONCUR = 6;
-const VIDWARN_KEY    = 'swiftcopy_hide_video_warning';
 const SK             = 'swiftcopy_session';
 const _mOpen         = new Set();
 const BTN_BASE = {
@@ -82,11 +81,6 @@ function showNoAuth(title, msg) {
   document.getElementById('noAuthMsg').textContent   = msg   || 'Nhấn nút bên dưới để cấp quyền.';
   document.getElementById('noAuthBackdrop').classList.add('show');
   document.getElementById('noAuthPanel').classList.add('show');
-}
-function showAuthOK() {
-  const el = document.getElementById('authSuccessToast');
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 3500);
 }
 
 // ── PAUSE / RESUME ────────────────────────────────────────────
@@ -603,25 +597,6 @@ function updateClInfo() {
   }
 }
 
-function updateSrcTotalInfo() {
-  const el = document.getElementById('srcTotalSize');
-  if (!el || !st.clLoaded) return;
-  let totalBytes = 0, nativeCount = 0, folderCount = 0;
-  for (const item of st.clItems) {
-    if (item.mimeType === FMIME)  { folderCount++; continue; }
-    if (item.mimeType === SMIME)  { continue; }
-    if (item.mimeType.startsWith('application/vnd.google-apps.')) { nativeCount++; continue; }
-    totalBytes += item.size || 0;
-  }
-  const mb = totalBytes / (1024 * 1024);
-  const sizeStr = mb >= 1024 ? (mb / 1024).toFixed(2) + ' GB' : mb.toFixed(1) + ' MB';
-  const parts = [];
-  if (totalBytes > 0 || (!nativeCount && !folderCount)) parts.push('~' + sizeStr);
-  if (nativeCount > 0) parts.push(nativeCount + ' Google file');
-  if (folderCount > 0) parts.push(folderCount + ' thư mục');
-  el.textContent = 'Thư mục nguồn: ' + parts.join(' · ');
-  el.style.display = 'block';
-}
 
 window.clSelectAll   = () => { st.clItems.forEach(i => setItemCheck(i, true));  updateClInfo(); renderChecklist(); st.clItems.forEach(i => _maybeFastVideoScan(i, true)); };
 window.clDeselectAll = () => { st.clItems.forEach(i => setItemCheck(i, false)); updateClInfo(); renderChecklist(); };
@@ -760,6 +735,7 @@ async function startScan() {
     if (e.name === 'AbortError') { if (!st._authExpiredHandled) setStatus('Đã dừng kiểm tra'); return; }
     if (isAuthExpiredErr(e)) { handleAuthExpired(); return; }
     st.stopFlag = true; st.abortCtrl?.abort(); st.abortCtrl = null;
+    st.pauseFlag = false; releasePauseWaiters();
     addLog('Lỗi nghiêm trọng: ' + (e.message || e), 'err'); setStatus('Lỗi kiểm tra');
     if (e.message === 'NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!', 'Nhấn nút bên dưới để cấp quyền.');
   } finally {
@@ -937,13 +913,6 @@ function _setupScanDetailTree(type, nodes) {
   if (firstFolder) window[fnName](firstFolder.path);
 }
 
-window.toggleScanDetail = function (type) {
-  const okEl  = document.getElementById('scanDetailOk');
-  const errEl = document.getElementById('scanDetailErr');
-  if (!okEl || !errEl) return;
-  if (type === 'ok')  { const show = okEl.style.display === 'none';  okEl.style.display = show ? 'block' : 'none'; errEl.style.display = 'none'; }
-  else                { const show = errEl.style.display === 'none'; errEl.style.display = show ? 'block' : 'none'; okEl.style.display  = 'none'; }
-};
 
 window.closeScanReport = () => { document.getElementById('scanRepModal')?.classList.remove('active'); };
 window.closeScanReportReview = () => {
@@ -1074,45 +1043,14 @@ function countTreeNodes(nodes) {
   return c;
 }
 
-// ── VIDEO WARN (dead legacy + new modal) ─────────────────────
-async function countVideoFiles(items, clFilterChildren) {
-  let count = 0;
-  let workItems = items;
-  if (clFilterChildren) {
-    const allowedIds = new Set(clFilterChildren.filter(c => c.checked || c.indeterminate).map(c => c.id));
-    workItems = items.filter(i => allowedIds.has(i.id));
-  }
-  for (const item of workItems) {
-    await pausePoint(); if (st.stopFlag) return count;
-    if (item.mimeType === FMIME) {
-      let children = [];
-      try { children = await listItems(item.id); } catch { children = []; }
-      let subFilter = null;
-      if (clFilterChildren) { const clItem = clFilterChildren.find(c => c.id === item.id); if (clItem && clItem.indeterminate && clItem.children) subFilter = clItem.children; }
-      count += await countVideoFiles(children, subFilter);
-    } else if (item.mimeType !== SMIME) {
-      if (isVideoItem(item)) count++;
-    }
-  }
-  return count;
-}
-window.closeVidWarn  = () => { document.getElementById('vidWarnOv').classList.remove('on'); };
-window.confirmVidWarn = () => {
-  if (document.getElementById('vidWarnDontShow').checked) localStorage.setItem(VIDWARN_KEY, '1');
-  document.getElementById('vidWarnOv').classList.remove('on');
-  _runCopyInternal(st._pendingCopyResume);
-};
-
-function showVideoWarn(count, mode) {
-  st._videoWarnMode = mode;
+// ── VIDEO WARN ────────────────────────────────────────────────
+function showVideoWarn(count) {
   document.getElementById('videoWarnCount').textContent = count;
   const btn = document.getElementById('videoWarnBtn');
-  if (mode === 'before') { btn.textContent = 'Đã hiểu, bắt đầu sao chép'; btn.onclick = () => window.confirmVideoWarn(); }
-  else                   { btn.textContent = 'Đã hiểu'; btn.onclick = () => window.closeVideoWarn(); }
+  btn.textContent = 'Đã hiểu'; btn.onclick = () => window.closeVideoWarn();
   document.getElementById('videoWarnModal').classList.add('active');
 }
-window.confirmVideoWarn = () => { document.getElementById('videoWarnModal').classList.remove('active'); _runCopyInternal(st._pendingCopyResume); };
-window.closeVideoWarn   = () => { document.getElementById('videoWarnModal').classList.remove('active'); };
+window.closeVideoWarn = () => { document.getElementById('videoWarnModal').classList.remove('active'); };
 
 // ── COPY ──────────────────────────────────────────────────────
 window.startCopy = async (isResume) => {
@@ -1125,18 +1063,6 @@ window.startCopy = async (isResume) => {
   await _runCopyInternal(isResume);
 };
 
-function videoGate(item) {
-  st._videoSeenCount++;
-  if (localStorage.getItem(VIDWARN_KEY) === '1') return Promise.resolve();
-  if (st._videoWarnShown) return Promise.resolve();
-  st._videoWarnShown = true;
-  return new Promise(resolve => {
-    st._videoWarnResolve = resolve;
-    document.getElementById('vidWarnCount').textContent = '';
-    document.getElementById('vidWarnTitleNote').style.display = 'block';
-    document.getElementById('vidWarnOv').classList.add('on');
-  });
-}
 
 async function _runCopyInternal(isResume) {
   const sv = document.getElementById('srcInput').value.trim();
@@ -1272,6 +1198,7 @@ async function _runCopyInternal(isResume) {
     if (isAuthExpiredErr(e)) { handleAuthExpired(); return; }
     st.stopFlag = true; st.abortCtrl?.abort(); st.abortCtrl = null;
     while (st._videoWaiters.length) st._videoWaiters.shift()();
+    st.pauseFlag = false; releasePauseWaiters();
     addLog('Lỗi nghiêm trọng: ' + (e.message || e), 'err'); setStatus('Lỗi sao chép');
     if (e.message === 'NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!', 'Nhấn nút bên dưới để cấp quyền.');
   } finally {
@@ -1499,7 +1426,7 @@ window.closeComplModal = () => {
   // Sau khi user đóng modal "Sao chép hoàn tất": ẩn 3 ô badge sống, hiện bảng kết quả thu gọn
   document.getElementById('statsRow').style.display = 'none';
   showCopyResultBanner();
-  if (_lastComplVideoCount > 0) showVideoWarn(_lastComplVideoCount, 'after');
+  if (_lastComplVideoCount > 0) showVideoWarn(_lastComplVideoCount);
 };
 function showComplModal(elapsed, videoCount) {
   // Cùng công thức suy ra X - LỖI như updStats() — xem comment ở đó.
@@ -1528,17 +1455,7 @@ function hideCopyResultBanner() {
 }
 window.openCopyResultDetail = () => window.openModal(st.stats.failed > 0 ? 'failed' : 'result');
 
-// Drops failed-file nodes from a folder's children, recursively, without
-// mutating the original stats arrays — used to build a "successful items only"
-// tree for the THÀNH CÔNG/ĐÃ COPY detail view (folders are never marked failed).
-function _filterSuccessChildren(nodes) {
-  const out = [];
-  for (const n of nodes) {
-    if (n.type === 'file') { if (!n.error) out.push(n); continue; }
-    out.push({ ...n, children: _filterSuccessChildren(n.children) });
-  }
-  return out;
-}
+
 function buildSuccessTree() {
   const rootFolders = st.stats.folderList.filter(f => f.depth === 0);
   // rootFiles = tất cả file cấp gốc (thành công + lỗi) theo đúng thứ tự Drive gốc.
@@ -1827,17 +1744,6 @@ function setBtnMode(mode) {
   refreshFreeVideoLock();
 }
 
-let _pvLocal = 0, _pmLocal = 1;
-function setProgress(v, max, state) {
-  if (v !== null) _pvLocal = v; if (max !== null) _pmLocal = max;
-  const f = document.getElementById('progFill');
-  if (!f) return;
-  f.parentElement.classList.remove('indeterminate');
-  if (state === 'done')                          { f.style.width = '100%'; f.className = 'prog-fill done'; }
-  else if (state === 'paused')                   { f.className = 'prog-fill paused'; }
-  else if (state === 'scanning' || state === 'running') { _updateProgBar(); f.className = 'prog-fill ' + state; }
-  else { f.style.width = (_pmLocal ? Math.round(_pvLocal / _pmLocal * 100) : 0) + '%'; if (state) f.className = 'prog-fill ' + state; }
-}
 
 function setStatus(msg) {
   document.getElementById('statusLbl').textContent    = msg;

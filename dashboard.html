@@ -274,7 +274,6 @@
                   <button class="btn-ghost" onclick="clDeselectAll()">Bỏ chọn</button>
                 </div>
               </div>
-              <div id="srcTotalSize" style="display:none;font-size:11px;padding:4px 8px;color:#868e96;background:#fafafa;border-bottom:1px solid #f1f3f5;font-weight:600;"></div>
               <div id="clSizeInfo" style="display:none;font-size:12px;padding:5px 8px;color:#495057;background:#f8f9fa;border-bottom:1px solid #f1f3f5;"></div>
               <div class="checklist-body" id="checklistBody"
                 onmousedown="dragStart(event)"
@@ -405,30 +404,6 @@
   </div>
 </div>
 
-<!-- PRE-COPY VIDEO WARNING MODAL -->
-<div id="vidWarnOv" class="modal-overlay">
-  <div class="modal-wrapper" style="max-width:480px;padding:0">
-    <div class="px-5 py-3.5 border-b border-[#f1f3f5] bg-[#fffbea]">
-      <h3 class="text-[15px] font-extrabold flex items-center gap-2 text-[#d97706]"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-film"/></svg> Phát hiện file video</h3>
-    </div>
-    <div class="vidwarn-body">
-      <p id="vidWarnTitleNote">Thư mục bạn chọn có chứa <b id="vidWarnCount">0</b> file video. Trước khi tiếp tục, vui lòng lưu ý:</p>
-      <ul class="vidwarn-list">
-        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Trong 1–3 ngày đầu sau khi sao chép, video có thể chỉ phát ở độ phân giải 360p hoặc chưa hiển thị được — đây là hành vi bình thường của Google Drive, không phải lỗi từ quá trình sao chép.</li>
-        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Nguyên nhân là do Google cần thời gian xử lý và mã hóa lại (re-encode) các video dung lượng lớn hoặc thời lượng dài trên hệ thống của họ.</li>
-        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Sau 2–3 ngày, độ phân giải sẽ tự động được phục hồi về chất lượng gốc (720p / 1080p / 4K) mà không cần thao tác thêm.</li>
-        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Nếu video hiển thị mờ hoặc không phát được ngay sau khi sao chép, vui lòng chờ 2–3 ngày rồi truy cập lại. Đừng nóng vội mà xoá hoặc sao chép lại.</li>
-      </ul>
-      <label class="vidwarn-check">
-        <input type="checkbox" id="vidWarnDontShow"/> Không hiển thị lại nhắc nhở này
-      </label>
-    </div>
-    <div class="vidwarn-foot">
-      <button class="btn-modal btn-cancel flex-1" onclick="closeVidWarn()">Huỷ</button>
-      <button class="px-5 py-2.5 rounded-xl font-extrabold text-[13px] bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition flex-[2]" onclick="confirmVidWarn()">Đã hiểu, bắt đầu sao chép</button>
-    </div>
-  </div>
-</div>
 
 <!-- VIDEO WARNING MODAL (PAID — before/after copy) -->
 <div id="videoWarnModal" class="modal-overlay">
@@ -448,7 +423,7 @@
       </ol>
     </div>
     <div style="padding:16px 20px 18px">
-      <button id="videoWarnBtn" style="width:100%;padding:10px 20px;border-radius:12px;font-weight:800;font-size:13px;background:#ffc107;color:#000;border:none;cursor:pointer;transition:background .15s,transform .1s" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'" onmousedown="this.style.transform='scale(.96)'" onmouseup="this.style.transform=''" onclick="confirmVideoWarn()">Đã hiểu, bắt đầu sao chép</button>
+      <button id="videoWarnBtn" style="width:100%;padding:10px 20px;border-radius:12px;font-weight:800;font-size:13px;background:#ffc107;color:#000;border:none;cursor:pointer;transition:background .15s,transform .1s" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'" onmousedown="this.style.transform='scale(.96)'" onmouseup="this.style.transform=''" onclick="closeVideoWarn()">Đã hiểu</button>
     </div>
   </div>
 </div>
@@ -488,8 +463,8 @@
       <button onclick="window.closeScanDetailModal()" style="width:28px;height:28px;border-radius:8px;border:1.5px solid #e9ecef;background:#f8f9fa;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#868e96;font-size:15px;font-weight:700;transition:all .15s" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">✕</button>
     </div>
     <div style="display:flex;border-bottom:2px solid #f1f3f5;flex-shrink:0;padding:0 8px">
-      <button id="scanDetailTabOkBtn" onclick="window.switchScanDetailTab('ok')" style="padding:11px 18px;font-size:13px;font-weight:800;border:none;background:transparent;cursor:pointer;border-bottom:2px solid #212529;color:#212529;margin-bottom:-2px;transition:all .15s">Thành công (<span id="scanDetailOkCount">0</span>)</button>
-      <button id="scanDetailTabErrBtn" onclick="window.switchScanDetailTab('err')" style="padding:11px 18px;font-size:13px;font-weight:600;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:#868e96;margin-bottom:-2px;transition:all .15s">Lỗi (<span id="scanDetailErrCount">0</span>)</button>
+      <button id="scanDetailTabOkBtn" onclick="window.switchScanDetailTab('ok')" style="padding:11px 18px;font-size:13px;font-weight:800;border:none;background:transparent;cursor:pointer;border-bottom:2px solid #212529;color:#212529;margin-bottom:-2px;transition:all .15s" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='transparent'">Thành công (<span id="scanDetailOkCount">0</span>)</button>
+      <button id="scanDetailTabErrBtn" onclick="window.switchScanDetailTab('err')" style="padding:11px 18px;font-size:13px;font-weight:600;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:#868e96;margin-bottom:-2px;transition:all .15s" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='transparent'">Lỗi (<span id="scanDetailErrCount">0</span>)</button>
     </div>
     <div id="scanDetailModalContent" class="tree-body" style="overflow-y:auto;flex:1;min-height:160px"></div>
     <div id="scanDetailErrHint" style="display:none;padding:10px 16px;font-size:12px;color:#868e96;border-top:1px solid #f1f3f5;flex-shrink:0">
@@ -506,18 +481,10 @@
       <div class="compl-sub" id="complSub">Hoàn thành trong 0s</div>
     </div>
     <div class="compl-stats">
-      <div class="compl-stat gr" style="cursor:pointer" onclick="document.getElementById('complOv').classList.remove('on');window.openModal('result')"><div class="n" id="complCopied">0</div><div class="l">Đã copy</div></div>
+      <div class="compl-stat gr" style="cursor:pointer" onclick="document.getElementById('complOv').classList.remove('on');window.openModal('result')" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'"><div class="n" id="complCopied">0</div><div class="l">Đã copy</div></div>
       <div class="compl-stat re"><div class="n" id="complFailed">0</div><div class="l">Lỗi</div></div>
       <div class="compl-stat"><div class="n" id="complFolders">0</div><div class="l">Thư mục</div></div>
       <div class="compl-stat"><div class="n" id="complTime">0s</div><div class="l">Thời gian</div></div>
-    </div>
-    <div class="compl-video" id="complVideoBox" style="display:none">
-      <div class="compl-video-h"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-film"/></svg> Lưu ý về <span id="complVideoCount">0</span> video</div>
-      <ul>
-        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Trong 1–3 ngày đầu, video có thể chỉ phát ở 360p — đây là hành vi bình thường của Google Drive khi xử lý lại file.</li>
-        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Chất lượng file gốc không thay đổi, chỉ bản xem trước bị ảnh hưởng tạm thời.</li>
-        <li><svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d97706]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-info"/></svg> Sau 2–3 ngày chất lượng sẽ tự phục hồi. Tải file về máy nếu cần xem ngay ở chất lượng đầy đủ.</li>
-      </ul>
     </div>
     <div class="compl-foot">
       <button class="compl-btn" onclick="closeComplModal()">Đã hiểu</button>
@@ -613,11 +580,11 @@
     </div>
 </div>
 
-<!-- POLICY MODAL — nội dung quản lý qua policyData trong ui.js -->
+<!-- POLICY MODAL — nội dung fetch từ legal/*.txt bởi openPolicyModal() trong ui.js -->
 <div class="modal-overlay" id="policyModal">
     <div class="modal-wrapper">
         <div class="modal-title" id="policyModalTitle">Điều khoản sử dụng</div>
-        <div style="font-size:13px;color:#6c757d;line-height:1.7;padding:4px 0 8px;" id="policyModalContent">Nội dung sẽ được cập nhật sớm.</div>
+        <div style="font-size:13px;color:#6c757d;line-height:1.7;padding:4px 0 8px;" id="policyModalContent"></div>
         <div class="modal-actions">
             <button class="btn-modal btn-cancel" onclick="closeAllModals()" style="width:100%;">Đóng</button>
         </div>

@@ -36,14 +36,12 @@ export const st = {
   _dragActive: false, _dragCheckValue: null,
 
   // Copy session (app.js only)
-  _pendingCopyResume: false, _sessionCopiedMB: 0, _freeLimitTimer: null,
+  _sessionCopiedMB: 0, _freeLimitTimer: null,
 
   // Progress (app.js only)
   progDone: 0, _maxPct: 0, _progTotal: 0,
 
-  // Video warn (app.js only)
-  _videoWarnShown: false, _videoWarnResolve: null,
-  _videoSeenCount: 0, _videoFilesCount: 0, _videoWarnMode: 'before',
+  _videoFilesCount: 0,
 
   // UI (app.js only)
   _previewTimers: { src: null, dest: null },
