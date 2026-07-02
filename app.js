@@ -1452,8 +1452,11 @@ function showComplModal(elapsed, videoCount) {
 function showCopyResultBanner() {
   const el = document.getElementById('copyResultBanner');
   if (!el) return;
-  document.getElementById('copyResBannerOkNum').textContent     = st.progDone - st.stats.failed;
-  document.getElementById('copyResBannerErrNum').textContent    = st.stats.failed;
+  const failed = st.stats.failed;
+  document.getElementById('copyResBannerOkNum').textContent     = st.progDone - failed;
+  const errEl = document.getElementById('copyResBannerErrNum');
+  errEl.textContent  = failed;
+  errEl.style.color  = failed > 0 ? '#dc3545' : '#adb5bd';
   document.getElementById('copyResBannerFolderNum').textContent = st.stats.folders;
   el.style.display = 'block';
 }

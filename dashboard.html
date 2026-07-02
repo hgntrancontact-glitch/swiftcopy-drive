@@ -333,31 +333,31 @@
                 </div>
               </div>
               <div style="padding:0 10px 10px">
-                <button onclick="window.openScanDetailModal()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:8px;font-size:13px;font-weight:800;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Xem chi tiết</button>
+                <button onclick="window.openScanDetailModal()" style="width:100%;background:#dc3545;color:#fff;border:none;border-radius:8px;padding:8px;font-size:13px;font-weight:800;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#dc3545'">Xem chi tiết</button>
               </div>
             </div>
 
             <!-- COPY RESULT BANNER (hiện sau khi sao chép hoàn tất — cùng vị trí scanSummaryBanner) -->
-            <div id="copyResultBanner" style="display:none;margin-bottom:14px;border:1.5px solid #ffc107;border-radius:12px;background:#fff;overflow:hidden;flex-shrink:0">
-              <div style="display:flex;align-items:center;gap:7px;padding:10px 14px;background:#ffc107">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#212529" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-check-c"/></svg>
-                <span style="font-size:12.5px;font-weight:800;color:#212529;letter-spacing:.3px">KẾT QUẢ SAO CHÉP HOÀN TẤT</span>
+            <div id="copyResultBanner" style="display:none;margin-bottom:14px;border:1px solid #e9ecef;border-radius:12px;background:#fff;overflow:hidden;flex-shrink:0">
+              <div style="display:flex;align-items:center;gap:7px;padding:8px 14px;background:#f8f9fa;border-bottom:0.5px solid #e9ecef">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#868e96" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-check-c"/></svg>
+                <span style="font-size:11px;font-weight:700;color:#868e96;letter-spacing:.3px;text-transform:uppercase">Kết quả sao chép hoàn tất</span>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr">
-                <div onclick="window.openModal('result')" style="padding:11px 8px;text-align:center;border-right:1px solid #f1f3f5;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">
-                  <div id="copyResBannerOkNum" style="font-size:20px;font-weight:900;color:#099268;line-height:1.1">0</div>
-                  <div style="font-size:10.5px;color:#099268;font-weight:700;margin-top:3px">thành công</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px">
+                <div onclick="window.openModal('result')" style="padding:16px 8px;text-align:center;background:#e6fcf5;border-radius:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#c3fae8'" onmouseout="this.style.background='#e6fcf5'">
+                  <div id="copyResBannerOkNum" style="font-size:26px;font-weight:900;color:#099268;line-height:1.1">0</div>
+                  <div style="font-size:10.5px;color:#0f6e56;font-weight:700;margin-top:3px">thành công</div>
                 </div>
-                <div onclick="window.openModal('failed')" style="padding:11px 8px;text-align:center;border-right:1px solid #f1f3f5;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background=''">
-                  <div id="copyResBannerErrNum" style="font-size:20px;font-weight:900;color:#dc3545;line-height:1.1">0</div>
-                  <div style="font-size:10.5px;color:#dc3545;font-weight:700;margin-top:3px">lỗi</div>
+                <div onclick="window.openModal('failed')" style="padding:16px 8px;text-align:center;background:#fff5f5;border-radius:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#ffe3e3'" onmouseout="this.style.background='#fff5f5'">
+                  <div id="copyResBannerErrNum" style="font-size:26px;font-weight:900;color:#adb5bd;line-height:1.1">0</div>
+                  <div style="font-size:10.5px;color:#c92a2a;font-weight:700;margin-top:3px">lỗi</div>
                 </div>
-                <div onclick="window.openModal('folders')" style="padding:11px 8px;text-align:center;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background=''">
-                  <div id="copyResBannerFolderNum" style="font-size:20px;font-weight:900;color:#495057;line-height:1.1">0</div>
-                  <div style="font-size:10.5px;color:#495057;font-weight:700;margin-top:3px">thư mục</div>
+                <div onclick="window.openModal('folders')" style="padding:16px 8px;text-align:center;background:#f8f9fa;border-radius:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
+                  <div id="copyResBannerFolderNum" style="font-size:26px;font-weight:900;color:#212529;line-height:1.1">0</div>
+                  <div style="font-size:10.5px;color:#868e96;font-weight:700;margin-top:3px">thư mục</div>
                 </div>
               </div>
-              <div style="padding:9px 14px;border-top:1px solid #f1f3f5">
+              <div style="padding:0 10px 10px">
                 <button onclick="window.openCopyResultDetail()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:8px;font-size:13px;font-weight:800;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Xem chi tiết</button>
               </div>
             </div>
@@ -481,7 +481,7 @@
       <div class="compl-sub" id="complSub">Hoàn thành trong 0s</div>
     </div>
     <div class="compl-stats">
-      <div class="compl-stat gr" style="cursor:pointer" onclick="document.getElementById('complOv').classList.remove('on');window.openModal('result')" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'"><div class="n" id="complCopied">0</div><div class="l">Đã copy</div></div>
+      <div class="compl-stat gr" style="cursor:pointer" onclick="window.closeComplModal();window.openModal('result')" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'"><div class="n" id="complCopied">0</div><div class="l">Đã copy</div></div>
       <div class="compl-stat re"><div class="n" id="complFailed">0</div><div class="l">Lỗi</div></div>
       <div class="compl-stat"><div class="n" id="complFolders">0</div><div class="l">Thư mục</div></div>
       <div class="compl-stat"><div class="n" id="complTime">0s</div><div class="l">Thời gian</div></div>
