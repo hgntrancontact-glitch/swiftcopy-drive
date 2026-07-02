@@ -61,7 +61,15 @@ function _initCallbacks() {
 }
 _initCallbacks();
 
-if (!IS_DASHBOARD) sec('land', true);
+if (!IS_DASHBOARD) {
+  sec('land', true);
+  // Auto-show plan select after 30s on landing if user hasn't interacted with any modal
+  setTimeout(() => {
+    if (!st.gUser && !document.querySelector('.modal-overlay.active')) {
+      document.getElementById('planSelectModal')?.classList.add('active');
+    }
+  }, 30000);
+}
 
 // ── OVERLAY ──────────────────────────────────────────────────
 window.closeNoAuth = () => {

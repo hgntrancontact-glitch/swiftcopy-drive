@@ -382,9 +382,24 @@ function showPlanSelect() {
   document.getElementById('planSelectModal')?.classList.add('active');
 }
 
+// Called from landing CTA and timed popup (before auth). After auth it's called internally.
+window.openPlanSelectModal = () => showPlanSelect();
+
 window.closePlanSelect = async () => {
   document.getElementById('planSelectModal')?.classList.remove('active');
-  await signOut(auth);
+  // Only sign out if the user already completed Google auth (mid-registration).
+  // Pre-auth plan preview (no gUser yet) must not sign out — nothing to sign out from.
+  if (st.gUser) await signOut(auth);
+};
+
+// Wrapper buttons in planSelectModal: route to login if not yet authenticated.
+window.choosePlanFree = () => {
+  if (!st.gUser) { document.getElementById('planSelectModal')?.classList.remove('active'); window.openLoginModal('register'); }
+  else window.createFreeUser();
+};
+window.choosePlanPaid = () => {
+  if (!st.gUser) { document.getElementById('planSelectModal')?.classList.remove('active'); window.openLoginModal('register'); }
+  else window.openPlanSelectPaid();
 };
 
 window.createFreeUser = async () => {

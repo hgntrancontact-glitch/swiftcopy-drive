@@ -127,7 +127,7 @@
                 Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn,<br class="hidden md:block">chạy thẳng trên trình duyệt.
             </p>
             <div class="flex gap-3 justify-center flex-wrap">
-                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] active:scale-95 transition-all" onclick="openLoginModal('register')">Đăng ký dùng thử</button>
+                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] active:scale-95 transition-all" onclick="openPlanSelectModal()">Đăng ký dùng thử</button>
                 <button id="btnGoLogin" class="px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer bg-white border-2 border-[#212529] hover:bg-[#f8f9fa] active:scale-95 transition-all" onclick="openLoginModal('login')">Đăng nhập</button>
             </div>
             <p class="text-sm text-[#868e96] mt-4">Dùng thử miễn phí hoặc mua trọn đời</p>
@@ -506,7 +506,7 @@
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Không copy video</span></li>
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Mất mạng/tắt máy không tự tiếp tục</span></li>
         </ul>
-        <button onclick="createFreeUser()" style="width:100%;background:#f1f3f5;color:#212529;border:1.5px solid #dee2e6;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e2e5e9'" onmouseout="this.style.background='#f1f3f5'">Dùng miễn phí</button>
+        <button onclick="choosePlanFree()" style="width:100%;background:#f1f3f5;color:#212529;border:1.5px solid #dee2e6;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e2e5e9'" onmouseout="this.style.background='#f1f3f5'">Dùng miễn phí</button>
       </div>
       <!-- PAID COLUMN -->
       <div style="padding:20px 22px 22px;background:#fffbea;position:relative;display:flex;flex-direction:column;">
@@ -521,7 +521,7 @@
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Sao chép file không có nút tải về</b></li>
           <li style="display:flex;align-items:flex-start;gap:7px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Tự tiếp tục sau mất mạng/máy tắt</b></li>
         </ul>
-        <button onclick="openPlanSelectPaid()" style="width:100%;background:#ffc107;color:#212529;border:1px solid #e6a800;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Đăng ký gói Trọn đời →</button>
+        <button onclick="choosePlanPaid()" style="width:100%;background:#ffc107;color:#212529;border:1px solid #e6a800;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Đăng ký gói Trọn đời →</button>
       </div>
     </div>
   </div>
