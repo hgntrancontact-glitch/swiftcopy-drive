@@ -185,6 +185,7 @@ window.onInputChange = async (which) => {
     document.getElementById('checklistWrap').style.display = 'none';
     // Bug 2: reset khu vực Tiến trình đồng bộ khi đổi link nguồn
     if (st.runMode === 'idle') {
+      st.stopFlag = false; st._authExpiredHandled = false;
       st.stats = ns(); updStats();
       const _rf = document.getElementById('progFill');
       _rf.style.transition = 'none'; _rf.style.width = '0%'; _rf.className = 'prog-fill';
@@ -1051,14 +1052,58 @@ function countTreeNodes(nodes) {
   return c;
 }
 
-// ── VIDEO WARN ────────────────────────────────────────────────
+// ── VIDEO COPY NOTIFICATION ───────────────────────────────────
+// Non-blocking fixed notification (bottom-right) shown while _videoActive > 0.
+// Reused by showVideoWarn() (after-copy count summary) with different button label.
+let _videoNotifAcknowledged = false;
+let _videoNotifPollTimer    = null;
+let _videoPrevActive        = 0;
+
+function _pollVideoActive() {
+  const active = st._videoActive || 0;
+  const el = document.getElementById('videoWarnModal');
+  if (!el) return;
+  if (_videoNotifAcknowledged) { _videoPrevActive = active; return; }
+
+  if (active > 0 && _videoPrevActive === 0) {
+    // First video slot acquired this session — show notification
+    document.getElementById('videoWarnCount').textContent = active;
+    const btn = document.getElementById('videoWarnBtn');
+    if (btn) {
+      btn.innerHTML = '<span class="spin" style="width:11px;height:11px;border-width:2px;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ';
+      btn.onclick = () => window.closeVideoWarn();
+    }
+    el.style.animation = 'none';
+    void el.offsetWidth; // reflow to re-trigger animation
+    el.style.animation = 'videoNotifIn .25s ease';
+    el.style.display = 'block';
+  } else if (active > 0 && el.style.display !== 'none') {
+    // Update active count while visible
+    document.getElementById('videoWarnCount').textContent = active;
+  } else if (active === 0 && _videoPrevActive > 0) {
+    // All slots released — auto-hide
+    el.style.display = 'none';
+  }
+  _videoPrevActive = active;
+}
+
+// Called from closeComplModal() after copy finishes (shows quality-warning count).
 function showVideoWarn(count) {
+  const el = document.getElementById('videoWarnModal');
+  if (!el) return;
   document.getElementById('videoWarnCount').textContent = count;
   const btn = document.getElementById('videoWarnBtn');
-  btn.textContent = 'Đã hiểu'; btn.onclick = () => window.closeVideoWarn();
-  document.getElementById('videoWarnModal').classList.add('active');
+  if (btn) { btn.innerHTML = 'Đã hiểu'; btn.onclick = () => window.closeVideoWarn(); }
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = 'videoNotifIn .25s ease';
+  el.style.display = 'block';
 }
-window.closeVideoWarn = () => { document.getElementById('videoWarnModal').classList.remove('active'); };
+window.closeVideoWarn = () => {
+  const el = document.getElementById('videoWarnModal');
+  if (el) el.style.display = 'none';
+  _videoNotifAcknowledged = true;
+};
 
 // ── COPY ──────────────────────────────────────────────────────
 window.startCopy = async (isResume) => {
@@ -1080,6 +1125,9 @@ async function _runCopyInternal(isResume) {
   st.stopFlag = false; st.pauseFlag = false; st.runMode = 'copy'; st._authExpiredHandled = false;
   st.abortCtrl = new AbortController(); st._videoActive = 0; st._videoWaiters.length = 0;
   st._pauseWaiters.length = 0;
+  _videoNotifAcknowledged = false; _videoPrevActive = 0;
+  if (_videoNotifPollTimer) { clearInterval(_videoNotifPollTimer); _videoNotifPollTimer = null; }
+  _videoNotifPollTimer = setInterval(_pollVideoActive, 800);
   if (!isResume) { st.stats = ns(); st._sessionCopiedMB = 0; }
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('scanRepModal')?.classList.remove('active');
@@ -1215,6 +1263,7 @@ async function _runCopyInternal(isResume) {
     // _sessionCopiedMB is only incremented after a confirmed successful copy.
     // Runs on every exit path so a dropped connection still counts real usage.
     if (st.gUserData?.plan === 'free' && st._sessionCopiedMB > 0) await updateFreeUsedMB();
+    if (_videoNotifPollTimer) { clearInterval(_videoNotifPollTimer); _videoNotifPollTimer = null; }
     st.runMode = 'idle'; setBtnMode('idle');
   }
 }
