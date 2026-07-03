@@ -58,7 +58,12 @@ SwiftCopy.Drive/
 ├── favicon-32.png      ← Favicon 32×32
 ├── favicon.ico         ← Favicon multi-size
 ├── apple-touch-icon.png ← Icon iOS 180×180 — cũng dùng làm logo badge trong og-image.png
-└── CLAUDE.md           ← File này
+├── CLAUDE.md           ← File này
+│
+│ ── CTV / Affiliate (chưa triển khai — kế hoạch) ──
+├── ctv.html            ← Trang công khai CTV: form đăng ký + đăng nhập Google → ctv-dashboard
+├── ctv-dashboard.html  ← Dashboard CTV: 4 tab (Tổng quan / Danh sách khách / Lịch sử HH / Thông tin CTV)
+└── ctv.js              ← Logic riêng cho CTV (không gộp vào app.js)
 ```
 
 **Khi cập nhật nội dung chính sách:** chỉ cần sửa file `.txt` tương ứng trong `legal/` — KHÔNG đụng vào code `legal.html`.
@@ -668,6 +673,92 @@ export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Modal "Đang sao chép video" — 3 fix: counter hiển thị số hoàn thành, text body, ẩn modal trước complOv**: (1) **`_videoTotalInRun` đếm video ĐÃ XONG, không phải đang chạy**: Trước đây `_videoTotalInRun++` ở cùng điểm với `_videoDownloadActive++` (sau `dlRes.ok`) — với `VIDEO_CONCUR=8`, tất cả 8 slot confirm download xong trong vòng 800ms đầu → modal hiện ngay "8 video" dù chưa cái nào upload xong. Fix (`drive-api.js`): chuyển `st._videoTotalInRun = (st._videoTotalInRun || 0) + 1` từ khối `if (!dlStarted)` xuống ngay TRƯỚC `return { ok: true }` (sau khi upload hoàn toàn xong) — giờ counter tăng dần theo tiến độ thật: video A hoàn thành → X=1, video B hoàn thành → X=2... (2) **Text body modal đổi từ "đang sao chép" sang "đã hoàn thành"**: `dashboard.html` đổi body text từ `"Hệ thống đang sao chép <strong>X</strong> video..."` → `"<strong>X</strong> video đã hoàn thành — đang tiếp tục. Công đoạn này chậm hơn file thông thường..."` — X giờ là số đã xong nên text phải phản ánh đúng. (3) **`showComplModal()` ẩn `#videoWarnModal` ngay lập tức — không đợi `finally`**: Root cause chồng modal: `showComplModal()` trong try block bật `#complOv` và set `_videoModalPermBlocked=true`, nhưng `#videoWarnModal` chỉ bị ẩn trong `finally` (chạy SAU try) → 2 modal hiện đồng thời trong khoảng thời gian ngắn. Fix (`app.js`, đầu `showComplModal()`): thêm `const vm = document.getElementById('videoWarnModal'); if (vm) vm.style.display = 'none';` trước khi set nội dung complOv — modal during-copy bị ẩn ngay tức thì, không đợi finally. **Lưu ý**: `showVideoWarn()` (modal cảnh báo 360p, gọi từ `closeComplModal()`) vẫn hoạt động độc lập — không bị ảnh hưởng vì nó dùng lại `#videoWarnModal` với nội dung mới sau khi user đóng `#complOv`.
 
 - **Resume sau F5 copy nhầm folder không liên quan và hiện Y sai (1440 thay vì 312)**: Root cause: session không lưu `selIds` (danh sách folder gốc đang copy) và `totalCount` (`_totalDeepCount` lúc bắt đầu). Sau F5, checklist reset về all-selected (14 folder) → `_totalDeepCount = 1440`. Resume dùng selection mới (14 folder) thay vì gốc (2 folder) → copy thêm 12 folder thừa; Y = max(308, 1440) = 1440 → thanh tiến trình hiện ~21% thay vì ~98%. Fix (app.js): (1) Đọc `_savedSess = isResume ? getSession() : null` TRƯỚC khi compute selIds; khi `isResume && _savedSess?.selIds?.length` → dùng `new Set(_savedSess.selIds)` để filter `top` thay vì derive từ clItems hiện tại — chỉ 2 folder gốc được copy, không phải 14. (2) `saveSessionData()` lưu thêm `selIds: top.map(i => i.id)` và `totalCount: st._totalDeepCount` (được gọi SAU khi `top` đã lọc đúng). (3) `resumeSession()` thêm `if (s.totalCount) st._totalDeepCount = s.totalCount` — Y đúng ngay khi banner hiện trước khi copy bắt đầu. `saveSession()` tự bảo tồn `selIds`/`totalCount` vì chỉ update các field cụ thể (stats/progDone/progTotal/ts), không xóa field khác.
+
+---
+
+## Hệ thống CTV / Affiliate — Kế hoạch (chưa triển khai)
+
+Tài liệu gốc: `SwiftCopy_CTV_KE_HOACH.md` (không commit vào repo — chỉ lưu nội bộ).
+
+### Tổng quan
+Hệ thống CTV (Cộng tác viên) gồm 3 nhóm: **Admin** (admin.html), **CTV** (ctv-dashboard.html), **Khách hàng** (index.html / dashboard.html). Hoa hồng 50% = 125.000đ/đơn Trọn đời (giá 250.000đ). **1 email chỉ được là user HOẶC CTV — không dùng chung.**
+
+### Link tracking
+- Dạng: `swiftcopydrive.com?r=HN23T` — query string `?r=` (không cần Vercel Rewrite)
+- Landing page đọc `?r=` → lưu `localStorage` với TTL 30 ngày
+- `auth.js` ghi `referredBy: mãCTV` + `referredAt: timestamp` vào Firestore khi tạo user doc
+
+### Công thức mã CTV (5 ký tự, tự động sinh khi admin duyệt)
+| Ký tự | Lấy từ | Quy tắc |
+|---|---|---|
+| 1–2 | Họ tên | 2 chữ đầu của 2 từ cuối trong tên (Trần Hạo Nam → HN) |
+| 3 | Email | Ký tự vị trí 2 đếm ngược từ @ (haonam**2**3@ → "2") |
+| 4 | SĐT | Chữ số vị trí 2 đếm từ đuôi (09123128**3**1 → "3") |
+| 5 | Họ | Ký tự đầu tiên của họ (Trần → T) |
+
+Ví dụ: Trần Hạo Nam / haonam23@gmail.com / 0912312831 → `HN23T`. Nếu trùng mã → tự động thêm A, B, C... vào cuối.
+
+### Firestore structure mới
+```
+affiliates/{code}          ← doc CTV (code = mã 5 ký tự)
+  Fields: name, email, phone, note, status, code, createdAt
+  Fields: commissionRate (0.5), totalEarned, totalPaid, totalClients, totalConverted
+  Fields: bankInfo (thông tin nhận hoa hồng), urgentPayReqCount (đếm lần/tháng)
+
+affiliates/{code}/commissions/{id}   ← subcollection lịch sử hoa hồng
+  Fields: userEmail, userId, amount, status (pending/paid), createdAt, paidAt
+
+users/{uid}                ← thêm 2 field mới
+  Fields thêm: referredBy (mã CTV), referredAt (timestamp)
+```
+
+### Luồng chính
+
+**CTV đăng ký:** ctv.html → form (tên/email/SĐT/ghi chú) → GAS email #18 (admin_ctv_applied) → Admin duyệt → sinh mã → tạo `affiliates/{code}` → GAS email #13 (ctv_welcome) gồm link cá nhân + hướng dẫn.
+
+**Khách mua qua link:** Click link → localStorage lưu mã → đăng ký user → `users.referredBy = mã` → GAS email #14 (ctv_new_signup) → khách mua Trọn đời → admin duyệt → ghi `affiliates/{code}/commissions` (status: pending) → GAS email #15 (ctv_commission_earned).
+
+**Kick/xóa khách:** Hoa hồng **giữ nguyên** nếu khách đã được duyệt mua. GAS gửi email #16/#17 thông báo CTV.
+
+**Thanh toán:** Admin bấm "Đã thanh toán" → `commissions.status = 'paid'` → GAS email xác nhận. CTV có nút "Yêu cầu thanh toán gấp" (tối đa 2 lần/tháng) → admin xử lý trong 24h.
+
+### 6 email mới cần thêm vào gas-email.js
+
+| # | Type | Gửi cho | Khi nào |
+|---|---|---|---|
+| 13 | `ctv_welcome` | CTV | Admin duyệt đơn CTV — kèm link cá nhân + hướng dẫn |
+| 14 | `ctv_new_signup` | CTV | Có khách đăng ký qua link |
+| 15 | `ctv_commission_earned` | CTV | Admin duyệt khách mua Trọn đời |
+| 16 | `ctv_client_kicked` | CTV | Admin kick khách của CTV |
+| 17 | `ctv_client_deleted` | CTV | Admin xóa khách của CTV |
+| 18 | `admin_ctv_applied` | Admin | CTV mới nộp đơn đăng ký |
+
+Email #13 là quan trọng nhất — phải nhấn mạnh link cá nhân và hướng dẫn lưu link.
+
+### Thay đổi trong admin.html
+- Tab mới "Quản lý CTV": đơn chờ duyệt / danh sách CTV đang hoạt động / quản lý thanh toán / cài đặt chương trình
+- Tab Khách hàng hiện tại: thêm cột "CTV giới thiệu" (mã CTV hoặc "—")
+- Khi kick/xóa: checkbox "Gửi thông báo cho CTV giới thiệu"
+
+### ctv-dashboard.html — 4 tab
+- **Tab 1 Tổng quan**: hoa hồng hôm nay / tuần / tháng, tổng chưa thanh toán, tổng đã thanh toán, tổng khách đăng ký/mua, tỷ lệ chuyển đổi
+- **Tab 2 Danh sách khách**: email (ẩn 4 ký tự giữa), ngày đăng ký, gói, trạng thái, hoa hồng
+- **Tab 3 Lịch sử hoa hồng**: ngày, khách (ẩn), số tiền, trạng thái, ngày thanh toán
+- **Tab 4 Thông tin CTV**: link cá nhân + copy 1 click, mã CTV, thông tin ngân hàng, nút "Yêu cầu thanh toán gấp"
+
+### Thứ tự triển khai (theo ưu tiên)
+1. 🔴 Firestore structure + security rules — `firestore.rules`
+2. 🔴 Landing đọc `?r=` → localStorage — `index.html`, `auth.js`
+3. 🔴 `auth.js` ghi `referredBy` khi tạo user — `auth.js`
+4. 🔴 Trang `ctv.html` (đăng ký & đăng nhập) — `ctv.html`, `ctv.js`
+5. 🟡 Tab CTV trong `admin.html` — `admin.html`
+6. 🟡 Cột CTV trong tab Khách hàng của `admin.html`
+7. 🟡 Trang `ctv-dashboard.html` (4 tab) — `ctv-dashboard.html`, `ctv.js`
+8. 🟡 6 email mới trong `gas-email.js`
+9. 🟡 Logic sinh mã CTV tự động — `admin.html` hoặc `ctv.js`
+10. 🟢 Nút "Yêu cầu thanh toán gấp" + giới hạn 2 lần/tháng
+11. 🟢 Xuất báo cáo CSV hoa hồng
+12. 🟢 Điều khoản CTV & điều khoản thanh toán (modal)
 
 ---
 
