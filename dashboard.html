@@ -377,6 +377,20 @@
               </div>
             </div>
 
+            <!-- VIDEO COPY NOTIFICATION (inline, hiện khi đang copy video) -->
+            <div id="videoWarnModal" style="display:none;margin-bottom:14px;border:1px solid #ffe082;border-radius:12px;background:#fff;overflow:hidden;flex-shrink:0">
+              <div style="display:flex;align-items:center;gap:7px;padding:10px 14px;background:#fffbea;border-bottom:1px solid #ffe082">
+                <svg style="width:14px;height:14px;flex-shrink:0;color:#d97706" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-film"/></svg>
+                <span style="font-size:12.5px;font-weight:800;color:#7a5a00;letter-spacing:.1px">Thông báo đang xử lý video</span>
+              </div>
+              <div style="padding:12px 14px">
+                <p style="font-size:12.5px;color:#555;margin:0;line-height:1.55">Hệ thống đang sao chép <strong id="videoWarnCount" style="color:#d97706">0</strong> video — công đoạn này chậm hơn file thông thường để đảm bảo chất lượng. Nếu thấy thanh tiến trình chạy chậm hoặc đứng lại, đừng lo — mọi thứ vẫn đang xử lý bình thường.</p>
+              </div>
+              <div style="padding:0 14px 12px">
+                <button id="videoWarnBtn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 14px;border-radius:8px;font-weight:800;font-size:12.5px;background:#ffc107;color:#212529;border:none;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'" onclick="closeVideoWarn()"><span class="spin" style="width:11px;height:11px;border-width:2px;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ</button>
+              </div>
+            </div>
+
             <div class="flex-1 flex flex-col min-h-0">
               <div class="flex items-center gap-2 text-[11px] font-bold text-[#6c757d] mb-2 uppercase tracking-wider flex-shrink-0">
                 <span class="w-1.5 h-1.5 bg-[#20c997] rounded-full flex-shrink-0" id="logDot"></span>
@@ -404,21 +418,6 @@
   </div>
 </div>
 
-
-<!-- VIDEO WARNING MODAL (PAID — before/after copy) -->
-<!-- VIDEO COPY NOTIFICATION (non-blocking, fixed bottom-right, hiện khi đang copy video) -->
-<div id="videoWarnModal" style="display:none;position:fixed;bottom:24px;right:24px;width:300px;z-index:1000;border:1px solid #ffe082;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.13);background:#fff;overflow:hidden">
-  <div style="display:flex;align-items:center;gap:7px;padding:10px 14px;background:#fffbea;border-bottom:1px solid #ffe082">
-    <svg style="width:14px;height:14px;flex-shrink:0;color:#d97706" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-film"/></svg>
-    <span style="font-size:12.5px;font-weight:800;color:#7a5a00;letter-spacing:.1px">Đang sao chép video</span>
-  </div>
-  <div style="padding:12px 14px">
-    <p style="font-size:12.5px;color:#555;margin:0;line-height:1.55">Đang xử lý <strong id="videoWarnCount" style="color:#d97706">0</strong> video — quá trình này lâu hơn file thông thường do phải tải về rồi tải lên lại để đảm bảo chất lượng. Vui lòng chờ.</p>
-  </div>
-  <div style="padding:0 14px 12px">
-    <button id="videoWarnBtn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 14px;border-radius:8px;font-weight:800;font-size:12.5px;background:#ffc107;color:#212529;border:none;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'" onclick="closeVideoWarn()"><span class="spin" style="width:11px;height:11px;border-width:2px;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ</button>
-  </div>
-</div>
 
 <!-- FREE VIDEO BLOCK MODAL (Free — chặn khi lựa chọn có video) -->
 <div id="freeVideoBlockModal" class="modal-overlay" onclick="if(event.target===this)closeFreeVideoBlockModal()">

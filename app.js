@@ -1067,19 +1067,19 @@ function _pollVideoActive() {
 
   if (active > 0 && _videoPrevActive === 0) {
     // First video slot acquired this session — show notification
-    document.getElementById('videoWarnCount').textContent = active;
+    document.getElementById('videoWarnCount').textContent = st._videoTotalInRun || 0;
     const btn = document.getElementById('videoWarnBtn');
     if (btn) {
       btn.innerHTML = '<span class="spin" style="width:11px;height:11px;border-width:2px;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ';
       btn.onclick = () => window.closeVideoWarn();
     }
     el.style.animation = 'none';
-    void el.offsetWidth; // reflow to re-trigger animation
+    void el.offsetWidth;
     el.style.animation = 'videoNotifIn .25s ease';
     el.style.display = 'block';
   } else if (active > 0 && el.style.display !== 'none') {
-    // Update active count while visible
-    document.getElementById('videoWarnCount').textContent = active;
+    // Update total count while visible
+    document.getElementById('videoWarnCount').textContent = st._videoTotalInRun || 0;
   } else if (active === 0 && _videoPrevActive > 0) {
     // All slots released — auto-hide
     el.style.display = 'none';
@@ -1123,7 +1123,7 @@ async function _runCopyInternal(isResume) {
   if (!sv || !dv) { toast('Nhập đủ Drive nguồn và đích!', 'warn'); return; }
 
   st.stopFlag = false; st.pauseFlag = false; st.runMode = 'copy'; st._authExpiredHandled = false;
-  st.abortCtrl = new AbortController(); st._videoActive = 0; st._videoWaiters.length = 0;
+  st.abortCtrl = new AbortController(); st._videoActive = 0; st._videoWaiters.length = 0; st._videoTotalInRun = 0;
   st._pauseWaiters.length = 0;
   _videoNotifAcknowledged = false; _videoPrevActive = 0;
   if (_videoNotifPollTimer) { clearInterval(_videoNotifPollTimer); _videoNotifPollTimer = null; }

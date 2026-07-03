@@ -177,6 +177,7 @@ export async function copyVideoReUpload(item, destId) {
     if (st.stopFlag) return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
   }
   st._videoActive++;
+  st._videoTotalInRun = (st._videoTotalInRun || 0) + 1;
   // Track whether this call currently holds a semaphore slot.
   // On 403 rate-limit backoff we release the slot so other videos can proceed
   // during the sleep, then re-acquire before retrying. The finally block only

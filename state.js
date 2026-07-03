@@ -29,7 +29,7 @@ export const st = {
   stats: null, // initialised below
 
   // Video semaphore (written by drive-api.js, drained on stop by app.js)
-  _videoActive: 0, _videoWaiters: [],
+  _videoActive: 0, _videoWaiters: [], _videoTotalInRun: 0,
 
   // Checklist (app.js only but declared here so doReset in app.js can clear cleanly)
   clItems: [], clLoaded: false, _deepScanId: 0, _totalDeepCount: 0,
