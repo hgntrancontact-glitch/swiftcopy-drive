@@ -177,12 +177,15 @@ export async function copyVideoReUpload(item, destId) {
     if (st.stopFlag) return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
   }
   st._videoActive++;
-  st._videoTotalInRun = (st._videoTotalInRun || 0) + 1;
   // Track whether this call currently holds a semaphore slot.
   // On 403 rate-limit backoff we release the slot so other videos can proceed
   // during the sleep, then re-acquire before retrying. The finally block only
   // decrements when the slot is actually held to avoid double-decrement.
   let slotHeld = true;
+  // dlStarted tracks whether the download fetch succeeded — only then do we
+  // increment _videoDownloadActive (actual download in progress) and _videoTotalInRun
+  // (running total for the notification count). Both counters are decremented in finally.
+  let dlStarted = false;
   try {
     st.addLog?.('Tải xuống+ghi video: ' + item.name, 'info');
     for (let attempt = 0; attempt < RETRY_ATTEMPTS; attempt++) {
@@ -205,6 +208,9 @@ export async function copyVideoReUpload(item, destId) {
           { headers: { Authorization: 'Bearer ' + st.gToken }, signal: st.abortCtrl?.signal });
         if (dlRes.status === 401) throw new Error('AUTH_EXPIRED: video dl');
         if (!dlRes.ok) { const t = await dlRes.text(); throw new Error('Drive ' + dlRes.status + ': ' + t.slice(0, 80)); }
+        // Download confirmed OK — now mark as actively downloading so the
+        // notification modal triggers at the right moment (not at slot-acquire time).
+        if (!dlStarted) { dlStarted = true; st._videoDownloadActive = (st._videoDownloadActive || 0) + 1; st._videoTotalInRun = (st._videoTotalInRun || 0) + 1; }
 
         let resp;
         if (fileSize > STREAM_THRESHOLD) {
@@ -301,6 +307,9 @@ export async function copyVideoReUpload(item, destId) {
     if (slotHeld) {
       st._videoActive--;
       st._videoWaiters.shift()?.();
+    }
+    if (dlStarted) {
+      st._videoDownloadActive = Math.max(0, (st._videoDownloadActive || 1) - 1);
     }
   }
 }

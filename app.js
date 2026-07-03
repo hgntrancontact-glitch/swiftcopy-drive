@@ -1053,35 +1053,51 @@ function countTreeNodes(nodes) {
 }
 
 // ── VIDEO COPY NOTIFICATION ───────────────────────────────────
-// Non-blocking fixed notification (bottom-right) shown while _videoActive > 0.
+// Non-blocking fixed notification (bottom-right) shown while _videoDownloadActive > 0.
 // Reused by showVideoWarn() (after-copy count summary) with different button label.
 let _videoNotifAcknowledged = false;
 let _videoNotifPollTimer    = null;
 let _videoPrevActive        = 0;
+// _videoDismissed: user clicked "Đã hiểu" during copy — button text changes but modal stays visible.
+let _videoDismissed         = false;
+// _videoModalPermBlocked: set when complModal appears — prevents during-copy modal from re-showing.
+let _videoModalPermBlocked  = false;
+
+// Called when user clicks the button during active copy — changes text, keeps modal visible.
+function _dismissVideoNotif() {
+  const btn = document.getElementById('videoWarnBtn');
+  if (btn) btn.innerHTML = 'Vẫn đang tải, đừng lo lắng';
+  _videoDismissed = true;
+}
 
 function _pollVideoActive() {
-  const active = st._videoActive || 0;
+  const active = st._videoDownloadActive || 0;
   const el = document.getElementById('videoWarnModal');
   if (!el) return;
   if (_videoNotifAcknowledged) { _videoPrevActive = active; return; }
 
   if (active > 0 && _videoPrevActive === 0) {
-    // First video slot acquired this session — show notification
+    // First video confirmed downloading — show notification (unless blocked by complModal)
+    if (_videoModalPermBlocked) { _videoPrevActive = active; return; }
     document.getElementById('videoWarnCount').textContent = st._videoTotalInRun || 0;
     const btn = document.getElementById('videoWarnBtn');
     if (btn) {
       btn.innerHTML = '<span class="spin" style="width:10px;height:10px;border-width:2px;border-color:#fde8c4;border-top-color:#d97706;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ';
-      btn.onclick = () => window.closeVideoWarn();
+      btn.onclick = () => _dismissVideoNotif();
     }
     el.style.animation = 'none';
     void el.offsetWidth;
     el.style.animation = 'videoNotifIn .25s ease';
     el.style.display = 'block';
   } else if (active > 0 && el.style.display !== 'none') {
-    // Update total count while visible
+    // Update total count while visible; don't reset button text if dismissed
     document.getElementById('videoWarnCount').textContent = st._videoTotalInRun || 0;
+    if (!_videoDismissed) {
+      const btn = document.getElementById('videoWarnBtn');
+      if (btn) btn.onclick = () => _dismissVideoNotif();
+    }
   } else if (active === 0 && _videoPrevActive > 0) {
-    // All slots released — auto-hide
+    // All downloads finished — auto-hide regardless of dismiss state
     el.style.display = 'none';
   }
   _videoPrevActive = active;
@@ -1124,8 +1140,10 @@ async function _runCopyInternal(isResume) {
 
   st.stopFlag = false; st.pauseFlag = false; st.runMode = 'copy'; st._authExpiredHandled = false;
   st.abortCtrl = new AbortController(); st._videoActive = 0; st._videoWaiters.length = 0; st._videoTotalInRun = 0;
+  st._videoDownloadActive = 0;
   st._pauseWaiters.length = 0;
   _videoNotifAcknowledged = false; _videoPrevActive = 0;
+  _videoDismissed = false; _videoModalPermBlocked = false;
   if (_videoNotifPollTimer) { clearInterval(_videoNotifPollTimer); _videoNotifPollTimer = null; }
   _videoNotifPollTimer = setInterval(_pollVideoActive, 800);
   if (!isResume) { st.stats = ns(); st._sessionCopiedMB = 0; }
@@ -1487,6 +1505,7 @@ window.closeComplModal = () => {
   if (_lastComplVideoCount > 0) showVideoWarn(_lastComplVideoCount);
 };
 function showComplModal(elapsed, videoCount) {
+  _videoModalPermBlocked = true; // Block during-copy modal from re-appearing
   // Cùng công thức suy ra X - LỖI như updStats() — xem comment ở đó.
   document.getElementById('complCopied').textContent  = st.progDone - st.stats.failed;
   document.getElementById('complFailed').textContent  = st.stats.failed;
