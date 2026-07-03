@@ -377,20 +377,6 @@
               </div>
             </div>
 
-            <!-- VIDEO COPY NOTIFICATION (inline, hiện khi đang copy video) -->
-            <div id="videoWarnModal" style="display:none;margin-bottom:14px;border:1px solid #ffe082;border-radius:12px;background:#fff;overflow:hidden;flex-shrink:0">
-              <div style="display:flex;align-items:center;gap:7px;padding:10px 14px;background:#fffbea;border-bottom:1px solid #ffe082">
-                <svg style="width:14px;height:14px;flex-shrink:0;color:#d97706" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-film"/></svg>
-                <span style="font-size:12.5px;font-weight:800;color:#7a5a00;letter-spacing:.1px">Thông báo đang xử lý video</span>
-              </div>
-              <div style="padding:12px 14px">
-                <p style="font-size:12.5px;color:#555;margin:0;line-height:1.55">Hệ thống đang sao chép <strong id="videoWarnCount" style="color:#d97706">0</strong> video — công đoạn này chậm hơn file thông thường để đảm bảo chất lượng. Nếu thấy thanh tiến trình chạy chậm hoặc đứng lại, đừng lo — mọi thứ vẫn đang xử lý bình thường.</p>
-              </div>
-              <div style="padding:0 14px 12px">
-                <button id="videoWarnBtn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 14px;border-radius:8px;font-weight:800;font-size:12.5px;background:#ffc107;color:#212529;border:none;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'" onclick="closeVideoWarn()"><span class="spin" style="width:11px;height:11px;border-width:2px;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ</button>
-              </div>
-            </div>
-
             <div class="flex-1 flex flex-col min-h-0">
               <div class="flex items-center gap-2 text-[11px] font-bold text-[#6c757d] mb-2 uppercase tracking-wider flex-shrink-0">
                 <span class="w-1.5 h-1.5 bg-[#20c997] rounded-full flex-shrink-0" id="logDot"></span>
@@ -734,6 +720,20 @@
 </div>
 
 <!-- ══════════════ FLOATING SUPPORT BUTTON ══════════════ -->
+<!-- VIDEO COPY NOTIFICATION (fixed bottom-right, bên trái nút Hỗ trợ, hiện khi đang copy video) -->
+<div id="videoWarnModal" style="display:none;position:fixed;bottom:24px;right:80px;width:280px;z-index:200;border:1px solid #ffe082;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.12);background:#fff;overflow:hidden">
+  <div style="display:flex;align-items:center;gap:7px;padding:9px 13px;background:#fffbea;border-bottom:1px solid #ffe082">
+    <svg style="width:13px;height:13px;flex-shrink:0;color:#d97706" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-film"/></svg>
+    <span style="font-size:12px;font-weight:800;color:#d97706;letter-spacing:.1px">Đang sao chép video</span>
+  </div>
+  <div style="padding:10px 13px">
+    <p style="font-size:12px;color:#555;margin:0;line-height:1.5">Hệ thống đang sao chép <strong id="videoWarnCount" style="color:#d97706">0</strong> video — công đoạn này chậm hơn file thông thường để đảm bảo chất lượng. Nếu thấy tiến trình chạy chậm hoặc đứng lại, đừng lo — mọi thứ vẫn đang xử lý bình thường.</p>
+  </div>
+  <div style="padding:0 13px 10px">
+    <button id="videoWarnBtn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 12px;border-radius:8px;font-weight:700;font-size:12px;background:#fff;color:#d97706;border:1px solid #e9ecef;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#fffbea'" onmouseout="this.style.background='#fff'" onclick="closeVideoWarn()"><span class="spin" style="width:10px;height:10px;border-width:2px;border-color:#fde8c4;border-top-color:#d97706;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ</button>
+  </div>
+</div>
+
 <div id="fabSupportWrap" style="position:fixed;bottom:24px;right:24px;z-index:200;">
   <div id="fabSupportMenu" style="display:none;position:absolute;bottom:64px;right:0;background:#fff;border:0.5px solid #e9ecef;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.14);width:190px;overflow:hidden;padding:6px 0;">
     <div onclick="window.toggleFabSupport(false);document.getElementById('supportModal').classList.add('active')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;font-weight:700;color:#212529;cursor:pointer;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='none'">

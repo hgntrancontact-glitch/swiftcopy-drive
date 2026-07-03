@@ -1070,7 +1070,7 @@ function _pollVideoActive() {
     document.getElementById('videoWarnCount').textContent = st._videoTotalInRun || 0;
     const btn = document.getElementById('videoWarnBtn');
     if (btn) {
-      btn.innerHTML = '<span class="spin" style="width:11px;height:11px;border-width:2px;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ';
+      btn.innerHTML = '<span class="spin" style="width:10px;height:10px;border-width:2px;border-color:#fde8c4;border-top-color:#d97706;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ';
       btn.onclick = () => window.closeVideoWarn();
     }
     el.style.animation = 'none';
@@ -1264,6 +1264,7 @@ async function _runCopyInternal(isResume) {
     // Runs on every exit path so a dropped connection still counts real usage.
     if (st.gUserData?.plan === 'free' && st._sessionCopiedMB > 0) await updateFreeUsedMB();
     if (_videoNotifPollTimer) { clearInterval(_videoNotifPollTimer); _videoNotifPollTimer = null; }
+    const _vm = document.getElementById('videoWarnModal'); if (_vm) _vm.style.display = 'none';
     st.runMode = 'idle'; setBtnMode('idle');
   }
 }
@@ -1499,6 +1500,8 @@ function showComplModal(elapsed, videoCount) {
 // Banner thu gọn "Kết quả sao chép hoàn tất" trong khu vực Tiến trình đồng bộ —
 // cùng công thức suy ra X - LỖI như showComplModal()/updStats() ở trên, chỉ thêm hiển thị.
 function showCopyResultBanner() {
+  const vm = document.getElementById('videoWarnModal');
+  if (vm) vm.style.display = 'none';
   const el = document.getElementById('copyResultBanner');
   if (!el) return;
   const failed = st.stats.failed;
