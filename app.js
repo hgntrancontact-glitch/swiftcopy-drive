@@ -1182,19 +1182,24 @@ async function _runCopyInternal(isResume) {
     const sn = await fname(srcId), dn = await fname(destId);
     setStatus('Đang chuẩn bị "' + sn + '" -> "' + dn + '"');
     addLog('Nguồn: ' + sn, 'info'); addLog('Đích: ' + dn, 'info');
-    saveSessionData({ sv, dv, srcId, sn, destId, dn });
+
+    const _savedSess = isResume ? getSession() : null;
 
     let top = await listItems(srcId);
     let clFilter = null;
     if (st.clLoaded && st.clItems.length > 0) {
-      const selIds = new Set(st.clItems.filter(i => i.checked || i.indeterminate).map(i => i.id));
+      // On resume: use saved selIds to avoid including extra folders that are checked by default after F5
+      const selIds = (isResume && _savedSess?.selIds?.length)
+        ? new Set(_savedSess.selIds)
+        : new Set(st.clItems.filter(i => i.checked || i.indeterminate).map(i => i.id));
       top = top.filter(i => selIds.has(i.id));
       clFilter = st.clItems;
     }
     if (!top.length) { toast('Không có mục nào được chọn!', 'warn'); setBtnMode('idle'); st.runMode = 'idle'; return; }
     if (st.stopFlag) { setStatus('Đã dừng sao chép'); setBtnMode('idle'); st.runMode = 'idle'; return; }
 
-    const _savedSess = isResume ? getSession() : null;
+    saveSessionData({ sv, dv, srcId, sn, destId, dn, selIds: top.map(i => i.id), totalCount: st._totalDeepCount });
+
     st._progTotal = _savedSess?.progTotal || (st._totalDeepCount > 0 ? st._totalDeepCount : top.length);
     const _startDone = isResume ? (_savedSess?.progDone || 0) : 0;
     progStart(_startDone);
@@ -1502,6 +1507,7 @@ window.resumeSession = async () => {
   if (s.stats) { st.stats = s.stats; updStats(); document.getElementById('statsRow').style.display = 'grid'; }
   if (s.progDone) st.progDone = s.progDone;
   if (s.progTotal) st._progTotal = s.progTotal;
+  if (s.totalCount) st._totalDeepCount = s.totalCount;
   document.getElementById('resumeBanner').style.display = 'none';
   addLog('Tiếp tục phiên cũ - chỉ sao chép các mục chưa hoàn thành...', 'info');
   await window.startCopy(true);
