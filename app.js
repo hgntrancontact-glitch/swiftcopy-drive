@@ -1505,7 +1505,11 @@ window.closeComplModal = () => {
   if (_lastComplVideoCount > 0) showVideoWarn(_lastComplVideoCount);
 };
 function showComplModal(elapsed, videoCount) {
-  _videoModalPermBlocked = true; // Block during-copy modal from re-appearing
+  _videoModalPermBlocked = true;
+  // Ẩn modal "Đang sao chép video" ngay khi complOv xuất hiện — không đợi finally.
+  // finally chạy SAU showComplModal() trong try block, nên nếu không ẩn ở đây,
+  // during-copy modal vẫn hiện bên cạnh #complOv cho đến khi finally chạy xong.
+  const vm = document.getElementById('videoWarnModal'); if (vm) vm.style.display = 'none';
   // Cùng công thức suy ra X - LỖI như updStats() — xem comment ở đó.
   document.getElementById('complCopied').textContent  = st.progDone - st.stats.failed;
   document.getElementById('complFailed').textContent  = st.stats.failed;

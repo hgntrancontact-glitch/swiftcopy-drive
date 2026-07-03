@@ -210,7 +210,8 @@ export async function copyVideoReUpload(item, destId) {
         if (!dlRes.ok) { const t = await dlRes.text(); throw new Error('Drive ' + dlRes.status + ': ' + t.slice(0, 80)); }
         // Download confirmed OK — now mark as actively downloading so the
         // notification modal triggers at the right moment (not at slot-acquire time).
-        if (!dlStarted) { dlStarted = true; st._videoDownloadActive = (st._videoDownloadActive || 0) + 1; st._videoTotalInRun = (st._videoTotalInRun || 0) + 1; }
+        // _videoTotalInRun is incremented only after the full upload completes (see below).
+        if (!dlStarted) { dlStarted = true; st._videoDownloadActive = (st._videoDownloadActive || 0) + 1; }
 
         let resp;
         if (fileSize > STREAM_THRESHOLD) {
@@ -282,6 +283,10 @@ export async function copyVideoReUpload(item, destId) {
           if (!upRes.ok) { const t = await upRes.text(); throw new Error('Drive ' + upRes.status + ': ' + t.slice(0, 80)); }
           resp = await upRes.json();
         }
+        // Upload fully complete — increment completed-video counter now (not at download-start).
+        // This way the notification shows "X video đã hoàn thành" instead of always showing 8
+        // (VIDEO_CONCUR=8 slots all confirm dlRes.ok simultaneously before the first poll fires).
+        st._videoTotalInRun = (st._videoTotalInRun || 0) + 1;
         return { ok: true, sizeMB: (parseInt(resp.size) || fileSize) / (1024 * 1024) };
       } catch (e) {
         if (e.name === 'AbortError') return { ok: false, reason: 'Đã dừng', sizeMB: 0 };
