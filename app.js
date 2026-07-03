@@ -1062,6 +1062,8 @@ let _videoPrevActive        = 0;
 let _videoDismissed         = false;
 // _videoModalPermBlocked: set when complModal appears — prevents during-copy modal from re-showing.
 let _videoModalPermBlocked  = false;
+// _videoNotifShowTimer: 1.5s delay before first show of floating notification.
+let _videoNotifShowTimer    = null;
 
 // Called when user clicks the button during active copy — changes text, keeps modal visible.
 function _dismissVideoNotif() {
@@ -1077,18 +1079,26 @@ function _pollVideoActive() {
   if (_videoNotifAcknowledged) { _videoPrevActive = active; return; }
 
   if (active > 0 && _videoPrevActive === 0) {
-    // First video confirmed downloading — show notification (unless blocked by complModal)
+    // First video confirmed downloading — delay 1.5s before showing notification
     if (_videoModalPermBlocked) { _videoPrevActive = active; return; }
-    document.getElementById('videoWarnCount').textContent = st._videoTotalInRun || 0;
-    const btn = document.getElementById('videoWarnBtn');
-    if (btn) {
-      btn.innerHTML = '<span class="spin" style="width:10px;height:10px;border-width:2px;border-color:#fde8c4;border-top-color:#d97706;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ';
-      btn.onclick = () => _dismissVideoNotif();
+    if (!_videoNotifShowTimer) {
+      _videoNotifShowTimer = setTimeout(() => {
+        _videoNotifShowTimer = null;
+        if (_videoModalPermBlocked || _videoNotifAcknowledged) return;
+        const _el = document.getElementById('videoWarnModal');
+        if (!_el) return;
+        document.getElementById('videoWarnCount').textContent = st._videoTotalInRun || 0;
+        const _btn = document.getElementById('videoWarnBtn');
+        if (_btn) {
+          _btn.innerHTML = '<span class="spin" style="width:10px;height:10px;border-width:2px;border-color:#fde8c4;border-top-color:#d97706;flex-shrink:0"></span>Đã hiểu, tiếp tục chờ';
+          _btn.onclick = () => _dismissVideoNotif();
+        }
+        _el.style.animation = 'none';
+        void _el.offsetWidth;
+        _el.style.animation = 'videoNotifIn .25s ease';
+        _el.style.display = 'block';
+      }, 1500);
     }
-    el.style.animation = 'none';
-    void el.offsetWidth;
-    el.style.animation = 'videoNotifIn .25s ease';
-    el.style.display = 'block';
   } else if (active > 0 && el.style.display !== 'none') {
     // Update total count while visible; don't reset button text if dismissed
     document.getElementById('videoWarnCount').textContent = st._videoTotalInRun || 0;
@@ -1120,6 +1130,16 @@ window.closeVideoWarn = () => {
   if (el) el.style.display = 'none';
   _videoNotifAcknowledged = true;
 };
+function showVideo360Warn(count) {
+  const el = document.getElementById('video360WarnModal');
+  if (!el) return;
+  document.getElementById('v360WarnCount').textContent = count;
+  el.classList.add('active');
+}
+window.closeVideo360Warn = () => {
+  const el = document.getElementById('video360WarnModal');
+  if (el) el.classList.remove('active');
+};
 
 // ── COPY ──────────────────────────────────────────────────────
 window.startCopy = async (isResume) => {
@@ -1144,6 +1164,7 @@ async function _runCopyInternal(isResume) {
   st._pauseWaiters.length = 0;
   _videoNotifAcknowledged = false; _videoPrevActive = 0;
   _videoDismissed = false; _videoModalPermBlocked = false;
+  if (_videoNotifShowTimer) { clearTimeout(_videoNotifShowTimer); _videoNotifShowTimer = null; }
   if (_videoNotifPollTimer) { clearInterval(_videoNotifPollTimer); _videoNotifPollTimer = null; }
   _videoNotifPollTimer = setInterval(_pollVideoActive, 800);
   if (!isResume) { st.stats = ns(); st._sessionCopiedMB = 0; }
@@ -1502,13 +1523,13 @@ window.closeComplModal = () => {
   // Sau khi user đóng modal "Sao chép hoàn tất": ẩn 3 ô badge sống, hiện bảng kết quả thu gọn
   document.getElementById('statsRow').style.display = 'none';
   showCopyResultBanner();
-  if (_lastComplVideoCount > 0) showVideoWarn(_lastComplVideoCount);
+  if (_lastComplVideoCount > 0) showVideo360Warn(_lastComplVideoCount);
 };
 function showComplModal(elapsed, videoCount) {
   _videoModalPermBlocked = true;
+  // Huỷ timer delay 1.5s nếu chưa kịp fire (copy xong rất nhanh).
+  if (_videoNotifShowTimer) { clearTimeout(_videoNotifShowTimer); _videoNotifShowTimer = null; }
   // Ẩn modal "Đang sao chép video" ngay khi complOv xuất hiện — không đợi finally.
-  // finally chạy SAU showComplModal() trong try block, nên nếu không ẩn ở đây,
-  // during-copy modal vẫn hiện bên cạnh #complOv cho đến khi finally chạy xong.
   const vm = document.getElementById('videoWarnModal'); if (vm) vm.style.display = 'none';
   // Cùng công thức suy ra X - LỖI như updStats() — xem comment ở đó.
   document.getElementById('complCopied').textContent  = st.progDone - st.stats.failed;
