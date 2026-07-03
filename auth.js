@@ -369,6 +369,19 @@ function _notifyAdminKicked(u, reason)    { _gasPost({ type: 'kick_alert',      
 function _sendRegisterFreeSuccessEmail(u) { _gasPost({ type: 'register_free_success', toEmail: u.email, userName: u.displayName || u.email, siteUrl: SITE_URL }); }
 function _sendRegisterPaidPendingEmail(u) { _gasPost({ type: 'register_paid_pending',  toEmail: u.email, userName: u.displayName || u.email, siteUrl: SITE_URL }); }
 
+// ── Affiliate referral helper ─────────────────────────────────
+// Reads affiliateCode from localStorage, validates TTL (30 days),
+// clears after reading so it's only applied once at doc creation.
+function _getAffiliateFields() {
+  const code = localStorage.getItem('affiliateCode');
+  const at   = parseInt(localStorage.getItem('affiliateAt') || '0');
+  const TTL  = 30 * 24 * 60 * 60 * 1000;
+  if (!code || (Date.now() - at) >= TTL) return {};
+  localStorage.removeItem('affiliateCode');
+  localStorage.removeItem('affiliateAt');
+  return { referredBy: code, referredAt: serverTimestamp() };
+}
+
 // ── Plan selection ────────────────────────────────────────────
 function showPlanSelect() {
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
@@ -410,7 +423,8 @@ window.createFreeUser = async () => {
       email: st.gUser.email, displayName: st.gUser.displayName, photoURL: st.gUser.photoURL,
       approved: true, status: 'approved', plan: 'free',
       freeUsedMB: 0, freeResetAt: serverTimestamp(),
-      upgradeRequestedAt: null, createdAt: serverTimestamp()
+      upgradeRequestedAt: null, createdAt: serverTimestamp(),
+      ..._getAffiliateFields()
     };
     await setDoc(doc(db, 'users', st.gUser.uid), userData);
     sendRegEmail(st.gUser);
@@ -436,7 +450,8 @@ async function createPaidPendingUser() {
       email: st.gUser.email, displayName: st.gUser.displayName, photoURL: st.gUser.photoURL,
       approved: false, status: 'pending', plan: 'free',
       freeUsedMB: 0, freeResetAt: serverTimestamp(),
-      upgradeRequestedAt: serverTimestamp(), createdAt: serverTimestamp()
+      upgradeRequestedAt: serverTimestamp(), createdAt: serverTimestamp(),
+      ..._getAffiliateFields()
     };
     await setDoc(doc(db, 'users', st.gUser.uid), userData);
     st.gUserData = { id: st.gUser.uid, ...userData };

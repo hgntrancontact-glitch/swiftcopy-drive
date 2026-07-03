@@ -643,6 +643,25 @@
   </div>
 </div>
 <script>
+  // Affiliate link tracking: ?r=MACTV → localStorage (TTL 30 ngày)
+  (function() {
+    var r = new URLSearchParams(location.search).get('r');
+    var now = Date.now();
+    var TTL = 30 * 24 * 60 * 60 * 1000;
+    var existing = localStorage.getItem('affiliateCode');
+    var existingAt = parseInt(localStorage.getItem('affiliateAt') || '0');
+    if (existing && (now - existingAt) < TTL) {
+      // Còn hợp lệ — giữ nguyên, không ghi đè
+    } else if (r) {
+      localStorage.setItem('affiliateCode', r);
+      localStorage.setItem('affiliateAt', String(now));
+    } else if (existing) {
+      // Đã hết hạn và URL không có mã mới — xoá
+      localStorage.removeItem('affiliateCode');
+      localStorage.removeItem('affiliateAt');
+    }
+  })();
+
   window.toggleFabSupport = function(force) {
     const m = document.getElementById('fabSupportMenu');
     if (!m) return;

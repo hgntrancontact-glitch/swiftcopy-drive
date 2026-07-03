@@ -676,6 +676,15 @@ export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 
 ---
 
+## Hệ thống CTV / Affiliate — Triển khai
+
+### Giai đoạn 1+2+3 — Nền tảng (ĐÃ HOÀN THÀNH)
+- **`firestore.rules`**: thêm rules cho `affiliates/{code}` (CTV đọc doc chính mình) và `affiliates/{code}/commissions/{id}` (CTV đọc HH của mình qua `get()` doc cha). Admin bypass toàn bộ. User thường không có quyền.
+- **`index.html`**: script IIFE đọc `?r=` từ URL → lưu `localStorage` key `affiliateCode`+`affiliateAt` với TTL 30 ngày. Nếu đã có code còn hạn → không ghi đè. Hết hạn + không có mã mới → xoá.
+- **`auth.js`**: hàm `_getAffiliateFields()` — đọc `affiliateCode` từ localStorage, validate TTL, xoá sau khi đọc (1 lần duy nhất). `createFreeUser()` và `createPaidPendingUser()` spread `..._getAffiliateFields()` vào userData — nếu có mã hợp lệ sẽ ghi `referredBy` + `referredAt` vào Firestore doc.
+
+---
+
 ## Hệ thống CTV / Affiliate — Kế hoạch (chưa triển khai)
 
 Tài liệu gốc: `SwiftCopy_CTV_KE_HOACH.md` (không commit vào repo — chỉ lưu nội bộ).

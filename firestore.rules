@@ -65,5 +65,22 @@ service cloud.firestore {
     match /settings/{docId} {
       allow read, write: if isAdmin();
     }
+
+    // ── Collection: affiliates ──────────────────────────────────────────────
+    // Admin: đọc/ghi toàn bộ. CTV: chỉ đọc doc của chính mình.
+    // User thường không có quyền truy cập.
+    match /affiliates/{code} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null
+        && resource.data.email == request.auth.token.email;
+    }
+
+    // Subcollection commissions — CTV chỉ đọc HH của mình (kiểm tra qua doc cha)
+    match /affiliates/{code}/commissions/{commId} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null
+        && get(/databases/$(database)/documents/affiliates/$(code)).data.email
+           == request.auth.token.email;
+    }
   }
 }
