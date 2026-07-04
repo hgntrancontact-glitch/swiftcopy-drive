@@ -294,7 +294,7 @@
 
         /* ── Responsive: phones ≤640px ── */
         @media (max-width:640px){
-          #bellIcon, #helpIcon, #navEarnPill { display:none !important; }
+          #bellIcon, #helpIcon { display:none !important; }
           #navGuest { gap:10px; }
           .modal-overlay { padding:0.5rem; }
           .modal-wrapper { max-height:92vh; overflow-y:auto; padding:1.125rem; }
@@ -308,7 +308,7 @@
         @media (max-width:480px){
           header { padding-left:1rem !important; padding-right:1rem !important; }
           /* Hide earn pill + language switcher — mobile icon replaces */
-          #navEarnPill, #navLangSwitch { display:none !important; }
+          #navLangSwitch { display:none !important; }
           /* Hide email in navRight to make room for earn icon on small screens */
           #navEmail { display:none !important; }
           /* Shrink name in logged-in nav */
