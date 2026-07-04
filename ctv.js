@@ -6,7 +6,8 @@ import { initializeApp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, query, where, getDocs, addDoc, getDoc, doc, serverTimestamp }
+import { getFirestore, collection, query, where, getDocs, addDoc, getDoc, doc, serverTimestamp,
+         updateDoc, orderBy }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -131,7 +132,7 @@ function showMsg(msg, type) {
   el.style.border = '1px solid ' + (type === 'err' ? '#ffe3e3' : '#d3f9d8');
 }
 
-// ── onAuthStateChanged — chỉ chạy trên ctv.html ──────────────
+// ── onAuthStateChanged — chỉ chạy trên ctv.html ─────────────
 if (document.getElementById('sec-loading')) {
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
@@ -166,6 +167,273 @@ if (document.getElementById('sec-loading')) {
     } catch (e) {
       showMsg('Lỗi kiểm tra thông tin: ' + e.message, 'err');
       showSection('unauthenticated');
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD LOGIC — chỉ chạy trên ctv-dashboard.html
+// Guard: document.getElementById('dash-loading') chỉ có ở đây
+// ══════════════════════════════════════════════════════════════
+if (document.getElementById('dash-loading')) {
+  let _dash = null;        // { id, ...affiliateDoc fields }
+  let _comms = [];         // commission records sorted createdAt desc
+  let _currentTab = 0;
+
+  // helper: ẩn tất cả screens, hiện screen chỉ định
+  function _showScreen(name) {
+    ['dash-loading','dash-error','dash-main'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = id === name ? (id === 'dash-main' ? 'block' : 'flex') : 'none';
+    });
+  }
+
+  function _toast(msg) {
+    const t = document.getElementById('dashToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function _fmtMoney(n) {
+    return (n || 0).toLocaleString('vi-VN') + 'đ';
+  }
+
+  function _fmtDate(ts) {
+    if (!ts) return '—';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('vi-VN');
+  }
+
+  function _maskEmail(email) {
+    if (!email) return '—';
+    const [user, domain] = email.split('@');
+    if (user.length <= 4) return email;
+    const visible = user.slice(0, 2);
+    const end = user.slice(-2);
+    return visible + '****' + end + '@' + domain;
+  }
+
+  // ── Tab switching ─────────────────────────────────────────
+  window.switchDashTab = function(n) {
+    _currentTab = n;
+    for (let i = 0; i < 4; i++) {
+      const panel = document.getElementById('dash-tab-' + i);
+      const btn   = document.getElementById('dash-tab-btn-' + i);
+      if (panel) panel.style.display = i === n ? 'block' : 'none';
+      if (btn)   btn.classList.toggle('active', i === n);
+    }
+    if (n === 1) _renderClients();
+    if (n === 2) _renderHistory();
+    if (n === 3) _renderProfile();
+  };
+
+  // ── Tab 0: Tổng quan ──────────────────────────────────────
+  function _renderOverview() {
+    const now  = new Date();
+    const todayStart  = new Date(now); todayStart.setHours(0,0,0,0);
+    const weekStart   = new Date(now.getTime() - 7*24*60*60*1000);
+    const monthStart  = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const earnToday  = _comms.filter(c => c.createdAt?.toDate?.() >= todayStart).reduce((s,c)=>s+c.amount,0);
+    const earnWeek   = _comms.filter(c => c.createdAt?.toDate?.() >= weekStart ).reduce((s,c)=>s+c.amount,0);
+    const earnMonth  = _comms.filter(c => c.createdAt?.toDate?.() >= monthStart).reduce((s,c)=>s+c.amount,0);
+    const pending    = _comms.filter(c => c.status === 'pending').reduce((s,c)=>s+c.amount,0);
+    const paid       = _dash.totalPaid || 0;
+    const clients    = _dash.totalClients || 0;
+    const converted  = _dash.totalConverted || _comms.length;
+    const rate       = clients > 0 ? Math.round(converted / clients * 100) : 0;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('stat-today',    _fmtMoney(earnToday));
+    set('stat-week',     _fmtMoney(earnWeek));
+    set('stat-month',    _fmtMoney(earnMonth));
+    set('stat-pending',  _fmtMoney(pending));
+    set('stat-paid',     _fmtMoney(paid));
+    set('stat-rate',     rate + '%');
+    set('stat-clients',  clients);
+    set('stat-converted', converted);
+
+    const link = 'https://swiftcopydrive.com?r=' + _dash.code;
+    const ld = document.getElementById('affLinkDisplay');
+    if (ld) ld.textContent = link;
+  }
+
+  // ── Tab 1: Danh sách khách (converted = có commission) ───
+  function _renderClients() {
+    const tbody = document.getElementById('clients-tbody');
+    const badge = document.getElementById('clients-count-badge');
+    if (!tbody) return;
+
+    const rows = _comms;
+    if (badge) badge.textContent = rows.length + ' khách';
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#adb5bd">Chưa có khách nào mua Trọn đời qua link của bạn</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map((c, i) => `
+      <tr>
+        <td style="color:#868e96">${i+1}</td>
+        <td style="font-weight:600">${_maskEmail(c.userEmail)}</td>
+        <td>${_fmtDate(c.createdAt)}</td>
+        <td style="font-weight:700;color:#099268">${_fmtMoney(c.amount)}</td>
+        <td>${c.status === 'paid'
+          ? '<span style="background:#e6fcf5;color:#099268;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Đã thanh toán</span>'
+          : '<span style="background:#fffbea;color:#b07600;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Chờ thanh toán</span>'
+        }</td>
+      </tr>`).join('');
+  }
+
+  // ── Tab 2: Lịch sử hoa hồng ──────────────────────────────
+  function _renderHistory() {
+    const tbody = document.getElementById('comm-tbody');
+    const badge = document.getElementById('comm-count-badge');
+    if (!tbody) return;
+
+    if (badge) badge.textContent = _comms.length + ' giao dịch';
+
+    if (!_comms.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:#adb5bd">Chưa có hoa hồng nào</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = _comms.map((c, i) => `
+      <tr>
+        <td style="color:#868e96">${i+1}</td>
+        <td>${_maskEmail(c.userEmail)}</td>
+        <td>${_fmtDate(c.createdAt)}</td>
+        <td style="font-weight:700;color:#212529">${_fmtMoney(c.amount)}</td>
+        <td>${c.status === 'paid'
+          ? '<span style="background:#e6fcf5;color:#099268;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Đã TT</span>'
+          : '<span style="background:#fffbea;color:#b07600;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Chờ TT</span>'
+        }</td>
+        <td style="color:#868e96">${c.paidAt ? _fmtDate(c.paidAt) : '—'}</td>
+      </tr>`).join('');
+  }
+
+  // ── Tab 3: Thông tin CTV ──────────────────────────────────
+  function _renderProfile() {
+    const link = 'https://swiftcopydrive.com?r=' + _dash.code;
+    const ld2 = document.getElementById('affLinkDisplay2');
+    if (ld2) ld2.textContent = link;
+    const cd = document.getElementById('ctvCodeDisplay');
+    if (cd) cd.textContent = _dash.code;
+
+    // Điền thông tin ngân hàng nếu đã lưu
+    if (_dash.bankInfo) {
+      const bi = _dash.bankInfo;
+      const bn = document.getElementById('bankName');
+      const ba = document.getElementById('bankAccount');
+      const bh = document.getElementById('bankHolder');
+      if (bn) bn.value = bi.bankName || '';
+      if (ba) ba.value = bi.bankAccount || '';
+      if (bh) bh.value = bi.bankHolder || '';
+    }
+
+    // Trạng thái urgentRequest
+    const urgentPend = document.getElementById('urgent-pending-info');
+    const urgentBtn  = document.getElementById('urgentBtn');
+    if (_dash.urgentRequest) {
+      if (urgentPend) urgentPend.style.display = 'block';
+      if (urgentBtn)  { urgentBtn.disabled = true; urgentBtn.style.opacity = '.5'; urgentBtn.textContent = 'Đang chờ xử lý...'; }
+    }
+  }
+
+  // ── Copy affiliate link ───────────────────────────────────
+  window.copyAffLink = function() {
+    const link = 'https://swiftcopydrive.com?r=' + _dash.code;
+    navigator.clipboard.writeText(link).then(() => _toast('Đã sao chép link!')).catch(() => _toast('Sao chép thất bại'));
+  };
+
+  // ── Lưu thông tin ngân hàng ──────────────────────────────
+  window.saveBankInfo = async function() {
+    const bankName    = document.getElementById('bankName')?.value.trim() || '';
+    const bankAccount = document.getElementById('bankAccount')?.value.trim() || '';
+    const bankHolder  = document.getElementById('bankHolder')?.value.trim() || '';
+    if (!bankName || !bankAccount || !bankHolder) {
+      _toast('Vui lòng điền đầy đủ 3 trường ngân hàng');
+      return;
+    }
+    const btn = document.getElementById('saveBankBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Đang lưu...'; }
+    try {
+      await updateDoc(doc(db, 'affiliates', _dash.id), { bankInfo: { bankName, bankAccount, bankHolder } });
+      _dash.bankInfo = { bankName, bankAccount, bankHolder };
+      _toast('Đã lưu thông tin ngân hàng!');
+    } catch (e) {
+      _toast('Lỗi lưu: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Lưu thông tin ngân hàng'; }
+    }
+  };
+
+  // ── Yêu cầu thanh toán gấp ───────────────────────────────
+  window.requestUrgentPayment = async function() {
+    const pending = _comms.filter(c => c.status === 'pending').reduce((s,c)=>s+c.amount,0);
+    if (pending === 0) { _toast('Không có hoa hồng nào đang chờ thanh toán'); return; }
+
+    const btn = document.getElementById('urgentBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Đang gửi yêu cầu...'; }
+    try {
+      await updateDoc(doc(db, 'affiliates', _dash.id), { urgentRequest: true });
+      _dash.urgentRequest = true;
+      // Thông báo admin
+      fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'ctv_urgent_payment',
+          ctvName: _dash.name, toCTVEmail: _dash.email,
+          amount: pending, code: _dash.code,
+          siteUrl: 'https://swiftcopydrive.com'
+        })
+      }).catch(() => {});
+      const urgentPend = document.getElementById('urgent-pending-info');
+      if (urgentPend) urgentPend.style.display = 'block';
+      if (btn) { btn.textContent = 'Đang chờ xử lý...'; btn.style.opacity = '.5'; }
+      _toast('Yêu cầu đã được gửi! Admin sẽ xử lý trong 24h.');
+    } catch (e) {
+      _toast('Lỗi gửi yêu cầu: ' + e.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Yêu cầu thanh toán gấp'; }
+    }
+  };
+
+  // ── onAuthStateChanged — chỉ chạy trên ctv-dashboard.html ─
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = '/ctv'; return; }
+
+    try {
+      const result = await checkCTVStatus(user);
+      if (result.state !== 'affiliate' || result.status !== 'active') {
+        window.location.href = '/ctv';
+        return;
+      }
+
+      _dash = result.doc;
+      currentUser = user;
+
+      // Load commissions — sắp xếp theo createdAt mới nhất trước
+      const commSnap = await getDocs(
+        query(collection(db, 'affiliates', _dash.id, 'commissions'), orderBy('createdAt', 'desc'))
+      );
+      _comms = commSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Set header
+      const navName = document.getElementById('ctvNavName');
+      const navCode = document.getElementById('ctvNavCode');
+      if (navName) navName.textContent = _dash.name;
+      if (navCode) navCode.textContent = _dash.code;
+
+      _renderOverview();
+      _showScreen('dash-main');
+
+    } catch (e) {
+      const errMsg = document.getElementById('dash-error-msg');
+      if (errMsg) errMsg.textContent = e.message;
+      _showScreen('dash-error');
     }
   });
 }

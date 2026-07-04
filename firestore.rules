@@ -77,6 +77,17 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.status == 'pending';
+      // CTV cập nhật thông tin ngân hàng + urgentRequest — không được đổi các field tài chính
+      allow update: if request.auth != null
+        && resource.data.email == request.auth.token.email
+        && request.resource.data.email           == resource.data.email
+        && request.resource.data.status          == resource.data.status
+        && request.resource.data.code            == resource.data.code
+        && request.resource.data.commissionRate  == resource.data.commissionRate
+        && request.resource.data.totalEarned     == resource.data.totalEarned
+        && request.resource.data.totalPaid       == resource.data.totalPaid
+        && request.resource.data.totalClients    == resource.data.totalClients
+        && request.resource.data.totalConverted  == resource.data.totalConverted;
     }
 
     // Subcollection commissions — CTV chỉ đọc HH của mình (kiểm tra qua doc cha)

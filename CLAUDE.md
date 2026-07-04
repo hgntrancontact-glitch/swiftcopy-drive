@@ -678,6 +678,16 @@ export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 
 ## Hệ thống CTV / Affiliate — Triển khai
 
+### Giai đoạn 7 — Dashboard CTV (ĐÃ HOÀN THÀNH)
+- **`ctv-dashboard.html`** (~200 dòng): trang `/ctv-dashboard` — header dark `#212529` + logo + badge "CTV" + nav-name/nav-code + logout; tab nav 4 tab (Tổng quan / Danh sách khách / Lịch sử HH / Thông tin CTV). Loading screen (`#dash-loading`), error screen (`#dash-error`), main (`#dash-main`). 3 màn hình loading/error/main điều phối bởi `_showScreen()` trong `ctv.js`. Font Nunito + Nunito Sans, không dùng Tailwind CDN (self-contained CSS).
+- **Tab 0 Tổng quan**: link giới thiệu strip (dark gradient) + copy button; 2 row stats-grid-3: hôm nay/tuần/tháng (row 1), chưa TT/đã TT/tỷ lệ chuyển đổi (row 2); stats-grid-2 tổng quan khách (đã đăng ký / đã mua Trọn đời).
+- **Tab 1 Danh sách khách**: table 5 cột (# / Email masked / Ngày mua / Hoa hồng / Trạng thái) — data từ `commissions` subcollection (chỉ hiện converted clients).
+- **Tab 2 Lịch sử HH**: table 6 cột (# / Email masked / Ngày / Số tiền / Trạng thái / Ngày TT) — toàn bộ `_comms`, sắp xếp `orderBy('createdAt','desc')`.
+- **Tab 3 Thông tin CTV**: link cá nhân + copy; form 3 field ngân hàng (`bankName`/`bankAccount`/`bankHolder`) → `saveBankInfo()` gọi `updateDoc` affiliate doc; box "Yêu cầu thanh toán gấp" với `urgentBtn` → `requestUrgentPayment()` set `urgentRequest:true` + send email `ctv_urgent_payment`.
+- **`ctv.js`** cập nhật: import thêm `updateDoc`, `orderBy`; thêm dashboard block (~200 dòng) guard bởi `document.getElementById('dash-loading')`; hàm: `_showScreen`, `_toast`, `_fmtMoney`, `_fmtDate`, `_maskEmail`, `switchDashTab`, `_renderOverview`, `_renderClients`, `_renderHistory`, `_renderProfile`, `copyAffLink`, `saveBankInfo`, `requestUrgentPayment`, `onAuthStateChanged` dashboard.
+- **`auth.js`** cập nhật: thêm `collection, getDocs, where, query, increment` vào Firestore import; thêm `_incrementCTVClient(code)` (query affiliate by code → `updateDoc({totalClients: increment(1)})`); cả `createFreeUser()` và `createPaidPendingUser()` đổi sang capture `affFields = _getAffiliateFields()` trước khi spread (tránh localStorage bị clear trước khi đọc code), sau `setDoc` call `_incrementCTVClient(affFields.referredBy)` fire-and-forget.
+- **`firestore.rules`** cập nhật: thêm `allow update` cho CTV trên doc chính mình — chỉ được đổi `bankInfo` và `urgentRequest`, bảo vệ các field tài chính (`email/status/code/commissionRate/totalEarned/totalPaid/totalClients/totalConverted` bất biến).
+
 ### Giai đoạn 4 — Trang CTV (ĐÃ HOÀN THÀNH)
 - **`ctv.html`**: trang công khai `/ctv` — Hero section (nền `#212529`, 3 highlight cards), 2 card song song: "Đăng ký CTV mới" + "Đăng nhập CTV đã duyệt", đều dùng Google OAuth button. Sau đăng nhập → JS kiểm tra affiliates (by email) + users (by uid): active→redirect /ctv-dashboard, pending→thông báo chờ duyệt, user_conflict→thông báo lỗi email trùng, eligible→hiện form đăng ký pre-filled email từ Google. Form: Họ tên(*), SĐT(*), Ghi chú(optional), checkbox điều khoản. Modal điều khoản đọc từ `settings/ctv_terms` / `settings/ctv_payment_terms` (placeholder text cho đến khi admin cập nhật). Section thành công sau khi submit.
 - **`ctv.js`**: ES module — Firebase init, `loginCTV()`, `logoutCTV()`, `checkCTVStatus(user)` (query affiliates by email + check users/{uid}), `submitCTVForm()` (write `affiliates/{autoId}` với status=pending, gửi email admin_ctv_applied), `showSection()` state machine (loading/unauthenticated/pending/redirecting/user_conflict/register_form/success). Export `db` và `checkCTVStatus` để `ctv-dashboard.js` tái dùng.
@@ -784,10 +794,10 @@ Email #13 là quan trọng nhất — phải nhấn mạnh link cá nhân và h�
 4. ✅ Trang `ctv.html` (đăng ký & đăng nhập) — `ctv.html`, `ctv.js`
 5. ✅ Tab CTV trong `admin.html` — `admin.html`
 6. ✅ Cột CTV trong tab Khách hàng của `admin.html`
-7. 🟡 Trang `ctv-dashboard.html` (4 tab) — `ctv-dashboard.html`, `ctv.js`
+7. ✅ Trang `ctv-dashboard.html` (4 tab) — `ctv-dashboard.html`, `ctv.js`
 8. 🟡 6 email mới trong `gas-email.js`
 9. ✅ Logic sinh mã CTV tự động — `admin.html` (`generateCTVCode`)
-10. 🟢 Nút "Yêu cầu thanh toán gấp" + giới hạn 2 lần/tháng
+10. 🟢 Nút "Yêu cầu thanh toán gấp" + giới hạn 2 lần/tháng (cơ bản đã có, chưa có đếm lần/tháng)
 11. 🟢 Xuất báo cáo CSV hoa hồng
 12. 🟢 Điều khoản CTV & điều khoản thanh toán (modal)
 

@@ -8,7 +8,8 @@ import { initializeApp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot }
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot,
+         collection, getDocs, where, query, increment }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { st, IS_DASHBOARD, FREE_MB_LIMIT, FREE_RESET_MS, releasePauseWaiters } from './state.js';
 
@@ -382,6 +383,14 @@ function _getAffiliateFields() {
   return { referredBy: code, referredAt: serverTimestamp() };
 }
 
+async function _incrementCTVClient(code) {
+  if (!code) return;
+  try {
+    const snap = await getDocs(query(collection(db, 'affiliates'), where('code', '==', code)));
+    if (!snap.empty) await updateDoc(snap.docs[0].ref, { totalClients: increment(1) });
+  } catch {} // silent — không để lỗi CTV block luồng đăng ký user
+}
+
 // ── Plan selection ────────────────────────────────────────────
 function showPlanSelect() {
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
@@ -419,14 +428,16 @@ window.createFreeUser = async () => {
   if (!st.gUser) return;
   document.getElementById('planSelectModal')?.classList.remove('active');
   try {
+    const affFields = _getAffiliateFields();
     const userData = {
       email: st.gUser.email, displayName: st.gUser.displayName, photoURL: st.gUser.photoURL,
       approved: true, status: 'approved', plan: 'free',
       freeUsedMB: 0, freeResetAt: serverTimestamp(),
       upgradeRequestedAt: null, createdAt: serverTimestamp(),
-      ..._getAffiliateFields()
+      ...affFields
     };
     await setDoc(doc(db, 'users', st.gUser.uid), userData);
+    if (affFields.referredBy) _incrementCTVClient(affFields.referredBy);
     sendRegEmail(st.gUser);
     _sendRegisterFreeSuccessEmail(st.gUser);
     window.location.href = '/copy-drive';
@@ -446,14 +457,16 @@ window.openPlanSelectPaid = () => {
 async function createPaidPendingUser() {
   if (!st.gUser) return;
   try {
+    const affFields = _getAffiliateFields();
     const userData = {
       email: st.gUser.email, displayName: st.gUser.displayName, photoURL: st.gUser.photoURL,
       approved: false, status: 'pending', plan: 'free',
       freeUsedMB: 0, freeResetAt: serverTimestamp(),
       upgradeRequestedAt: serverTimestamp(), createdAt: serverTimestamp(),
-      ..._getAffiliateFields()
+      ...affFields
     };
     await setDoc(doc(db, 'users', st.gUser.uid), userData);
+    if (affFields.referredBy) _incrementCTVClient(affFields.referredBy);
     st.gUserData = { id: st.gUser.uid, ...userData };
     sendUpgradeRequestEmail(st.gUser);
     _sendRegisterPaidPendingEmail(st.gUser);
