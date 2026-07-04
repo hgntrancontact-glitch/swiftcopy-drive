@@ -8,9 +8,10 @@
   <meta name="robots" content="noindex">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 
     /* ── Các class dùng bởi JS sections ── */
     .btn-amber {
@@ -75,21 +76,20 @@
     }
 
     /* ── Hero CTA buttons ── */
-    @keyframes pulseGlow {
-      0%   { box-shadow: 0 0 0 0 rgba(255,193,7,.4); }
-      50%  { box-shadow: 0 0 20px 6px rgba(255,193,7,.45); }
-      100% { box-shadow: 0 0 0 0 rgba(255,193,7,0); }
+    @keyframes smoothPulse {
+      0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,193,7,.6); }
+      50%  { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(255,193,7,0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,193,7,0); }
     }
     .hero-btn-primary {
       display: inline-flex; align-items: center; justify-content: center;
       padding: 15px 44px; font-size: 16px; font-weight: 700;
       background: #ffc107; color: #212529; border: none; border-radius: 10px;
-      cursor: pointer; transition: all .2s; white-space: nowrap;
-      animation: pulseGlow 2s infinite ease-in-out;
+      cursor: pointer; transition: background .2s; white-space: nowrap;
+      animation: smoothPulse 2s infinite ease-in-out;
     }
     .hero-btn-primary:hover {
       background: #e6ac00; animation-play-state: paused;
-      box-shadow: 0 0 25px rgba(255,193,7,.5); transform: scale(1.02);
     }
     .hero-btn-secondary {
       display: inline-flex; align-items: center; justify-content: center;
@@ -216,75 +216,8 @@
     <p class="text-[#868e96] text-sm">Đang kiểm tra thông tin...</p>
   </div>
 
-  <!-- ── Chưa đăng nhập: 2 cards ── -->
-  <div id="sec-unauthenticated" style="display:block">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-      <!-- Đăng ký CTV mới -->
-      <div class="section-card">
-        <div class="flex items-center gap-3 mb-5">
-          <div class="icon-badge">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <line x1="19" y1="8" x2="19" y2="14"/>
-              <line x1="22" y1="11" x2="16" y2="11"/>
-            </svg>
-          </div>
-          <div>
-            <h2 class="font-bold text-[#212529] text-lg">Đăng ký làm CTV</h2>
-            <p class="text-[#868e96] text-sm">Chưa tham gia chương trình</p>
-          </div>
-        </div>
-        <p class="text-[#495057] text-sm mb-5 leading-relaxed">
-          Đăng nhập bằng Google để xác minh danh tính, sau đó điền thông tin và gửi đơn. Admin sẽ duyệt trong vòng 1–2 ngày làm việc.
-        </p>
-        <div class="bg-[#fffbea] border border-[#ffe082] rounded-xl p-4 mb-5">
-          <p class="text-[#7a5a00] text-sm font-medium mb-1">💡 Lưu ý quan trọng</p>
-          <p class="text-[#7a5a00] text-xs">1 email chỉ được đăng ký làm <strong>CTV hoặc người dùng</strong> — không thể dùng chung. Nếu đã có tài khoản người dùng, vui lòng dùng email khác.</p>
-        </div>
-        <button class="google-btn" onclick="loginCTV()">
-          <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
-          Đăng nhập với Google để đăng ký
-        </button>
-      </div>
-
-      <!-- Đăng nhập CTV đã duyệt -->
-      <div class="section-card">
-        <div class="flex items-center gap-3 mb-5">
-          <div class="icon-badge">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-          </div>
-          <div>
-            <h2 class="font-bold text-[#212529] text-lg">Đăng nhập CTV</h2>
-            <p class="text-[#868e96] text-sm">Đã có tài khoản CTV được duyệt</p>
-          </div>
-        </div>
-        <p class="text-[#495057] text-sm mb-5 leading-relaxed">
-          Đăng nhập bằng tài khoản Google đã đăng ký làm CTV để truy cập dashboard theo dõi hoa hồng và danh sách khách hàng.
-        </p>
-        <div class="mb-5">
-          <div class="flex items-center gap-2 text-sm text-[#495057] mb-2">
-            <span class="text-[#099268]">✓</span> Xem hoa hồng theo ngày/tuần/tháng
-          </div>
-          <div class="flex items-center gap-2 text-sm text-[#495057] mb-2">
-            <span class="text-[#099268]">✓</span> Theo dõi danh sách khách qua link
-          </div>
-          <div class="flex items-center gap-2 text-sm text-[#495057]">
-            <span class="text-[#099268]">✓</span> Yêu cầu thanh toán hoa hồng
-          </div>
-        </div>
-        <button class="google-btn" onclick="loginCTV()">
-          <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
-          Đăng nhập bằng Google
-        </button>
-      </div>
-
-    </div>
-  </div>
+  <!-- ── Chưa đăng nhập: div rỗng (JS cần ID này để routing) ── -->
+  <div id="sec-unauthenticated" style="display:block"></div>
 
   <!-- ── Đang redirect sang dashboard ── -->
   <div id="sec-redirecting" style="display:none" class="text-center py-16">
