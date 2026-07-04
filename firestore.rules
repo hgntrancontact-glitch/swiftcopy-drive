@@ -73,6 +73,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
       allow read: if request.auth != null
         && resource.data.email == request.auth.token.email;
+      // CTV tự tạo đơn đăng ký mới (status phải là pending, email khớp auth)
+      allow create: if request.auth != null
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.status == 'pending';
     }
 
     // Subcollection commissions — CTV chỉ đọc HH của mình (kiểm tra qua doc cha)

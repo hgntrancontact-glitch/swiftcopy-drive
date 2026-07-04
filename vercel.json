@@ -11,9 +11,11 @@
     }
   ],
   "rewrites": [
-    { "source": "/copy-drive", "destination": "/dashboard.html" },
-    { "source": "/dieu-khoan", "destination": "/legal.html"  },
-    { "source": "/bao-mat",    "destination": "/legal.html"  },
-    { "source": "/hoan-tien",  "destination": "/legal.html"  }
+    { "source": "/copy-drive",     "destination": "/dashboard.html"     },
+    { "source": "/ctv",            "destination": "/ctv.html"           },
+    { "source": "/ctv-dashboard",  "destination": "/ctv-dashboard.html" },
+    { "source": "/dieu-khoan",     "destination": "/legal.html"         },
+    { "source": "/bao-mat",        "destination": "/legal.html"         },
+    { "source": "/hoan-tien",      "destination": "/legal.html"         }
   ]
 }

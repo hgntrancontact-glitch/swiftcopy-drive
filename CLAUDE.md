@@ -678,6 +678,12 @@ export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 
 ## Hệ thống CTV / Affiliate — Triển khai
 
+### Giai đoạn 4 — Trang CTV (ĐÃ HOÀN THÀNH)
+- **`ctv.html`**: trang công khai `/ctv` — Hero section (nền `#212529`, 3 highlight cards), 2 card song song: "Đăng ký CTV mới" + "Đăng nhập CTV đã duyệt", đều dùng Google OAuth button. Sau đăng nhập → JS kiểm tra affiliates (by email) + users (by uid): active→redirect /ctv-dashboard, pending→thông báo chờ duyệt, user_conflict→thông báo lỗi email trùng, eligible→hiện form đăng ký pre-filled email từ Google. Form: Họ tên(*), SĐT(*), Ghi chú(optional), checkbox điều khoản. Modal điều khoản đọc từ `settings/ctv_terms` / `settings/ctv_payment_terms` (placeholder text cho đến khi admin cập nhật). Section thành công sau khi submit.
+- **`ctv.js`**: ES module — Firebase init, `loginCTV()`, `logoutCTV()`, `checkCTVStatus(user)` (query affiliates by email + check users/{uid}), `submitCTVForm()` (write `affiliates/{autoId}` với status=pending, gửi email admin_ctv_applied), `showSection()` state machine (loading/unauthenticated/pending/redirecting/user_conflict/register_form/success). Export `db` và `checkCTVStatus` để `ctv-dashboard.js` tái dùng.
+- **`vercel.json`**: thêm rewrite `/ctv` → `ctv.html`, `/ctv-dashboard` → `ctv-dashboard.html`.
+- **`firestore.rules`**: thêm `allow create` cho `affiliates/{code}` — CTV tự tạo đơn pending khi email và status khớp.
+
 ### Giai đoạn 1+2+3 — Nền tảng (ĐÃ HOÀN THÀNH)
 - **`firestore.rules`**: thêm rules cho `affiliates/{code}` (CTV đọc doc chính mình) và `affiliates/{code}/commissions/{id}` (CTV đọc HH của mình qua `get()` doc cha). Admin bypass toàn bộ. User thường không có quyền.
 - **`index.html`**: script IIFE đọc `?r=` từ URL → lưu `localStorage` key `affiliateCode`+`affiliateAt` với TTL 30 ngày. Nếu đã có code còn hạn → không ghi đè. Hết hạn + không có mã mới → xoá.

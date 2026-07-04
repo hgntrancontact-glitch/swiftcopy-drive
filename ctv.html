@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chương trình CTV — SwiftCopy.Drive</title>
+  <meta name="description" content="Kiếm hoa hồng 50% (125.000đ) cho mỗi khách mua gói Trọn đời qua link của bạn.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+
+    .btn-amber {
+      background: #ffc107; color: #212529; font-weight: 700;
+      padding: 12px 28px; border-radius: 10px; border: none; cursor: pointer;
+      font-size: 15px; transition: background .15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-amber:hover { background: #e6ac00; }
+    .btn-amber:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-outline {
+      background: transparent; color: #495057; font-weight: 600;
+      padding: 10px 22px; border-radius: 10px; border: 1.5px solid #dee2e6;
+      cursor: pointer; font-size: 14px; transition: background .15s;
+    }
+    .btn-outline:hover { background: #f8f9fa; }
+
+    .highlight-card {
+      background: #fff; border: 1.5px solid #e9ecef;
+      border-radius: 16px; padding: 22px 20px; text-align: center;
+    }
+    .icon-badge {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: #fffbea; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+    }
+
+    .form-input {
+      width: 100%; padding: 10px 14px; border: 1.5px solid #dee2e6;
+      border-radius: 10px; font-size: 15px; outline: none;
+      transition: border-color .15s; box-sizing: border-box;
+    }
+    .form-input:focus { border-color: #ffc107; }
+
+    .section-card {
+      background: #fff; border: 1px solid #e9ecef; border-radius: 20px;
+      padding: 36px 32px; box-shadow: 0 2px 16px rgba(0,0,0,.06);
+    }
+
+    .google-btn {
+      background: #fff; color: #212529; font-weight: 600;
+      padding: 12px 24px; border-radius: 10px;
+      border: 1.5px solid #dee2e6; cursor: pointer; font-size: 15px;
+      display: inline-flex; align-items: center; gap: 10px;
+      transition: background .15s, box-shadow .15s; width: 100%; justify-content: center;
+    }
+    .google-btn:hover { background: #f8f9fa; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+
+    .status-box {
+      border-radius: 14px; padding: 28px 24px; text-align: center;
+    }
+
+    #ctvGlobalMsg {
+      display: none; padding: 12px 16px; border-radius: 10px;
+      margin-bottom: 16px; font-size: 14px; font-weight: 500;
+    }
+
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid #e9ecef;
+      border-top-color: #ffc107; border-radius: 50%;
+      animation: spin .8s linear infinite; margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .terms-link { color: #ffc107; text-decoration: underline; cursor: pointer; }
+  </style>
+</head>
+<body class="bg-[#f8f9fa] min-h-screen">
+
+<!-- ══ Header ══════════════════════════════════════════════════ -->
+<header class="bg-white border-b border-[#e9ecef] sticky top-0 z-50">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2.5 no-underline">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none" style="border-radius:10px;background:#212529;flex-shrink:0">
+        <rect x="6" y="6" width="28" height="28" rx="5" fill="#ffc107"/>
+        <path d="M20 10 L30 20 L20 30 L10 20 Z" fill="#212529" opacity=".15"/>
+        <path d="M13 20 H27 M22 15 L27 20 L22 25" stroke="#212529" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="font-bold text-[#212529] text-lg">SwiftCopy.Drive</span>
+    </a>
+    <div class="flex items-center gap-3">
+      <span class="text-xs font-semibold text-[#ffc107] bg-[#fffbea] border border-[#ffe082] px-3 py-1 rounded-full">CTV PORTAL</span>
+      <a href="/" class="text-sm text-[#868e96] hover:text-[#212529] transition-colors">← Trang chủ</a>
+    </div>
+  </div>
+</header>
+
+<!-- ══ Hero ════════════════════════════════════════════════════ -->
+<section class="bg-[#212529] text-white py-14 px-4">
+  <div class="max-w-3xl mx-auto text-center">
+    <div class="inline-block bg-[#ffc107] text-[#212529] text-xs font-bold px-4 py-1.5 rounded-full mb-5 tracking-wide">CHƯƠNG TRÌNH ĐỐI TÁC</div>
+    <h1 class="text-3xl md:text-4xl font-black mb-4 leading-tight">
+      Kiếm hoa hồng cùng<br><span class="text-[#ffc107]">SwiftCopy.Drive</span>
+    </h1>
+    <p class="text-[#adb5bd] text-base md:text-lg mb-10 max-w-xl mx-auto">
+      Giới thiệu bạn bè dùng SwiftCopy.Drive và nhận <strong class="text-white">125.000đ hoa hồng</strong> cho mỗi khách mua gói Trọn đời qua link cá nhân của bạn.
+    </p>
+
+    <!-- 3 điểm nổi bật -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+      <div class="bg-white/[.07] border border-white/10 rounded-2xl px-5 py-5">
+        <div class="text-2xl mb-2">💰</div>
+        <div class="font-bold text-base mb-1">Hoa hồng 50%</div>
+        <div class="text-[#adb5bd] text-sm">125.000đ / đơn Trọn đời — thanh toán thủ công qua ngân hàng</div>
+      </div>
+      <div class="bg-white/[.07] border border-white/10 rounded-2xl px-5 py-5">
+        <div class="text-2xl mb-2">⚡</div>
+        <div class="font-bold text-base mb-1">Thanh toán nhanh</div>
+        <div class="text-[#adb5bd] text-sm">Admin xử lý trong vòng 24–48h sau khi bạn yêu cầu</div>
+      </div>
+      <div class="bg-white/[.07] border border-white/10 rounded-2xl px-5 py-5">
+        <div class="text-2xl mb-2">📊</div>
+        <div class="font-bold text-base mb-1">Theo dõi realtime</div>
+        <div class="text-[#adb5bd] text-sm">Dashboard CTV xem số khách, hoa hồng và lịch sử thanh toán</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Main content ════════════════════════════════════════════ -->
+<main class="max-w-5xl mx-auto px-4 py-10">
+  <div id="ctvGlobalMsg"></div>
+
+  <!-- ── Loading ── -->
+  <div id="sec-loading" style="display:none" class="text-center py-16">
+    <div class="spinner"></div>
+    <p class="text-[#868e96] text-sm">Đang kiểm tra thông tin...</p>
+  </div>
+
+  <!-- ── Chưa đăng nhập (2 section: đăng ký + đăng nhập) ── -->
+  <div id="sec-unauthenticated" style="display:block">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- Phần 2: Đăng ký CTV mới -->
+      <div class="section-card">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="icon-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="font-bold text-[#212529] text-lg">Đăng ký làm CTV</h2>
+            <p class="text-[#868e96] text-sm">Chưa tham gia chương trình</p>
+          </div>
+        </div>
+
+        <p class="text-[#495057] text-sm mb-5 leading-relaxed">
+          Đăng nhập bằng Google để xác minh danh tính, sau đó điền thông tin và gửi đơn. Admin sẽ duyệt trong vòng 1–2 ngày làm việc.
+        </p>
+
+        <div class="bg-[#fffbea] border border-[#ffe082] rounded-xl p-4 mb-5">
+          <p class="text-[#7a5a00] text-sm font-medium mb-1">💡 Lưu ý quan trọng</p>
+          <p class="text-[#7a5a00] text-xs">1 email chỉ được đăng ký làm <strong>CTV hoặc người dùng</strong> — không thể dùng chung. Nếu đã có tài khoản người dùng, vui lòng dùng email khác.</p>
+        </div>
+
+        <button class="google-btn" onclick="loginCTV()">
+          <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+          Đăng nhập với Google để đăng ký
+        </button>
+      </div>
+
+      <!-- Phần 3: Đăng nhập CTV đã duyệt -->
+      <div class="section-card">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="icon-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="font-bold text-[#212529] text-lg">Đăng nhập CTV</h2>
+            <p class="text-[#868e96] text-sm">Đã có tài khoản CTV được duyệt</p>
+          </div>
+        </div>
+
+        <p class="text-[#495057] text-sm mb-5 leading-relaxed">
+          Đăng nhập bằng tài khoản Google đã đăng ký làm CTV để truy cập dashboard theo dõi hoa hồng và danh sách khách hàng.
+        </p>
+
+        <div class="mb-5">
+          <div class="flex items-center gap-2 text-sm text-[#495057] mb-2">
+            <span class="text-[#099268]">✓</span> Xem hoa hồng theo ngày/tuần/tháng
+          </div>
+          <div class="flex items-center gap-2 text-sm text-[#495057] mb-2">
+            <span class="text-[#099268]">✓</span> Theo dõi danh sách khách qua link
+          </div>
+          <div class="flex items-center gap-2 text-sm text-[#495057]">
+            <span class="text-[#099268]">✓</span> Yêu cầu thanh toán hoa hồng
+          </div>
+        </div>
+
+        <button class="google-btn" onclick="loginCTV()">
+          <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+          Đăng nhập bằng Google
+        </button>
+      </div>
+
+    </div><!-- /grid -->
+  </div><!-- /#sec-unauthenticated -->
+
+  <!-- ── Đang xử lý — redirect sang dashboard ── -->
+  <div id="sec-redirecting" style="display:none" class="text-center py-16">
+    <div class="spinner"></div>
+    <p class="text-[#099268] font-semibold text-lg mb-1">Chào mừng trở lại!</p>
+    <p class="text-[#868e96] text-sm">Đang chuyển hướng đến dashboard CTV...</p>
+  </div>
+
+  <!-- ── Đơn đang chờ duyệt ── -->
+  <div id="sec-pending" style="display:none" class="max-w-lg mx-auto">
+    <div class="status-box bg-[#fffbea] border border-[#ffe082]">
+      <div class="text-4xl mb-4">⏳</div>
+      <h2 class="font-bold text-[#7a5a00] text-xl mb-2">Đơn của bạn đang chờ duyệt</h2>
+      <p class="text-[#7a5a00] text-sm mb-5">
+        Admin sẽ xem xét đơn đăng ký của bạn trong vòng 1–2 ngày làm việc. Bạn sẽ nhận được email thông báo khi đơn được duyệt.
+      </p>
+      <button class="btn-outline" onclick="logoutCTV()">Đăng xuất</button>
+    </div>
+  </div>
+
+  <!-- ── Email đã là tài khoản người dùng ── -->
+  <div id="sec-user_conflict" style="display:none" class="max-w-lg mx-auto">
+    <div class="status-box bg-[#fff5f5] border border-[#ffe3e3]">
+      <div class="text-4xl mb-4">⚠️</div>
+      <h2 class="font-bold text-[#c92a2a] text-xl mb-2">Email này đã là tài khoản người dùng</h2>
+      <p class="text-[#862e2e] text-sm mb-5">
+        Mỗi email chỉ có thể đăng ký làm <strong>CTV hoặc người dùng</strong> — không thể dùng chung. Vui lòng đăng xuất và thử lại bằng một email Google khác.
+      </p>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <button class="btn-outline" onclick="logoutCTV()">Đăng xuất & đổi tài khoản</button>
+        <a href="/" class="btn-outline" style="text-decoration:none;display:inline-flex;align-items:center">Về trang chủ</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Form đăng ký (sau khi đăng nhập + eligible) ── -->
+  <div id="sec-register_form" style="display:none" class="max-w-lg mx-auto">
+    <div class="section-card">
+      <h2 class="font-bold text-[#212529] text-xl mb-1">Điền thông tin đăng ký</h2>
+      <p class="text-[#868e96] text-sm mb-6">Tài khoản Google của bạn đã được xác minh. Điền thêm thông tin bên dưới để hoàn tất đăng ký.</p>
+
+      <!-- Email hiển thị (readonly từ Google) -->
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-[#212529] mb-1.5">Email <span class="text-[#868e96] font-normal">(từ tài khoản Google)</span></label>
+        <div class="form-input bg-[#f8f9fa] text-[#868e96]" style="display:flex;align-items:center">
+          <span id="ctvEmailDisplay"></span>
+        </div>
+      </div>
+
+      <!-- Họ tên -->
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-[#212529] mb-1.5" for="ctvName">Họ và tên <span class="text-[#dc3545]">*</span></label>
+        <input id="ctvName" type="text" class="form-input" placeholder="Ví dụ: Trần Hạo Nam" maxlength="80" autocomplete="name">
+      </div>
+
+      <!-- Số điện thoại -->
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-[#212529] mb-1.5" for="ctvPhone">Số điện thoại <span class="text-[#dc3545]">*</span></label>
+        <input id="ctvPhone" type="tel" class="form-input" placeholder="0912 345 678" maxlength="15" autocomplete="tel">
+      </div>
+
+      <!-- Ghi chú -->
+      <div class="mb-5">
+        <label class="block text-sm font-semibold text-[#212529] mb-1.5" for="ctvNote">Ghi chú <span class="text-[#868e96] font-normal">(tùy chọn)</span></label>
+        <textarea id="ctvNote" class="form-input" rows="3" placeholder="Bạn biết đến chương trình này từ đâu? Bạn dự định giới thiệu qua kênh nào?..." maxlength="500" style="resize:vertical"></textarea>
+      </div>
+
+      <!-- Checkbox điều khoản -->
+      <div class="mb-6">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input id="ctvTerms" type="checkbox" class="mt-0.5 accent-[#ffc107]" style="width:16px;height:16px;flex-shrink:0">
+          <span class="text-sm text-[#495057]">
+            Tôi đã đọc và đồng ý với <span class="terms-link" onclick="openTermsModal('ctv_terms')">Điều khoản CTV</span> và <span class="terms-link" onclick="openTermsModal('ctv_payment_terms')">Điều khoản thanh toán hoa hồng</span> của SwiftCopy.Drive.
+          </span>
+        </label>
+      </div>
+
+      <button id="ctvSubmitBtn" class="btn-amber w-full justify-center" onclick="submitCTVForm()"
+        style="width:100%;justify-content:center">
+        Gửi đơn đăng ký
+      </button>
+      <p class="text-xs text-[#adb5bd] text-center mt-3">Sau khi gửi, admin sẽ xem xét và phản hồi trong 1–2 ngày làm việc.</p>
+    </div>
+  </div>
+
+  <!-- ── Đã gửi thành công ── -->
+  <div id="sec-success" style="display:none" class="max-w-lg mx-auto">
+    <div class="status-box bg-[#ebfbee] border border-[#d3f9d8]">
+      <div class="text-5xl mb-4">🎉</div>
+      <h2 class="font-bold text-[#2f9e44] text-xl mb-2">Đơn đăng ký đã được gửi!</h2>
+      <p class="text-[#2f6b2f] text-sm mb-2">
+        Cảm ơn bạn đã đăng ký tham gia chương trình CTV SwiftCopy.Drive.
+      </p>
+      <p class="text-[#2f6b2f] text-sm mb-6">
+        Admin sẽ xem xét đơn và gửi email thông báo đến bạn trong vòng <strong>1–2 ngày làm việc</strong>. Vui lòng kiểm tra hộp thư email.
+      </p>
+      <a href="/" class="btn-amber" style="text-decoration:none">← Về trang chủ</a>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ Modal điều khoản ════════════════════════════════════════ -->
+<div id="termsModal" onclick="if(event.target===this)closeTermsModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;
+         display:none;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:18px;max-width:560px;width:100%;
+              max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:18px 24px;border-bottom:1px solid #e9ecef;display:flex;align-items:center;justify-content:between;gap:12px">
+      <h3 id="termsModalTitle" style="font-weight:700;font-size:17px;color:#212529;flex:1;margin:0"></h3>
+      <button onclick="closeTermsModal()" style="background:none;border:none;font-size:20px;color:#868e96;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+    <div id="termsModalContent" style="padding:20px 24px;overflow-y:auto;flex:1;font-size:14px;color:#495057;line-height:1.7;white-space:pre-wrap"></div>
+  </div>
+</div>
+
+<script type="module" src="ctv.js"></script>
+<script>
+  // Terms modal — đọc từ Firestore settings/ctv_terms và settings/ctv_payment_terms
+  // (Được populate bởi admin ở Prompt 5. Hiện dùng placeholder)
+  const _termsDefaults = {
+    ctv_terms: `ĐIỀU KHOẢN CHƯƠNG TRÌNH CTV SWIFTCOPY.DRIVE\n\n(Admin chưa cập nhật nội dung. Vui lòng liên hệ admin để biết thêm chi tiết.)`,
+    ctv_payment_terms: `ĐIỀU KHOẢN THANH TOÁN HOA HỒNG\n\n(Admin chưa cập nhật nội dung. Vui lòng liên hệ admin để biết thêm chi tiết.)`
+  };
+
+  window.openTermsModal = function(type) {
+    const modal = document.getElementById('termsModal');
+    const title = document.getElementById('termsModalTitle');
+    const content = document.getElementById('termsModalContent');
+    title.textContent = type === 'ctv_terms' ? 'Điều khoản CTV' : 'Điều khoản thanh toán hoa hồng';
+    content.textContent = _termsDefaults[type] || '(Không có nội dung)';
+    modal.style.display = 'flex';
+  };
+
+  window.closeTermsModal = function() {
+    document.getElementById('termsModal').style.display = 'none';
+  };
+</script>
+
+</body>
+</html>
