@@ -383,11 +383,24 @@ function _getAffiliateFields() {
   return { referredBy: code, referredAt: serverTimestamp() };
 }
 
+function _maskEmail(email) {
+  const [user, domain] = (email || '').split('@');
+  if (!domain || user.length <= 4) return email;
+  const show = Math.max(2, Math.floor(user.length / 4));
+  return user.slice(0, show) + '****' + user.slice(-show) + '@' + domain;
+}
+
 async function _incrementCTVClient(code) {
   if (!code) return;
   try {
     const snap = await getDocs(query(collection(db, 'affiliates'), where('code', '==', code)));
-    if (!snap.empty) await updateDoc(snap.docs[0].ref, { totalClients: increment(1) });
+    if (snap.empty) return;
+    await updateDoc(snap.docs[0].ref, { totalClients: increment(1) });
+    const aff = snap.docs[0].data();
+    if (aff.email && st.gUser?.email) {
+      _gasPost({ type: 'ctv_new_signup', toEmail: aff.email, ctvName: aff.name || aff.email,
+                 clientEmail: _maskEmail(st.gUser.email), siteUrl: SITE_URL });
+    }
   } catch {} // silent — không để lỗi CTV block luồng đăng ký user
 }
 

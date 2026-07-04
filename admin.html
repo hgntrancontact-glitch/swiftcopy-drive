@@ -354,6 +354,15 @@ tbody tr:last-child td{border-bottom:none}
           <div style="margin-top:16px;padding:12px 14px;background:var(--blue-light);border:1px solid var(--blue-border);border-radius:10px;font-size:12px;color:var(--blue)">
             ℹ️ Link giới thiệu CTV: <code style="font-weight:700">https://swiftcopydrive.com?r=MACTV</code>
           </div>
+
+          <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px">
+            <div class="modal-label" style="margin-bottom:10px">Điều khoản CTV (hiển thị trong form đăng ký)</div>
+            <textarea id="ctvTermsText" rows="5" placeholder="Nhập điều khoản CTV..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;color:var(--text1);background:#fafafa"></textarea>
+            <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+              <button class="btn-approve" onclick="saveCTVTerms()" style="padding:7px 18px;font-size:13px">Lưu điều khoản</button>
+              <span id="ctvTermsSaveMsg" style="font-size:12px;color:var(--green);display:none">✓ Đã lưu</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -462,7 +471,8 @@ tbody tr:last-child td{border-bottom:none}
         </table>
       </div>
     </div>
-    <div class="modal-f">
+    <div class="modal-f" style="gap:8px">
+      <button class="btn-cancel" onclick="exportCTVCommCSV()" style="background:var(--green);color:#fff;border:none">Xuất CSV</button>
       <button class="btn-cancel" onclick="closeCTVDetailModal()">Đóng</button>
     </div>
   </div>
@@ -552,7 +562,7 @@ window.switchAdminTab = (tab) => {
   document.getElementById('atab-users').style.display = tab === 'users' ? '' : 'none';
   document.getElementById('atab-ctv').style.display   = tab === 'ctv'   ? '' : 'none';
   document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  if (tab === 'ctv') loadCTVs();
+  if (tab === 'ctv') { loadCTVs(); loadCTVTerms(); }
 };
 
 // ── CTV Load ────────────────────────────────────────────────────────
@@ -677,9 +687,11 @@ window.doRejectCTV = async () => {
 };
 
 // ── CTV Detail ──────────────────────────────────────────────────────
+let _ctvDetailCache = { ctv: null, comms: [] };
 window.openCTVDetailModal = async (affiliateId) => {
   const ctv = allCTVs.find(c => c.id === affiliateId);
   if (!ctv) return;
+  _ctvDetailCache = { ctv, comms: [] };
   document.getElementById('ctvDetailTitle').textContent = `Chi tiết CTV — ${ctv.name}`;
   document.getElementById('ctvDetailInfo').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
@@ -698,6 +710,7 @@ window.openCTVDetailModal = async (affiliateId) => {
   try {
     const commSnap = await getDocs(query(collection(db,'affiliates',affiliateId,'commissions'), orderBy('createdAt','desc')));
     const comms = commSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    _ctvDetailCache.comms = comms;
     if (!comms.length) {
       commBody.innerHTML = '<tr><td colspan="5" class="empty-cell" style="padding:16px!important">Chưa có hoa hồng nào.</td></tr>';
     } else {
@@ -721,6 +734,43 @@ window.openCTVDetailModal = async (affiliateId) => {
   }
 };
 window.closeCTVDetailModal = () => { document.getElementById('ctvDetailModal').classList.remove('on'); };
+
+// ── CSV Export ──────────────────────────────────────────────────────
+window.exportCTVCommCSV = () => {
+  const { ctv, comms } = _ctvDetailCache;
+  if (!ctv) return;
+  const rows = [['Khách hàng','Số tiền (đ)','Trạng thái','Ngày tạo','Ngày thanh toán']];
+  comms.forEach(c => {
+    const dt  = c.createdAt?.toDate ? c.createdAt.toDate().toLocaleString('vi-VN') : '';
+    const pDt = c.paidAt?.toDate    ? c.paidAt.toDate().toLocaleString('vi-VN')    : '';
+    rows.push([c.userEmail||'', c.amount||0, c.status==='paid'?'Đã trả':'Chờ trả', dt, pDt]);
+  });
+  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ctv_${ctv.code}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+// ── CTV Terms ───────────────────────────────────────────────────────
+window.saveCTVTerms = async () => {
+  const text = document.getElementById('ctvTermsText')?.value || '';
+  const msg  = document.getElementById('ctvTermsSaveMsg');
+  try {
+    await setDoc(doc(db, 'settings', 'ctv_terms'), { text, updatedAt: serverTimestamp() }, { merge: true });
+    if (msg) { msg.style.display = 'inline'; setTimeout(() => { msg.style.display = 'none'; }, 2500); }
+  } catch(e) { toast('Lỗi lưu điều khoản: ' + e.message, 'err'); }
+};
+
+async function loadCTVTerms() {
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'ctv_terms'));
+    const el = document.getElementById('ctvTermsText');
+    if (el && snap.exists()) el.value = snap.data().text || '';
+  } catch {}
+}
 
 // ── CTV Payment ─────────────────────────────────────────────────────
 window.markCTVPaid = async (affiliateId, code, name, email, amount) => {

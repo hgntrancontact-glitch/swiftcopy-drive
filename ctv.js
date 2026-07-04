@@ -7,7 +7,7 @@ import { initializeApp }
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, query, where, getDocs, addDoc, getDoc, doc, serverTimestamp,
-         updateDoc, orderBy }
+         updateDoc, orderBy, increment }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -171,6 +171,29 @@ if (document.getElementById('sec-loading')) {
   });
 }
 
+// ── Terms modal — fetch từ Firestore (ctv.html) ──────────────
+const _termsCache = {};
+window.openTermsModal = async function(type) {
+  const modal   = document.getElementById('termsModal');
+  const titleEl = document.getElementById('termsModalTitle');
+  const contentEl = document.getElementById('termsModalContent');
+  if (!modal) return;
+  titleEl.textContent = type === 'ctv_terms' ? 'Điều khoản CTV' : 'Điều khoản thanh toán hoa hồng';
+  contentEl.textContent = 'Đang tải...';
+  modal.style.display = 'flex';
+  if (_termsCache[type]) { contentEl.textContent = _termsCache[type]; return; }
+  try {
+    const snap = await getDoc(doc(db, 'settings', type));
+    const text = snap.exists() ? (snap.data().text || '') : '(Admin chưa cập nhật nội dung.)';
+    _termsCache[type] = text;
+    contentEl.textContent = text;
+  } catch { contentEl.textContent = '(Không thể tải nội dung. Vui lòng thử lại.)'; }
+};
+window.closeTermsModal = function() {
+  const el = document.getElementById('termsModal');
+  if (el) el.style.display = 'none';
+};
+
 // ══════════════════════════════════════════════════════════════
 // DASHBOARD LOGIC — chỉ chạy trên ctv-dashboard.html
 // Guard: document.getElementById('dash-loading') chỉ có ở đây
@@ -333,12 +356,20 @@ if (document.getElementById('dash-loading')) {
       if (bh) bh.value = bi.bankHolder || '';
     }
 
-    // Trạng thái urgentRequest
+    // Trạng thái urgentRequest + giới hạn tháng
     const urgentPend = document.getElementById('urgent-pending-info');
     const urgentBtn  = document.getElementById('urgentBtn');
+    const urgentRemEl = document.getElementById('urgent-remaining');
+    const thisMonth  = new Date().toISOString().slice(0, 7);
+    const sameMonth  = (_dash.urgentPayReqMonth || '') === thisMonth;
+    const usedCount  = sameMonth ? (_dash.urgentPayReqCount || 0) : 0;
+    const remaining  = Math.max(0, 2 - usedCount);
+    if (urgentRemEl) urgentRemEl.textContent = remaining + '/2 lượt còn lại tháng này';
     if (_dash.urgentRequest) {
       if (urgentPend) urgentPend.style.display = 'block';
       if (urgentBtn)  { urgentBtn.disabled = true; urgentBtn.style.opacity = '.5'; urgentBtn.textContent = 'Đang chờ xử lý...'; }
+    } else if (remaining === 0) {
+      if (urgentBtn)  { urgentBtn.disabled = true; urgentBtn.style.opacity = '.5'; urgentBtn.textContent = 'Đã hết lượt tháng này'; }
     }
   }
 
@@ -375,11 +406,27 @@ if (document.getElementById('dash-loading')) {
     const pending = _comms.filter(c => c.status === 'pending').reduce((s,c)=>s+c.amount,0);
     if (pending === 0) { _toast('Không có hoa hồng nào đang chờ thanh toán'); return; }
 
+    // Giới hạn 2 lần/tháng
+    const thisMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+    const sameMonth = (_dash.urgentPayReqMonth || '') === thisMonth;
+    const reqCount  = sameMonth ? (_dash.urgentPayReqCount || 0) : 0;
+    if (reqCount >= 2) {
+      _toast('Bạn đã sử dụng 2/2 lượt yêu cầu thanh toán gấp tháng này. Vui lòng chờ tháng sau.');
+      return;
+    }
+
     const btn = document.getElementById('urgentBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Đang gửi yêu cầu...'; }
     try {
-      await updateDoc(doc(db, 'affiliates', _dash.id), { urgentRequest: true });
+      const newCount = reqCount + 1;
+      await updateDoc(doc(db, 'affiliates', _dash.id), {
+        urgentRequest: true,
+        urgentPayReqCount: newCount,
+        urgentPayReqMonth: thisMonth
+      });
       _dash.urgentRequest = true;
+      _dash.urgentPayReqCount = newCount;
+      _dash.urgentPayReqMonth = thisMonth;
       // Thông báo admin
       fetch('/api/email', {
         method: 'POST',

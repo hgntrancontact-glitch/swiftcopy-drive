@@ -710,6 +710,14 @@ export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **CSS mới** trong `admin.html`: `.admin-tab-nav`, `.admin-tab-btn`, `.admin-tab-btn.active` (border-bottom amber), `.act-btn-blue` (nền blue nhạt → blue khi hover), `.ctv-code` (monospace, màu orange).
 - **Import Firestore cập nhật**: thêm `addDoc`, `increment` vào import.
 
+### Giai đoạn 8+10+11+12 — Email CTV, Giới hạn tháng, CSV, Điều khoản (ĐÃ HOÀN THÀNH)
+- **`gas-email.js`** (thêm 7 handler mới, tổng 19 loại email): `handleAdminCTVApplied` (type `admin_ctv_applied`, icon amber ★, gửi Admin), `handleCTVWelcome` (type `ctv_welcome`, icon xanh ★, gửi CTV — kèm link giới thiệu cá nhân + hướng dẫn chia sẻ), `handleCTVNewSignup` (type `ctv_new_signup`, icon xanh dương ✦, gửi CTV), `handleCTVCommissionEarned` (type `ctv_commission_earned`, icon xanh ✓, gửi CTV), `handleCTVClientKicked` (type `ctv_client_kicked`, icon đỏ !, gửi CTV), `handleCTVClientDeleted` (type `ctv_client_deleted`, icon đỏ ✕, gửi CTV), `handleCTVUrgentPayment` (type `ctv_urgent_payment`, icon amber ◷, gửi Admin). Tất cả dùng `buildEmailHtml()` chung, nút CTA amber `#ffc107`, không emoji trong subject.
+- **`auth.js`**: `_maskEmail(email)` — ẩn 4 ký tự giữa username (pattern `ha****am@gmail.com`). `_incrementCTVClient(code)` — ngoài tăng `totalClients`, giờ còn lấy `aff.email` + `aff.name` từ affiliate doc và gọi `_gasPost({type:'ctv_new_signup', toEmail:aff.email, ctvName:..., clientEmail:_maskEmail(st.gUser.email), siteUrl:SITE_URL})`.
+- **`ctv.js`** (giới hạn tháng): `requestUrgentPayment()` check `urgentPayReqMonth` (format `"YYYY-MM"`) + `urgentPayReqCount` — nếu cùng tháng và `count >= 2` thì toast lỗi và return. Khi gửi thành công: `updateDoc({urgentRequest:true, urgentPayReqCount:newCount, urgentPayReqMonth:thisMonth})`, cập nhật `_dash` local. `_renderProfile()` hiện `#urgent-remaining` (element mới trong `ctv-dashboard.html`) dạng `"X/2 lượt còn lại tháng này"`, disable nút nếu `remaining===0`. Import thêm `increment` vào Firestore import.
+- **`admin.html`** (CSV export): module-level `let _ctvDetailCache = {ctv:null, comms:[]}` — `openCTVDetailModal()` gán `_ctvDetailCache.comms` khi comms được load. `window.exportCTVCommCSV()` — build CSV từ `_ctvDetailCache` (header + rows), BOM UTF-8 `﻿`, filename `ctv_{code}_{date}.csv`, trigger download qua `<a>` tạm thời. Nút "Xuất CSV" thêm vào footer `#ctvDetailModal` (nền `var(--green)` chữ trắng).
+- **`admin.html`** (CTV terms): `loadCTVTerms()` — `getDoc(doc(db,'settings','ctv_terms'))` → điền `#ctvTermsText`. `window.saveCTVTerms()` — `setDoc(doc(db,'settings','ctv_terms'), {text, updatedAt:serverTimestamp()}, {merge:true})`, hiện `#ctvTermsSaveMsg` 2.5s. `switchAdminTab('ctv')` giờ gọi thêm `loadCTVTerms()`. Textarea `#ctvTermsText` và nút "Lưu điều khoản" thêm vào phần "Cài đặt chương trình CTV" (dưới 2 stat box và info link).
+- **`ctv.js`** (terms modal): `window.openTermsModal(type)` — `_termsCache` object cache per-type; `getDoc(doc(db,'settings',type))` → hiện text; fallback "(Admin chưa cập nhật nội dung.)". `window.closeTermsModal()` cũng define ở đây. Inline `<script>` cũ trong `ctv.html` bị xóa hoàn toàn — terms logic tập trung trong `ctv.js` (ES module, có `db` sẵn).
+
 ### Giai đoạn 1+2+3 — Nền tảng (ĐÃ HOÀN THÀNH)
 - **`firestore.rules`**: thêm rules cho `affiliates/{code}` (CTV đọc doc chính mình) và `affiliates/{code}/commissions/{id}` (CTV đọc HH của mình qua `get()` doc cha). Admin bypass toàn bộ. User thường không có quyền.
 - **`index.html`**: script IIFE đọc `?r=` từ URL → lưu `localStorage` key `affiliateCode`+`affiliateAt` với TTL 30 ngày. Nếu đã có code còn hạn → không ghi đè. Hết hạn + không có mã mới → xoá.
@@ -795,11 +803,11 @@ Email #13 là quan trọng nhất — phải nhấn mạnh link cá nhân và h�
 5. ✅ Tab CTV trong `admin.html` — `admin.html`
 6. ✅ Cột CTV trong tab Khách hàng của `admin.html`
 7. ✅ Trang `ctv-dashboard.html` (4 tab) — `ctv-dashboard.html`, `ctv.js`
-8. 🟡 6 email mới trong `gas-email.js`
+8. ✅ 7 email mới trong `gas-email.js` (+ `auth.js` gửi `ctv_new_signup` khi user đăng ký qua link)
 9. ✅ Logic sinh mã CTV tự động — `admin.html` (`generateCTVCode`)
-10. 🟢 Nút "Yêu cầu thanh toán gấp" + giới hạn 2 lần/tháng (cơ bản đã có, chưa có đếm lần/tháng)
-11. 🟢 Xuất báo cáo CSV hoa hồng
-12. 🟢 Điều khoản CTV & điều khoản thanh toán (modal)
+10. ✅ Nút "Yêu cầu thanh toán gấp" + giới hạn 2 lần/tháng — `ctv.js`, `ctv-dashboard.html`
+11. ✅ Xuất báo cáo CSV hoa hồng — `admin.html` (`exportCTVCommCSV`)
+12. ✅ Điều khoản CTV — admin chỉnh sửa lưu Firestore `settings/ctv_terms`; `ctv.html` fetch từ Firestore qua `ctv.js`
 
 ---
 

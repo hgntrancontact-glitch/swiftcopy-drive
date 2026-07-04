@@ -49,6 +49,14 @@ function doPost(e) {
       case 'account_deleted_permanently':  handleAccountDeletedPermanently(data);  break;
       case 'plan_upgraded_by_admin':       handlePlanUpgradedByAdmin(data);        break;
       case 'plan_downgraded_by_admin':     handlePlanDowngradedByAdmin(data);      break;
+      // ── CTV emails ─────────────────────────────────────────────────
+      case 'admin_ctv_applied':            handleAdminCTVApplied(data);            break;
+      case 'ctv_welcome':                  handleCTVWelcome(data);                 break;
+      case 'ctv_new_signup':               handleCTVNewSignup(data);               break;
+      case 'ctv_commission_earned':        handleCTVCommissionEarned(data);        break;
+      case 'ctv_client_kicked':            handleCTVClientKicked(data);            break;
+      case 'ctv_client_deleted':           handleCTVClientDeleted(data);           break;
+      case 'ctv_urgent_payment':           handleCTVUrgentPayment(data);           break;
       default:
         throw new Error('Unknown type: ' + data.type);
     }
@@ -381,8 +389,7 @@ function handlePlanDowngradedByAdmin(data) {
 }
 
 // ── 9. THÔNG BÁO USER: đã ghi nhận đăng ký gói Trọn đời, chờ duyệt ─
-// Gửi khi: user hoàn tất bước thanh toán gói Trọn đời, chờ admin duyệt
-// (createPaidPendingUser trong auth.js)
+// Gửi khi: user hoàn tất bước thanh toán gói Trọn đời, chờ admin duyệt (createPaidPendingUser trong auth.js)
 // Payload: { type, toEmail, userName, siteUrl }
 function handleRegisterPaidPending(data) {
   const subject = 'Đã ghi nhận đăng ký gói Trọn đời';
@@ -401,4 +408,162 @@ function handleRegisterPaidPending(data) {
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
   GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 13. ADMIN: Có đơn đăng ký CTV mới ──────────────────────────────────────
+// Payload: { type, userName, userEmail, phone, note, siteUrl }
+function handleAdminCTVApplied(data) {
+  const subject = 'Có đơn đăng ký CTV mới';
+  const rowsHtml =
+    _fieldRow('Họ tên', _esc(data.userName || '')) +
+    _fieldRow('Email', _esc(data.userEmail || '')) +
+    _fieldRow('Số điện thoại', _esc(data.phone || '')) +
+    (data.note ? _fieldRow('Ghi chú', _esc(data.note)) : '') +
+    _fieldRow('Thời gian', _nowStr());
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Có người vừa nộp đơn đăng ký cộng tác viên (CTV). Vào trang quản trị để xem xét và duyệt đơn.</p>' +
+    _fieldTable(rowsHtml);
+  const html = buildEmailHtml({
+    iconBg: '#fffbea', iconColor: '#d97706', iconChar: '★',
+    title: 'Đơn đăng ký CTV mới',
+    bodyHtml: bodyHtml,
+    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 14. CTV: Chào mừng, đã được duyệt ──────────────────────────────────────
+// Payload: { type, toEmail, ctvName, code, siteUrl }
+function handleCTVWelcome(data) {
+  const subject = 'Bạn đã được duyệt làm CTV — SwiftCopy.Drive';
+  const affLink = (data.siteUrl || SITE_URL) + '?r=' + _esc(data.code || '');
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.ctvName || data.toEmail) + '</b>, đơn đăng ký cộng tác viên của bạn đã được duyệt! Bạn sẽ nhận <b>hoa hồng 50% = 125.000đ</b> cho mỗi khách mua gói Trọn đời qua link của bạn.</p>' +
+    '<div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:10px;padding:14px 16px;margin-bottom:14px;font-family:Arial,sans-serif">' +
+      '<p style="margin:0 0 6px;font-size:12px;color:#868e96;text-transform:uppercase;letter-spacing:.5px">Link giới thiệu cá nhân của bạn</p>' +
+      '<p style="margin:0;font-size:14px;color:#212529;font-weight:700;word-break:break-all">' + affLink + '</p>' +
+    '</div>' +
+    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">' +
+      '<b>Hướng dẫn:</b> Chia sẻ link trên — khi khách mua gói Trọn đời, hoa hồng tự động được ghi nhận trong vòng 30 ngày kể từ lần nhấp cuối cùng. Đăng nhập vào dashboard CTV để theo dõi tiến độ và yêu cầu thanh toán.' +
+    '</div>';
+  const html = buildEmailHtml({
+    iconBg: '#e6fcf5', iconColor: '#099268', iconChar: '★',
+    title: 'Chào mừng bạn gia nhập đội ngũ CTV!',
+    bodyHtml: bodyHtml,
+    ctaText: 'Vào dashboard CTV', ctaUrl: (data.siteUrl || SITE_URL) + '/ctv-dashboard',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 15. CTV: Có khách đăng ký qua link ──────────────────────────────────────
+// Payload: { type, toEmail, ctvName, clientEmail, siteUrl }
+function handleCTVNewSignup(data) {
+  const subject = 'Có khách hàng mới đăng ký qua link của bạn';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.ctvName || data.toEmail) + '</b>, có khách hàng mới vừa đăng ký tài khoản qua link giới thiệu của bạn.</p>' +
+    _fieldTable(
+      _fieldRow('Email khách', _esc(data.clientEmail || '')) +
+      _fieldRow('Thời gian', _nowStr())
+    ) +
+    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Hoa hồng sẽ được ghi nhận khi khách nâng cấp lên gói <b>Trọn đời</b>. Hãy tiếp tục chia sẻ link để có thêm cơ hội!</div>';
+  const html = buildEmailHtml({
+    iconBg: '#e8f4fd', iconColor: '#1c7ed6', iconChar: '✦',
+    title: 'Khách mới đăng ký qua link của bạn',
+    bodyHtml: bodyHtml,
+    ctaText: 'Xem dashboard CTV', ctaUrl: (data.siteUrl || SITE_URL) + '/ctv-dashboard',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 16. CTV: Được ghi nhận hoa hồng ─────────────────────────────────────────
+// Payload: { type, toEmail, ctvName, clientEmail, amount, siteUrl }
+function handleCTVCommissionEarned(data) {
+  const subject = 'Bạn vừa được ghi nhận hoa hồng';
+  const amtStr = data.amount ? Number(data.amount).toLocaleString('vi-VN') + 'đ' : '';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.ctvName || data.toEmail) + '</b>, khách hàng của bạn vừa mua gói <b>Trọn đời</b>. Hoa hồng đã được ghi nhận vào tài khoản CTV của bạn.</p>' +
+    _fieldTable(
+      _fieldRow('Email khách', _esc(data.clientEmail || '')) +
+      (amtStr ? _fieldRow('Hoa hồng', '<b style="color:#099268">' + amtStr + '</b>') : '') +
+      _fieldRow('Trạng thái', 'Đang chờ thanh toán') +
+      _fieldRow('Thời gian', _nowStr())
+    ) +
+    '<div style="background:#e6fcf5;border:1px solid #b2f2dd;border-radius:10px;padding:12px 14px;font-size:13px;color:#0f6e56;line-height:1.6;font-family:Arial,sans-serif">Vào dashboard CTV để xem lịch sử hoa hồng và yêu cầu thanh toán khi cần.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#e6fcf5', iconColor: '#099268', iconChar: '✓',
+    title: 'Hoa hồng đã được ghi nhận!',
+    bodyHtml: bodyHtml,
+    ctaText: 'Xem dashboard CTV', ctaUrl: (data.siteUrl || SITE_URL) + '/ctv-dashboard',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 17. CTV: Khách bị tạm khóa ──────────────────────────────────────────────
+// Payload: { type, toEmail, ctvName, clientEmail, siteUrl }
+function handleCTVClientKicked(data) {
+  const subject = 'Thông báo: Khách hàng của bạn bị tạm khóa';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.ctvName || data.toEmail) + '</b>, tài khoản của một khách hàng bạn giới thiệu đã bị tạm khóa.</p>' +
+    _fieldTable(
+      _fieldRow('Email khách', _esc(data.clientEmail || '')) +
+      _fieldRow('Thời gian', _nowStr())
+    ) +
+    '<div style="background:#fff5f5;border:1px solid #ffe3e3;border-radius:10px;padding:12px 14px;font-size:13px;color:#c92a2a;line-height:1.6;font-family:Arial,sans-serif">Hoa hồng đã được duyệt trước đó (nếu có) <b>vẫn được giữ nguyên</b>. Nếu có thắc mắc, vui lòng liên hệ bộ phận hỗ trợ.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#fff5f5', iconColor: '#dc3545', iconChar: '!',
+    title: 'Khách hàng của bạn bị tạm khóa',
+    bodyHtml: bodyHtml,
+    ctaText: 'Xem dashboard CTV', ctaUrl: (data.siteUrl || SITE_URL) + '/ctv-dashboard',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 18. CTV: Khách bị xóa vĩnh viễn ────────────────────────────────────────
+// Payload: { type, toEmail, ctvName, clientEmail, siteUrl }
+function handleCTVClientDeleted(data) {
+  const subject = 'Thông báo: Khách hàng của bạn đã bị xóa';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.ctvName || data.toEmail) + '</b>, tài khoản của một khách hàng bạn giới thiệu đã bị xóa vĩnh viễn khỏi hệ thống.</p>' +
+    _fieldTable(
+      _fieldRow('Email khách', _esc(data.clientEmail || '')) +
+      _fieldRow('Thời gian', _nowStr())
+    ) +
+    '<div style="background:#fff5f5;border:1px solid #ffe3e3;border-radius:10px;padding:12px 14px;font-size:13px;color:#c92a2a;line-height:1.6;font-family:Arial,sans-serif">Hoa hồng đã được duyệt trước đó (nếu có) <b>vẫn được giữ nguyên</b>. Nếu có thắc mắc, vui lòng liên hệ bộ phận hỗ trợ.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#fff5f5', iconColor: '#dc3545', iconChar: '✕',
+    title: 'Khách hàng của bạn đã bị xóa',
+    bodyHtml: bodyHtml,
+    ctaText: 'Xem dashboard CTV', ctaUrl: (data.siteUrl || SITE_URL) + '/ctv-dashboard',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 19. ADMIN: CTV yêu cầu thanh toán gấp ───────────────────────────────────
+// Payload: { type, ctvName, toCTVEmail, amount, code, siteUrl }
+function handleCTVUrgentPayment(data) {
+  const subject = 'CTV yêu cầu thanh toán gấp';
+  const amtStr = data.amount ? Number(data.amount).toLocaleString('vi-VN') + 'đ' : '';
+  const rowsHtml =
+    _fieldRow('Họ tên CTV', _esc(data.ctvName || '')) +
+    _fieldRow('Email CTV', _esc(data.toCTVEmail || '')) +
+    _fieldRow('Mã CTV', _esc(data.code || '')) +
+    (amtStr ? _fieldRow('Số tiền chờ TT', '<b>' + amtStr + '</b>') : '') +
+    _fieldRow('Thời gian', _nowStr());
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Có CTV vừa gửi yêu cầu thanh toán khẩn cấp. Vui lòng xử lý trong vòng 24 giờ.</p>' +
+    _fieldTable(rowsHtml);
+  const html = buildEmailHtml({
+    iconBg: '#fffbea', iconColor: '#d97706', iconChar: '◷',
+    title: 'Yêu cầu thanh toán gấp từ CTV',
+    bodyHtml: bodyHtml,
+    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }

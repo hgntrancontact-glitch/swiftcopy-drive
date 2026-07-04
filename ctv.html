@@ -330,27 +330,6 @@
 </div>
 
 <script type="module" src="ctv.js"></script>
-<script>
-  // Terms modal — đọc từ Firestore settings/ctv_terms và settings/ctv_payment_terms
-  // (Được populate bởi admin ở Prompt 5. Hiện dùng placeholder)
-  const _termsDefaults = {
-    ctv_terms: `ĐIỀU KHOẢN CHƯƠNG TRÌNH CTV SWIFTCOPY.DRIVE\n\n(Admin chưa cập nhật nội dung. Vui lòng liên hệ admin để biết thêm chi tiết.)`,
-    ctv_payment_terms: `ĐIỀU KHOẢN THANH TOÁN HOA HỒNG\n\n(Admin chưa cập nhật nội dung. Vui lòng liên hệ admin để biết thêm chi tiết.)`
-  };
-
-  window.openTermsModal = function(type) {
-    const modal = document.getElementById('termsModal');
-    const title = document.getElementById('termsModalTitle');
-    const content = document.getElementById('termsModalContent');
-    title.textContent = type === 'ctv_terms' ? 'Điều khoản CTV' : 'Điều khoản thanh toán hoa hồng';
-    content.textContent = _termsDefaults[type] || '(Không có nội dung)';
-    modal.style.display = 'flex';
-  };
-
-  window.closeTermsModal = function() {
-    document.getElementById('termsModal').style.display = 'none';
-  };
-</script>
 
 </body>
 </html>
