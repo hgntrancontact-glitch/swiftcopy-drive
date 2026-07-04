@@ -684,6 +684,22 @@ export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **`vercel.json`**: thêm rewrite `/ctv` → `ctv.html`, `/ctv-dashboard` → `ctv-dashboard.html`.
 - **`firestore.rules`**: thêm `allow create` cho `affiliates/{code}` — CTV tự tạo đơn pending khi email và status khớp.
 
+### Giai đoạn 5+6+9 — Admin CTV + Sinh mã tự động (ĐÃ HOÀN THÀNH)
+- **`admin.html`** (627 → 1052 dòng): thêm tab navigation 2 tab "Khách hàng" / "Quản lý CTV" (`.admin-tab-nav`/`.admin-tab-btn`); `switchAdminTab(tab)` toggle `#atab-users`/`#atab-ctv`.
+- **Tab "Quản lý CTV"** (`#atab-ctv`): 4 card — (1) Đơn chờ duyệt (`#ctvPendingBody`, 5 cột: Họ tên/SĐT/Email/Ngày đăng ký/Hành động); (2) CTV đang hoạt động (`#ctvActiveBody`, 8 cột: Mã/Tên/SĐT/Khách HH/Đã chuyển/Đã kiếm/Chưa TT/Hành động); (3) Thanh toán đang chờ (`#ctvPaymentBody`, 5 cột: Mã/Tên/Email/Chưa TT/Hành động); (4) Cài đặt chương trình (thông tin tĩnh: HH 50%, cookie 30 ngày).
+- **3 modal CTV**: `#approveCTVModal` (preview tên/email/mã sinh tự động), `#rejectCTVModal` (textarea lý do), `#ctvDetailModal` (thông tin CTV + bảng hoa hồng `#ctvDetailCommBody`).
+- **`generateCTVCode(name, email, phone)`** (async): công thức 5 ký tự — c1c2=2 chữ đầu của 2 từ cuối tên, c3=ký tự vị trí 2 từ cuối @, c4=chữ số vị trí 2 từ đuôi SĐT, c5=ký tự đầu họ. Dùng `removeDiacritics()` (NFD normalize + regex `̀-ͯ` + đ/Đ). Query Firestore lấy tất cả mã hiện có, thử code gốc trước, thêm A-Z suffix nếu trùng, fallback 2 chữ số cuối timestamp.
+- **Luồng duyệt CTV**: `openApproveCTVModal(id)` gọi `generateCTVCode()` và preview mã; `doApproveCTV()` → `updateDoc({status:'active', code})` + `callGAS({type:'ctv_welcome'})` + reload.
+- **Luồng từ chối**: `openRejectCTVModal(id)` → `doRejectCTV()` → `updateDoc({status:'rejected', rejectReason})` + reload.
+- **Xem chi tiết CTV**: `openCTVDetailModal(id)` → query `affiliates/{id}/commissions` (subcollection, getDocs) → render bảng HH trong `#ctvDetailCommBody`.
+- **Thanh toán**: `markCTVPaid(affiliateId, code, name, email, amount)` → getDocs tất cả commissions `status==='pending'`, `updateDoc` từng doc thành `'paid'`, `updateDoc` affiliate `{totalPaid: increment(amt), urgentRequest: false}`.
+- **Cột "CTV giới thiệu"** trong bảng Khách hàng: thêm `<th>CTV giới thiệu</th>` (thead, colspan 6→7), `ctvCell` hiện mã CTV có link `onclick="switchAdminTab('ctv')"` hoặc "—" nếu không có. Tất cả `colspan="6"` trong loading/error/empty state đổi thành `colspan="7"`.
+- **CTV notify khi kick/xóa**: `doKick()` và `doDeleteUser()` query `affiliates` bởi `code===referredBy` → nếu tìm thấy → `callGAS({type:'ctv_client_kicked'/'ctv_client_deleted', toCTVEmail, ctvName, clientEmail:maskEmail(...)})`.
+- **Commission khi duyệt nâng cấp**: `approveUpgrade(uid)` query CTV bởi mã → `addDoc(affiliates/{id}/commissions, {userId, userEmail, amount:125000, status:'pending', createdAt, paidAt:null})` + `updateDoc({totalEarned: increment(125000), totalConverted: increment(1)})` + `callGAS({type:'ctv_commission_earned'})`.
+- **`maskEmail(email)`**: ẩn 4 ký tự giữa phần username (ví dụ `ha****am@gmail.com`).
+- **CSS mới** trong `admin.html`: `.admin-tab-nav`, `.admin-tab-btn`, `.admin-tab-btn.active` (border-bottom amber), `.act-btn-blue` (nền blue nhạt → blue khi hover), `.ctv-code` (monospace, màu orange).
+- **Import Firestore cập nhật**: thêm `addDoc`, `increment` vào import.
+
 ### Giai đoạn 1+2+3 — Nền tảng (ĐÃ HOÀN THÀNH)
 - **`firestore.rules`**: thêm rules cho `affiliates/{code}` (CTV đọc doc chính mình) và `affiliates/{code}/commissions/{id}` (CTV đọc HH của mình qua `get()` doc cha). Admin bypass toàn bộ. User thường không có quyền.
 - **`index.html`**: script IIFE đọc `?r=` từ URL → lưu `localStorage` key `affiliateCode`+`affiliateAt` với TTL 30 ngày. Nếu đã có code còn hạn → không ghi đè. Hết hạn + không có mã mới → xoá.
@@ -762,15 +778,15 @@ Email #13 là quan trọng nhất — phải nhấn mạnh link cá nhân và h�
 - **Tab 4 Thông tin CTV**: link cá nhân + copy 1 click, mã CTV, thông tin ngân hàng, nút "Yêu cầu thanh toán gấp"
 
 ### Thứ tự triển khai (theo ưu tiên)
-1. 🔴 Firestore structure + security rules — `firestore.rules`
-2. 🔴 Landing đọc `?r=` → localStorage — `index.html`, `auth.js`
-3. 🔴 `auth.js` ghi `referredBy` khi tạo user — `auth.js`
-4. 🔴 Trang `ctv.html` (đăng ký & đăng nhập) — `ctv.html`, `ctv.js`
-5. 🟡 Tab CTV trong `admin.html` — `admin.html`
-6. 🟡 Cột CTV trong tab Khách hàng của `admin.html`
+1. ✅ Firestore structure + security rules — `firestore.rules`
+2. ✅ Landing đọc `?r=` → localStorage — `index.html`, `auth.js`
+3. ✅ `auth.js` ghi `referredBy` khi tạo user — `auth.js`
+4. ✅ Trang `ctv.html` (đăng ký & đăng nhập) — `ctv.html`, `ctv.js`
+5. ✅ Tab CTV trong `admin.html` — `admin.html`
+6. ✅ Cột CTV trong tab Khách hàng của `admin.html`
 7. 🟡 Trang `ctv-dashboard.html` (4 tab) — `ctv-dashboard.html`, `ctv.js`
 8. 🟡 6 email mới trong `gas-email.js`
-9. 🟡 Logic sinh mã CTV tự động — `admin.html` hoặc `ctv.js`
+9. ✅ Logic sinh mã CTV tự động — `admin.html` (`generateCTVCode`)
 10. 🟢 Nút "Yêu cầu thanh toán gấp" + giới hạn 2 lần/tháng
 11. 🟢 Xuất báo cáo CSV hoa hồng
 12. 🟢 Điều khoản CTV & điều khoản thanh toán (modal)

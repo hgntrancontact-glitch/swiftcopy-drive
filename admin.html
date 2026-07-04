@@ -160,6 +160,15 @@ tbody tr:last-child td{border-bottom:none}
   .nav-badge{display:none}
   .btn-sm{padding:6px 10px;font-size:11px}
 }
+
+/* ADMIN TABS */
+.admin-tab-nav{display:flex;gap:2px;margin-bottom:16px;border-bottom:2px solid var(--border)}
+.admin-tab-btn{padding:10px 20px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;background:transparent;color:var(--text2);border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;border-radius:6px 6px 0 0;display:inline-flex;align-items:center;gap:6px}
+.admin-tab-btn:hover{background:var(--surface2);color:var(--text)}
+.admin-tab-btn.active{color:var(--text);border-bottom-color:var(--yellow-dark)}
+.act-btn-blue{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-border)}
+.act-btn-blue:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.ctv-code{font-family:monospace;font-weight:700;color:var(--orange)}
 </style>
 </head>
 <body>
@@ -235,36 +244,120 @@ tbody tr:last-child td{border-bottom:none}
       <div class="stat-box blue"   onclick="filterUsers('upgrade')">  <div class="n" id="sUpgrade">—</div><div class="l">Chờ nâng cấp</div></div>
     </div>
 
-    <!-- USERS TABLE -->
-    <div class="card">
-      <div class="card-h">
-        <span class="card-t"><svg class="ic16"><use href="#ic-users"/></svg> Người dùng</span>
-        <button class="btn-sm" onclick="loadUsers()"><svg class="ic"><use href="#ic-refresh"/></svg> Làm mới</button>
-      </div>
-      <div class="filter-bar" id="filterBar">
-        <button class="filter-btn active" data-f="all"      onclick="filterUsers('all')">Tất cả</button>
-        <button class="filter-btn"        data-f="approved" onclick="filterUsers('approved')"><svg class="ic"><use href="#ic-check"/></svg> Đã kích hoạt</button>
-        <button class="filter-btn"        data-f="pending"  onclick="filterUsers('pending')">Chờ kích hoạt</button>
-        <button class="filter-btn"        data-f="kicked"   onclick="filterUsers('kicked')"><svg class="ic"><use href="#ic-ban"/></svg> Bị kick</button>
-        <button class="filter-btn"        data-f="upgrade"  onclick="filterUsers('upgrade')" style="background:var(--blue-light);border-color:var(--blue-border);color:var(--blue)">⬆ Chờ nâng cấp</button>
-        <button class="filter-btn"        data-f="free"     onclick="filterUsers('free')" style="background:var(--surface2);border-color:var(--border2);color:var(--text2)">Gói Free</button>
-        <button class="filter-btn"        data-f="paid"     onclick="filterUsers('paid')" style="background:var(--green-light);border-color:var(--green-border);color:var(--green)">Trọn đời</button>
-        <button class="filter-btn"        data-f="readd"    onclick="filterUsers('readd')" style="margin-left:auto;background:var(--yellow-light);border-color:var(--orange-border);color:var(--orange)"><svg class="ic"><use href="#ic-plus"/></svg> Thêm lại</button>
-      </div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr>
-            <th>Người dùng</th>
-            <th>UID</th>
-            <th>Gói</th>
-            <th>Trạng thái</th>
-            <th>Ngày đăng ký</th>
-            <th>Thao tác</th>
-          </tr></thead>
-          <tbody id="usersBody"><tr><td colspan="6" class="empty-cell">Đang tải...</td></tr></tbody>
-        </table>
-      </div>
+    <!-- ADMIN TABS -->
+    <div class="admin-tab-nav">
+      <button class="admin-tab-btn active" data-tab="users" onclick="switchAdminTab('users')">👥 Khách hàng</button>
+      <button class="admin-tab-btn" data-tab="ctv" onclick="switchAdminTab('ctv')">🤝 Quản lý CTV <span id="ctvPendingBadge" style="display:none;background:var(--red-mid);color:#fff;font-size:10px;font-weight:900;padding:1px 7px;border-radius:99px;margin-left:2px"></span></button>
     </div>
+
+    <!-- TAB: KHÁCH HÀNG -->
+    <div id="atab-users">
+      <div class="card">
+        <div class="card-h">
+          <span class="card-t"><svg class="ic16"><use href="#ic-users"/></svg> Người dùng</span>
+          <button class="btn-sm" onclick="loadUsers()"><svg class="ic"><use href="#ic-refresh"/></svg> Làm mới</button>
+        </div>
+        <div class="filter-bar" id="filterBar">
+          <button class="filter-btn active" data-f="all"      onclick="filterUsers('all')">Tất cả</button>
+          <button class="filter-btn"        data-f="approved" onclick="filterUsers('approved')"><svg class="ic"><use href="#ic-check"/></svg> Đã kích hoạt</button>
+          <button class="filter-btn"        data-f="pending"  onclick="filterUsers('pending')">Chờ kích hoạt</button>
+          <button class="filter-btn"        data-f="kicked"   onclick="filterUsers('kicked')"><svg class="ic"><use href="#ic-ban"/></svg> Bị kick</button>
+          <button class="filter-btn"        data-f="upgrade"  onclick="filterUsers('upgrade')" style="background:var(--blue-light);border-color:var(--blue-border);color:var(--blue)">⬆ Chờ nâng cấp</button>
+          <button class="filter-btn"        data-f="free"     onclick="filterUsers('free')" style="background:var(--surface2);border-color:var(--border2);color:var(--text2)">Gói Free</button>
+          <button class="filter-btn"        data-f="paid"     onclick="filterUsers('paid')" style="background:var(--green-light);border-color:var(--green-border);color:var(--green)">Trọn đời</button>
+          <button class="filter-btn"        data-f="readd"    onclick="filterUsers('readd')" style="margin-left:auto;background:var(--yellow-light);border-color:var(--orange-border);color:var(--orange)"><svg class="ic"><use href="#ic-plus"/></svg> Thêm lại</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>Người dùng</th>
+              <th>UID</th>
+              <th>Gói</th>
+              <th>Trạng thái</th>
+              <th>Ngày đăng ký</th>
+              <th>CTV giới thiệu</th>
+              <th>Thao tác</th>
+            </tr></thead>
+            <tbody id="usersBody"><tr><td colspan="7" class="empty-cell">Đang tải...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- end atab-users -->
+
+    <!-- TAB: QUẢN LÝ CTV -->
+    <div id="atab-ctv" style="display:none">
+
+      <!-- Mục 1: Đơn chờ duyệt -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h">
+          <span class="card-t">📋 Đơn đăng ký chờ duyệt</span>
+          <button class="btn-sm" onclick="loadCTVs()"><svg class="ic"><use href="#ic-refresh"/></svg> Làm mới</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>Người đăng ký</th><th>SĐT</th><th>Ghi chú</th><th>Ngày đăng ký</th><th>Thao tác</th>
+            </tr></thead>
+            <tbody id="ctvPendingBody"><tr><td colspan="5" class="empty-cell">Chưa có đơn nào.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mục 2: CTV đang hoạt động -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h">
+          <span class="card-t">🤝 Danh sách CTV đang hoạt động</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>CTV</th><th>Mã</th><th>Tổng khách</th><th>Đã mua</th><th>HH chưa trả</th><th>HH đã trả</th><th>Ngày tham gia</th><th>Thao tác</th>
+            </tr></thead>
+            <tbody id="ctvActiveBody"><tr><td colspan="8" class="empty-cell">Chưa có CTV nào.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mục 3: Hoa hồng chờ thanh toán -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h">
+          <span class="card-t">💰 Hoa hồng chờ thanh toán</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>CTV</th><th>Mã</th><th>Số tiền chờ trả</th><th>Yêu cầu</th><th>Thao tác</th>
+            </tr></thead>
+            <tbody id="ctvPaymentBody"><tr><td colspan="5" class="empty-cell">Không có hoa hồng chờ thanh toán.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mục 4: Cài đặt -->
+      <div class="card">
+        <div class="card-h">
+          <span class="card-t">⚙️ Cài đặt chương trình CTV</span>
+        </div>
+        <div style="padding:20px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:480px">
+            <div>
+              <div class="modal-label">Tỷ lệ hoa hồng</div>
+              <div style="font-size:26px;font-weight:800;color:var(--green)">50%</div>
+              <div style="font-size:11px;color:var(--text3)">= 125.000đ / đơn Trọn đời</div>
+            </div>
+            <div>
+              <div class="modal-label">Thời hạn cookie</div>
+              <div style="font-size:26px;font-weight:800;color:var(--blue)">30 ngày</div>
+              <div style="font-size:11px;color:var(--text3)">Kể từ lần click link cuối</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding:12px 14px;background:var(--blue-light);border:1px solid var(--blue-border);border-radius:10px;font-size:12px;color:var(--blue)">
+            ℹ️ Link giới thiệu CTV: <code style="font-weight:700">https://swiftcopydrive.com?r=MACTV</code>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end atab-ctv -->
 
   </div>
 </div>
@@ -315,14 +408,74 @@ tbody tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- APPROVE CTV MODAL -->
+<div id="approveCTVModal" class="modal-ov">
+  <div class="modal">
+    <div class="modal-h"><h3>Duyệt đơn CTV</h3></div>
+    <div class="modal-b">
+      <p>Xác nhận duyệt đơn và tạo mã liên kết cho CTV sau?</p>
+      <div style="background:var(--green-light);border:1px solid var(--green-border);border-radius:10px;padding:14px;margin-top:4px">
+        <div style="display:grid;grid-template-columns:70px 1fr;gap:8px 12px;font-size:13px">
+          <div style="font-weight:700;color:var(--text3)">Họ tên:</div><div id="approveCTVName" style="font-weight:700"></div>
+          <div style="font-weight:700;color:var(--text3)">Email:</div><div id="approveCTVEmail" style="font-size:12px;color:var(--text2)"></div>
+          <div style="font-weight:700;color:var(--text3)">Mã CTV:</div>
+          <div><span id="approveCTVCode" style="font-family:monospace;font-size:17px;font-weight:900;color:var(--orange);background:var(--yellow-light);padding:2px 12px;border-radius:6px">...</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn-cancel" onclick="closeApproveCTVModal()">Huỷ</button>
+      <button class="btn-confirm-green" onclick="doApproveCTV()">✓ Xác nhận duyệt</button>
+    </div>
+  </div>
+</div>
+
+<!-- REJECT CTV MODAL -->
+<div id="rejectCTVModal" class="modal-ov">
+  <div class="modal">
+    <div class="modal-h"><h3>Từ chối đơn CTV</h3></div>
+    <div class="modal-b">
+      <p id="rejectCTVMsg"></p>
+      <label class="modal-label">Lý do từ chối (bắt buộc)</label>
+      <textarea id="rejectCTVReason" class="modal-textarea" placeholder="Nhập lý do từ chối..."></textarea>
+    </div>
+    <div class="modal-f">
+      <button class="btn-cancel" onclick="closeRejectCTVModal()">Huỷ</button>
+      <button class="btn-confirm-red" onclick="doRejectCTV()">✕ Từ chối</button>
+    </div>
+  </div>
+</div>
+
+<!-- CTV DETAIL MODAL -->
+<div id="ctvDetailModal" class="modal-ov">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-h"><h3 id="ctvDetailTitle">Chi tiết CTV</h3></div>
+    <div class="modal-b">
+      <div id="ctvDetailInfo" style="margin-bottom:16px"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px">Lịch sử hoa hồng</div>
+      <div style="overflow-x:auto">
+        <table style="min-width:480px">
+          <thead><tr>
+            <th>Khách hàng</th><th>Số tiền</th><th>Trạng thái</th><th>Ngày tạo</th><th>Ngày thanh toán</th>
+          </tr></thead>
+          <tbody id="ctvDetailCommBody"><tr><td colspan="5" class="empty-cell" style="padding:16px!important">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn-cancel" onclick="closeCTVDetailModal()">Đóng</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, query,
-         orderBy, getDocs, updateDoc, deleteDoc, serverTimestamp }
+import { getFirestore, doc, getDoc, setDoc, collection, query, where,
+         orderBy, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, increment }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
@@ -350,6 +503,239 @@ let currentFilter = 'all';
 let _kickUid = null, _kickEmail = '', _kickName = '';
 let _readdUid = null, _readdEmail = '', _readdName = '';
 let _deleteUid = null, _deleteEmail = '', _deleteName = '';
+
+// ── CTV State ──────────────────────────────────────────────────────
+let allCTVs = [];
+let _approveCTVId = null, _approveCTVName = '', _approveCTVEmail = '', _approveCTVPhone = '';
+let _approveCTVGeneratedCode = '';
+let _rejectCTVId = null, _rejectCTVName = '', _rejectCTVEmail = '';
+
+// ── Helpers ────────────────────────────────────────────────────────
+function maskEmail(email) {
+  if (!email || !email.includes('@')) return email || '—';
+  const [user, domain] = email.split('@');
+  if (user.length <= 4) return email;
+  return user.slice(0, 2) + '****' + user.slice(-2) + '@' + domain;
+}
+
+function removeDiacritics(str) {
+  return (str||'').normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D');
+}
+
+async function generateCTVCode(name, email, phone) {
+  const clean = removeDiacritics((name||'').trim());
+  const words = clean.split(/\s+/).filter(Boolean);
+  const lastTwo = words.slice(-2);
+  let c12 = lastTwo.map(w => (w[0]||'X').toUpperCase()).join('');
+  while (c12.length < 2) c12 += 'X';
+  const atIdx = (email||'').indexOf('@');
+  const username = atIdx > 0 ? email.substring(0, atIdx) : (email||'');
+  const c3 = username.length >= 2 ? username[username.length - 2].toUpperCase() : (username[0]||'0').toUpperCase();
+  const digits = (phone||'').replace(/\D/g, '');
+  const c4 = digits.length >= 2 ? digits[digits.length - 2] : (digits[digits.length - 1] || '0');
+  const c5 = words.length > 0 ? removeDiacritics(words[0])[0].toUpperCase() : 'X';
+  const base = (c12 + c3 + c4 + c5).toUpperCase();
+  const snap = await getDocs(collection(db, 'affiliates'));
+  const used = new Set(snap.docs.map(d => d.data().code).filter(Boolean));
+  if (!used.has(base)) return base;
+  for (let i = 0; i < 26; i++) {
+    const cand = base + String.fromCharCode(65 + i);
+    if (!used.has(cand)) return cand;
+  }
+  return base + String(Date.now()).slice(-2);
+}
+
+// ── Tab switching ──────────────────────────────────────────────────
+window.switchAdminTab = (tab) => {
+  document.getElementById('atab-users').style.display = tab === 'users' ? '' : 'none';
+  document.getElementById('atab-ctv').style.display   = tab === 'ctv'   ? '' : 'none';
+  document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  if (tab === 'ctv') loadCTVs();
+};
+
+// ── CTV Load ────────────────────────────────────────────────────────
+async function loadCTVs() {
+  try {
+    const snap = await getDocs(query(collection(db, 'affiliates'), orderBy('createdAt', 'desc')));
+    allCTVs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const pending = allCTVs.filter(c => c.status === 'pending');
+    const active  = allCTVs.filter(c => c.status === 'active');
+    const payment = active.filter(c => (c.totalEarned||0) - (c.totalPaid||0) > 0);
+    renderPendingCTVs(pending);
+    renderActiveCTVs(active);
+    renderCTVPayments(payment);
+    const badge = document.getElementById('ctvPendingBadge');
+    if (badge) { badge.textContent = pending.length || ''; badge.style.display = pending.length ? 'inline' : 'none'; }
+  } catch(e) { toast('Lỗi tải CTV: ' + e.message, 'err'); }
+}
+
+function renderPendingCTVs(list) {
+  const tbody = document.getElementById('ctvPendingBody'); if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">Không có đơn đăng ký nào.</td></tr>'; return; }
+  tbody.innerHTML = list.map(c => {
+    const dt = c.createdAt?.toDate ? c.createdAt.toDate().toLocaleString('vi-VN') : '—';
+    return `<tr>
+      <td><div class="u-name">${esc(c.name||'—')}</div><div class="u-email">${esc(c.email||'—')}</div></td>
+      <td>${esc(c.phone||'—')}</td>
+      <td style="max-width:180px;font-size:12px;color:var(--text2)">${esc(c.note||'—')}</td>
+      <td><span class="dt-txt">${dt}</span></td>
+      <td><div class="act-row">
+        <button class="act-btn act-approve" onclick="openApproveCTVModal('${c.id}','${esc(c.name)}','${esc(c.email)}','${esc(c.phone)}')">✓ Duyệt</button>
+        <button class="act-btn act-kick"    onclick="openRejectCTVModal('${c.id}','${esc(c.name)}','${esc(c.email)}')">✕ Từ chối</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderActiveCTVs(list) {
+  const tbody = document.getElementById('ctvActiveBody'); if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">Chưa có CTV nào được duyệt.</td></tr>'; return; }
+  tbody.innerHTML = list.map(c => {
+    const dt = c.createdAt?.toDate ? c.createdAt.toDate().toLocaleString('vi-VN') : '—';
+    const pend = ((c.totalEarned||0) - (c.totalPaid||0)).toLocaleString('vi-VN') + 'đ';
+    const paid = (c.totalPaid||0).toLocaleString('vi-VN') + 'đ';
+    return `<tr>
+      <td><div class="u-name">${esc(c.name||'—')}</div><div class="u-email">${esc(c.email||'—')}</div></td>
+      <td><span class="ctv-code">${esc(c.code||'—')}</span></td>
+      <td style="text-align:center;font-weight:700">${c.totalClients||0}</td>
+      <td style="text-align:center;font-weight:700;color:var(--green)">${c.totalConverted||0}</td>
+      <td style="text-align:right;font-weight:700;color:var(--red)">${pend}</td>
+      <td style="text-align:right;font-weight:700;color:var(--green)">${paid}</td>
+      <td><span class="dt-txt">${dt}</span></td>
+      <td><button class="act-btn act-btn-blue" onclick="openCTVDetailModal('${c.id}')">Chi tiết</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCTVPayments(list) {
+  const tbody = document.getElementById('ctvPaymentBody'); if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">Không có hoa hồng chờ thanh toán.</td></tr>'; return; }
+  tbody.innerHTML = list.map(c => {
+    const pend = (c.totalEarned||0) - (c.totalPaid||0);
+    const urgentBadge = c.urgentRequest ? `<span class="badge red" style="margin-left:4px">⚡ Gấp!</span>` : '';
+    return `<tr>
+      <td><div class="u-name">${esc(c.name||'—')} ${urgentBadge}</div><div class="u-email">${esc(c.email||'—')}</div></td>
+      <td><span class="ctv-code">${esc(c.code||'—')}</span></td>
+      <td style="text-align:right;font-weight:700;font-size:15px;color:var(--red)">${pend.toLocaleString('vi-VN')}đ</td>
+      <td>${c.urgentRequest ? '<span style="color:var(--red);font-weight:700">Yêu cầu gấp</span>' : '—'}</td>
+      <td><button class="act-btn act-approve" onclick="markCTVPaid('${c.id}','${esc(c.code)}','${esc(c.name)}','${esc(c.email)}',${pend})">✓ Đã thanh toán</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CTV Approve ─────────────────────────────────────────────────────
+window.openApproveCTVModal = async (id, name, email, phone) => {
+  _approveCTVId = id; _approveCTVName = name; _approveCTVEmail = email; _approveCTVPhone = phone;
+  _approveCTVGeneratedCode = '';
+  document.getElementById('approveCTVName').textContent = name;
+  document.getElementById('approveCTVEmail').textContent = email;
+  document.getElementById('approveCTVCode').textContent = '...';
+  document.getElementById('approveCTVModal').classList.add('on');
+  try {
+    const code = await generateCTVCode(name, email, phone);
+    _approveCTVGeneratedCode = code;
+    document.getElementById('approveCTVCode').textContent = code;
+  } catch(e) { document.getElementById('approveCTVCode').textContent = 'Lỗi tạo mã'; }
+};
+window.closeApproveCTVModal = () => { document.getElementById('approveCTVModal').classList.remove('on'); };
+window.doApproveCTV = async () => {
+  if (!_approveCTVId || !_approveCTVGeneratedCode) { toast('Mã CTV chưa sẵn sàng, vui lòng đợi...', 'warn'); return; }
+  const code = _approveCTVGeneratedCode;
+  closeApproveCTVModal();
+  try {
+    await updateDoc(doc(db, 'affiliates', _approveCTVId), {
+      status: 'active', code, approvedAt: serverTimestamp()
+    });
+    await callGAS({ type: 'ctv_welcome', toCTVEmail: _approveCTVEmail, ctvName: _approveCTVName,
+      ctvCode: code, affiliateLink: `${SITE_URL}?r=${code}`, siteUrl: SITE_URL });
+    toast(`✓ Đã duyệt CTV — mã: ${code}`, 'ok');
+    await loadCTVs();
+  } catch(e) { toast('Lỗi duyệt CTV: ' + e.message, 'err'); }
+};
+
+// ── CTV Reject ──────────────────────────────────────────────────────
+window.openRejectCTVModal = (id, name, email) => {
+  _rejectCTVId = id; _rejectCTVName = name; _rejectCTVEmail = email;
+  document.getElementById('rejectCTVMsg').textContent = `Từ chối đơn CTV của "${name}" (${email})?`;
+  document.getElementById('rejectCTVReason').value = '';
+  document.getElementById('rejectCTVModal').classList.add('on');
+};
+window.closeRejectCTVModal = () => { document.getElementById('rejectCTVModal').classList.remove('on'); };
+window.doRejectCTV = async () => {
+  const reason = document.getElementById('rejectCTVReason').value.trim();
+  if (!reason) { toast('Vui lòng nhập lý do từ chối!', 'warn'); return; }
+  closeRejectCTVModal();
+  try {
+    await updateDoc(doc(db, 'affiliates', _rejectCTVId), {
+      status: 'rejected', rejectedAt: serverTimestamp(), rejectReason: reason
+    });
+    toast('✓ Đã từ chối đơn CTV', 'ok');
+    await loadCTVs();
+  } catch(e) { toast('Lỗi: ' + e.message, 'err'); }
+};
+
+// ── CTV Detail ──────────────────────────────────────────────────────
+window.openCTVDetailModal = async (affiliateId) => {
+  const ctv = allCTVs.find(c => c.id === affiliateId);
+  if (!ctv) return;
+  document.getElementById('ctvDetailTitle').textContent = `Chi tiết CTV — ${ctv.name}`;
+  document.getElementById('ctvDetailInfo').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div><div class="modal-label">Họ tên</div><div style="font-weight:700">${esc(ctv.name||'—')}</div></div>
+      <div><div class="modal-label">Mã CTV</div><div class="ctv-code" style="font-size:16px">${esc(ctv.code||'—')}</div></div>
+      <div><div class="modal-label">Email</div><div style="font-size:12px">${esc(ctv.email||'—')}</div></div>
+      <div><div class="modal-label">SĐT</div><div style="font-size:12px">${esc(ctv.phone||'—')}</div></div>
+      <div><div class="modal-label">HH kiếm được</div><div style="font-weight:700;color:var(--green)">${(ctv.totalEarned||0).toLocaleString('vi-VN')}đ</div></div>
+      <div><div class="modal-label">Đã thanh toán</div><div style="font-weight:700">${(ctv.totalPaid||0).toLocaleString('vi-VN')}đ</div></div>
+      <div><div class="modal-label">Chờ thanh toán</div><div style="font-weight:700;color:var(--red)">${((ctv.totalEarned||0)-(ctv.totalPaid||0)).toLocaleString('vi-VN')}đ</div></div>
+      <div><div class="modal-label">Khách / Đã mua</div><div style="font-weight:700">${ctv.totalClients||0} / ${ctv.totalConverted||0}</div></div>
+    </div>`;
+  const commBody = document.getElementById('ctvDetailCommBody');
+  commBody.innerHTML = '<tr><td colspan="5" class="empty-cell" style="padding:16px!important">Đang tải...</td></tr>';
+  document.getElementById('ctvDetailModal').classList.add('on');
+  try {
+    const commSnap = await getDocs(query(collection(db,'affiliates',affiliateId,'commissions'), orderBy('createdAt','desc')));
+    const comms = commSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    if (!comms.length) {
+      commBody.innerHTML = '<tr><td colspan="5" class="empty-cell" style="padding:16px!important">Chưa có hoa hồng nào.</td></tr>';
+    } else {
+      commBody.innerHTML = comms.map(c => {
+        const dt  = c.createdAt?.toDate ? c.createdAt.toDate().toLocaleString('vi-VN') : '—';
+        const pDt = c.paidAt?.toDate    ? c.paidAt.toDate().toLocaleString('vi-VN')    : '—';
+        const badge = c.status==='paid'
+          ? '<span class="badge green">Đã trả</span>'
+          : '<span class="badge yellow">Chờ trả</span>';
+        return `<tr>
+          <td>${maskEmail(c.userEmail||'—')}</td>
+          <td>${(c.amount||0).toLocaleString('vi-VN')}đ</td>
+          <td>${badge}</td>
+          <td><span class="dt-txt">${dt}</span></td>
+          <td><span class="dt-txt">${c.status==='paid'?pDt:'—'}</span></td>
+        </tr>`;
+      }).join('');
+    }
+  } catch(e) {
+    commBody.innerHTML = `<tr><td colspan="5" class="empty-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`;
+  }
+};
+window.closeCTVDetailModal = () => { document.getElementById('ctvDetailModal').classList.remove('on'); };
+
+// ── CTV Payment ─────────────────────────────────────────────────────
+window.markCTVPaid = async (affiliateId, code, name, email, amount) => {
+  const amt = Number(amount);
+  if (!confirm(`Xác nhận đã thanh toán ${amt.toLocaleString('vi-VN')}đ hoa hồng cho ${name}?`)) return;
+  try {
+    const commSnap = await getDocs(query(collection(db,'affiliates',affiliateId,'commissions'), where('status','==','pending')));
+    await Promise.all(commSnap.docs.map(d =>
+      updateDoc(doc(db,'affiliates',affiliateId,'commissions',d.id), { status:'paid', paidAt:serverTimestamp() })
+    ));
+    await updateDoc(doc(db,'affiliates',affiliateId), { totalPaid: increment(amt), urgentRequest: false });
+    toast('✓ Đã đánh dấu thanh toán hoa hồng!', 'ok');
+    await loadCTVs();
+  } catch(e) { toast('Lỗi: ' + e.message, 'err'); }
+};
 
 
 async function callGAS(data){
@@ -392,14 +778,14 @@ async function loadStats(){
 }
 
 window.loadUsers = async () => {
-  document.getElementById('usersBody').innerHTML = '<tr><td colspan="6" class="empty-cell">Đang tải...</td></tr>';
+  document.getElementById('usersBody').innerHTML = '<tr><td colspan="7" class="empty-cell">Đang tải...</td></tr>';
   try {
     const snap = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
     // Giữ nguyên tất cả user cũ - chỉ đọc, không ghi đè
     allUsers = snap.docs.map(d => ({ id:d.id, ...d.data() }));
     renderUsers(currentFilter);
   } catch(e){
-    document.getElementById('usersBody').innerHTML = `<tr><td colspan="5" class="empty-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`;
+    document.getElementById('usersBody').innerHTML = `<tr><td colspan="7" class="empty-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`;
   }
 };
 
@@ -417,10 +803,13 @@ function renderUsers(filter){
   else if (filter==='paid') list = allUsers.filter(u=>u.plan==='paid'||(u.upgradeRequestedAt&&u.plan!=='paid'&&u.status!=='kicked'));
 
   const tbody = document.getElementById('usersBody');
-  if (!list.length){ tbody.innerHTML='<tr><td colspan="6" class="empty-cell">Không có người dùng nào.</td></tr>'; return; }
+  if (!list.length){ tbody.innerHTML='<tr><td colspan="7" class="empty-cell">Không có người dùng nào.</td></tr>'; return; }
 
   tbody.innerHTML = list.map(u => {
     const dt = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString('vi-VN') : '—';
+    const ctvCell = u.referredBy
+      ? `<span class="ctv-code" style="cursor:pointer" title="Xem CTV ${esc(u.referredBy)}" onclick="switchAdminTab('ctv')">${esc(u.referredBy)}</span>`
+      : '<span style="color:var(--text3)">—</span>';
 
     // Gói badge
     const planBadge = u.plan==='paid'
@@ -498,6 +887,7 @@ function renderUsers(filter){
       <td><div style="display:flex;flex-direction:column;gap:2px">${planBadge}${upgradeBadge}${planSelect}</div></td>
       <td>${statusBadge}</td>
       <td><span class="dt-txt">${dt}</span></td>
+      <td>${ctvCell}</td>
       <td>${actions}</td>
     </tr>`;
   }).join('');
@@ -514,9 +904,17 @@ window.closeDeleteModal = () => { document.getElementById('deleteModal').classLi
 window.doDeleteUser = async () => {
   closeDeleteModal();
   try {
+    const deletedUser = allUsers.find(u => u.id === _deleteUid);
     await callGAS({ type: 'account_deleted_permanently', toEmail: _deleteEmail, userName: _deleteName, siteUrl: SITE_URL });
     await deleteDoc(doc(db,'users',_deleteUid));
     toast(`✓ Đã xoá tài khoản ${_deleteEmail}`,'ok');
+    if (deletedUser?.referredBy) {
+      const ctvSnap = await getDocs(query(collection(db,'affiliates'), where('code','==',deletedUser.referredBy)));
+      if (!ctvSnap.empty) {
+        const ctv = ctvSnap.docs[0].data();
+        callGAS({ type:'ctv_client_deleted', toCTVEmail:ctv.email, ctvName:ctv.name, clientEmail:maskEmail(deletedUser.email), siteUrl:SITE_URL });
+      }
+    }
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi xoá: '+e.message,'err'); }
 };
@@ -547,6 +945,26 @@ window.approveUpgrade = async (uid, email, name) => {
     });
     toast('✓ Đã nâng cấp lên Trọn đời!','ok');
     await callGAS({ type: 'upgrade_approved', toEmail: email, userName: name, siteUrl: SITE_URL });
+    const upgradedUser = allUsers.find(u => u.id === uid);
+    if (upgradedUser?.referredBy) {
+      try {
+        const ctvSnap = await getDocs(query(collection(db,'affiliates'), where('code','==',upgradedUser.referredBy)));
+        if (!ctvSnap.empty) {
+          const ctvDoc = ctvSnap.docs[0];
+          const ctv = ctvDoc.data();
+          await addDoc(collection(db,'affiliates',ctvDoc.id,'commissions'), {
+            userId: uid, userEmail: upgradedUser.email,
+            amount: 125000, status: 'pending',
+            createdAt: serverTimestamp(), paidAt: null
+          });
+          await updateDoc(doc(db,'affiliates',ctvDoc.id), {
+            totalEarned: increment(125000), totalConverted: increment(1)
+          });
+          callGAS({ type:'ctv_commission_earned', toCTVEmail:ctv.email, ctvName:ctv.name,
+            clientEmail:maskEmail(upgradedUser.email), amount:125000, siteUrl:SITE_URL });
+        }
+      } catch(e) { console.warn('[CTV] Commission update failed:', e); }
+    }
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi: '+e.message,'err'); btns.forEach(b=>b.disabled=false); }
 };
@@ -571,6 +989,14 @@ window.doKick = async () => {
     });
     toast('✓ Đã kick người dùng','ok');
     await callGAS({ type: 'account_kicked', toEmail: _kickEmail, userName: _kickName, reason, siteUrl: SITE_URL });
+    const kickedUser = allUsers.find(u => u.id === _kickUid);
+    if (kickedUser?.referredBy) {
+      const ctvSnap = await getDocs(query(collection(db,'affiliates'), where('code','==',kickedUser.referredBy)));
+      if (!ctvSnap.empty) {
+        const ctv = ctvSnap.docs[0].data();
+        callGAS({ type:'ctv_client_kicked', toCTVEmail:ctv.email, ctvName:ctv.name, clientEmail:maskEmail(kickedUser.email), siteUrl:SITE_URL });
+      }
+    }
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };
