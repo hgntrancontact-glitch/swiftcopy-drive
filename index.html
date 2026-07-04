@@ -87,15 +87,18 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 px-3.5 py-1.5 border border-[#ffc107] rounded-full bg-white cursor-pointer transition-all duration-200 hover:bg-[#fffdf0] hover:-translate-y-[1px]" onclick="openEarnModal()">
+            <div id="navEarnPill" class="flex items-center gap-2 px-3.5 py-1.5 border border-[#ffc107] rounded-full bg-white cursor-pointer transition-all duration-200 hover:bg-[#fffdf0] hover:-translate-y-[1px]" onclick="openEarnModal()">
                 <div class="w-[19px] h-[19px] bg-[#ffe662] rounded-full flex items-center justify-center relative shadow-[inset_-2px_-1px_0px_0px_#dca10d] after:content-['$'] after:font-sans after:text-[13px] after:font-bold after:text-[#212529] after:z-10 after:relative after:top-[-0.5px]"></div>
                 <div class="text-sm font-bold text-[#212529]">Kiếm tiền</div>
             </div>
 
-            <div class="text-base flex items-center gap-2 select-none">
+            <div id="navLangSwitch" class="text-base flex items-center gap-2 select-none">
                 <span class="text-[#ffc107] font-bold cursor-pointer hover:text-[#e6ac00] transition-colors" onclick="openLangModal()">VI</span>
                 <span class="text-[#adc2d1]">|</span>
                 <span class="text-[#6c757d] cursor-pointer hover:text-[#ffc107] transition-colors" onclick="openLangModal()">EN</span>
+            </div>
+            <div class="sm:hidden flex-shrink-0 cursor-pointer" onclick="openEarnModal()" title="Kiếm tiền">
+                <div style="width:30px;height:30px;background:#ffe662;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:inset -2px -1px 0 0 #dca10d;font-size:15px;font-weight:800;color:#212529;line-height:1;">$</div>
             </div>
         </div>
 
@@ -108,6 +111,9 @@
                 </div>
             </div>
             <div class="h-7 w-px bg-[#e9ecef] mx-0.5 hidden sm:block"></div>
+            <div class="sm:hidden flex-shrink-0 cursor-pointer" onclick="openEarnModal()" title="Kiếm tiền">
+                <div style="width:30px;height:30px;background:#ffe662;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:inset -2px -1px 0 0 #dca10d;font-size:15px;font-weight:800;color:#212529;line-height:1;">$</div>
+            </div>
             <button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#ffc107] text-black hover:bg-[#e6ac00] active:scale-95 transition shadow-sm" onclick="reAuth()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-key"/></svg> <span class="hidden sm:inline">Cấp quyền Drive</span></button>
             <button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-[#dee2e6] text-[#495057] hover:bg-[#f8f9fa] hover:border-[#adb5bd] active:scale-95 transition" onclick="doLogout()"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#ic-out"/></svg> <span class="hidden sm:inline">Đăng xuất</span></button>
         </div>
@@ -631,10 +637,6 @@
     <div onclick="window.toggleFabSupport(false);openFaqModal()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;font-weight:700;color:#212529;cursor:pointer;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='none'">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       FAQ
-    </div>
-    <div onclick="window.toggleFabSupport(false);openEarnModal()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;font-weight:700;color:#212529;cursor:pointer;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='none'">
-      <div style="width:18px;height:18px;background:#ffe662;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:inset -2px -1px 0 0 #dca10d;font-size:12px;font-weight:800;color:#212529;line-height:1;">$</div>
-      Kiếm tiền
     </div>
     <div onclick="window.toggleFabSupport(false);window.toast && window.toast('Hiện tại chúng tôi chưa hỗ trợ tính năng này.','info')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:13px;font-weight:700;color:#212529;cursor:pointer;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='none'">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M12 21a4 4 0 0 1-4-4V8a4 4 0 0 1 8 0v9a4 4 0 0 1-4 4z"/><path d="M12 8V5M9 5l1.5 1.5M15 5l-1.5 1.5"/><path d="M4 12H8M16 12h4M5 16l3-1M19 16l-3-1M5 8l3 1M19 8l-3 1"/></svg>

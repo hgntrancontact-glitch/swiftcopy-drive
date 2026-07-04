@@ -294,7 +294,7 @@
 
         /* ── Responsive: phones ≤640px ── */
         @media (max-width:640px){
-          #bellIcon, #helpIcon { display:none !important; }
+          #bellIcon, #helpIcon, #navEarnPill { display:none !important; }
           #navGuest { gap:10px; }
           .modal-overlay { padding:0.5rem; }
           .modal-wrapper { max-height:92vh; overflow-y:auto; padding:1.125rem; }
@@ -307,12 +307,12 @@
         /* ── Responsive: small phones ≤480px ── */
         @media (max-width:480px){
           header { padding-left:1rem !important; padding-right:1rem !important; }
-          /* Hide earn + language switcher on very small screens */
-          #navGuest > div:nth-child(3),
-          #navGuest > div:nth-child(4) { display:none !important; }
-          /* Shrink logged-in nav (avatar/name/email/buttons) to prevent overflow on narrow phones */
-          #navRight #navName,
-          #navRight #navEmail { max-width:64px !important; }
+          /* Hide earn pill + language switcher — mobile icon replaces */
+          #navEarnPill, #navLangSwitch { display:none !important; }
+          /* Hide email in navRight to make room for earn icon on small screens */
+          #navEmail { display:none !important; }
+          /* Shrink name in logged-in nav */
+          #navRight #navName { max-width:40px !important; }
           #navRight button { padding-left:0.5rem !important; padding-right:0.5rem !important; }
           /* Plan select: stack 2 cols → 1 col */
           .plan-cols { display:flex !important; flex-direction:column !important; }
