@@ -12,6 +12,7 @@
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; }
 
+    /* ── Các class dùng bởi JS sections ── */
     .btn-amber {
       background: #ffc107; color: #212529; font-weight: 700;
       padding: 12px 28px; border-radius: 10px; border: none; cursor: pointer;
@@ -27,16 +28,6 @@
       cursor: pointer; font-size: 14px; transition: background .15s;
     }
     .btn-outline:hover { background: #f8f9fa; }
-
-    .highlight-card {
-      background: #fff; border: 1.5px solid #e9ecef;
-      border-radius: 16px; padding: 22px 20px; text-align: center;
-    }
-    .icon-badge {
-      width: 48px; height: 48px; border-radius: 12px;
-      background: #fffbea; display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 12px;
-    }
 
     .form-input {
       width: 100%; padding: 10px 14px; border: 1.5px solid #dee2e6;
@@ -76,61 +67,146 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .terms-link { color: #ffc107; text-decoration: underline; cursor: pointer; }
+
+    .icon-badge {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: #fffbea; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── Hero CTA buttons ── */
+    @keyframes pulseGlow {
+      0%   { box-shadow: 0 0 0 0 rgba(255,193,7,.4); }
+      50%  { box-shadow: 0 0 20px 6px rgba(255,193,7,.45); }
+      100% { box-shadow: 0 0 0 0 rgba(255,193,7,0); }
+    }
+    .hero-btn-primary {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 15px 44px; font-size: 16px; font-weight: 700;
+      background: #ffc107; color: #212529; border: none; border-radius: 10px;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+    .hero-btn-primary:hover {
+      background: #e6ac00; animation-play-state: paused;
+      box-shadow: 0 0 25px rgba(255,193,7,.5); transform: scale(1.02);
+    }
+    .hero-btn-secondary {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 15px 44px; font-size: 16px; font-weight: 700;
+      background: rgba(255,255,255,.06); color: #fff;
+      border: 1.5px solid rgba(255,255,255,.2); border-radius: 10px;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .hero-btn-secondary:hover {
+      background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.35);
+      transform: translateY(-1px);
+    }
+
+    /* ── Stats columns ── */
+    .stats-wrap {
+      display: flex; background: #fff;
+      border: 1px solid #e9ecef; border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.03);
+    }
+    .stat-col {
+      flex: 1; padding: 44px 40px; position: relative;
+    }
+    .stat-col:not(:last-child)::after {
+      content: ""; position: absolute; right: 0; top: 12%; height: 76%;
+      width: 1px; background: #e9ecef;
+    }
+    .stat-number {
+      font-size: 38px; font-weight: 800; color: #ffc107; margin-bottom: 12px;
+    }
+    .stat-title {
+      font-size: 17px; font-weight: 700; color: #212529; margin-bottom: 8px;
+    }
+    .stat-desc {
+      font-size: 14px; color: #64748b; line-height: 1.65;
+    }
+
+    /* ── Footer terms ── */
+    .terms-footer-link {
+      color: #868e96; text-decoration: none; font-size: 14px; font-weight: 600;
+      display: inline-block; margin: 0 20px; transition: color .2s; cursor: pointer;
+    }
+    .terms-footer-link:hover { color: #ffc107; text-decoration: underline; }
+
+    /* ── Back home button ── */
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 600; color: #64748b;
+      background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 9px 18px; text-decoration: none; transition: all .2s;
+    }
+    .btn-back:hover { background: #e2e8f0; color: #212529; }
+
+    @media (max-width: 768px) {
+      .stats-wrap { flex-direction: column; }
+      .stat-col { padding: 28px 24px; text-align: center; }
+      .stat-col:not(:last-child)::after { display: none; }
+      .section-card { padding: 24px 20px; }
+    }
+    @media (max-width: 480px) {
+      .hero-btn-primary, .hero-btn-secondary { width: 100%; }
+    }
   </style>
 </head>
-<body class="bg-[#f8f9fa] min-h-screen">
+<body class="bg-[#f8f9fa] text-[#212529] min-h-screen overflow-x-hidden">
 
 <!-- ══ Header ══════════════════════════════════════════════════ -->
 <header class="bg-white border-b border-[#e9ecef] sticky top-0 z-50">
-  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+  <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
+    <!-- Logo — đúng theo index.html -->
     <a href="/" class="flex items-center gap-2.5 no-underline">
-      <svg width="32" height="32" viewBox="0 0 40 40" fill="none" style="border-radius:10px;background:#212529;flex-shrink:0">
-        <rect x="6" y="6" width="28" height="28" rx="5" fill="#ffc107"/>
-        <path d="M20 10 L30 20 L20 30 L10 20 Z" fill="#212529" opacity=".15"/>
-        <path d="M13 20 H27 M22 15 L27 20 L22 25" stroke="#212529" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg class="w-9 h-9 rounded-xl flex-shrink-0" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/>
+        <text x="32" y="48" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="48" fill="#111110">S</text>
+        <path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span class="font-bold text-[#212529] text-lg">SwiftCopy.Drive</span>
+      <span class="font-bold text-[#212529] text-xl tracking-[-0.5px]">SwiftCopy<span class="text-[#dc3545]">.</span>Drive</span>
     </a>
-    <div class="flex items-center gap-3">
-      <span class="text-xs font-semibold text-[#ffc107] bg-[#fffbea] border border-[#ffe082] px-3 py-1 rounded-full">CTV PORTAL</span>
-      <a href="/" class="text-sm text-[#868e96] hover:text-[#212529] transition-colors">← Trang chủ</a>
-    </div>
+    <!-- Quay về trang chủ -->
+    <a href="/" class="btn-back">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+      </svg>
+      Quay về trang chủ
+    </a>
   </div>
 </header>
 
 <!-- ══ Hero ════════════════════════════════════════════════════ -->
-<section class="bg-[#212529] text-white py-14 px-4">
-  <div class="max-w-3xl mx-auto text-center">
-    <div class="inline-block bg-[#ffc107] text-[#212529] text-xs font-bold px-4 py-1.5 rounded-full mb-5 tracking-wide">CHƯƠNG TRÌNH ĐỐI TÁC</div>
-    <h1 class="text-3xl md:text-4xl font-black mb-4 leading-tight">
-      Kiếm hoa hồng cùng<br><span class="text-[#ffc107]">SwiftCopy.Drive</span>
+<section style="background:#212529" class="py-[96px] px-6 text-center text-white">
+  <div class="max-w-3xl mx-auto">
+    <!-- Badge -->
+    <div style="display:inline-block;background:rgba(255,193,7,.1);color:#ffc107;
+                border:1px solid rgba(255,193,7,.25);font-size:12px;font-weight:700;
+                letter-spacing:0.08em;text-transform:uppercase;padding:8px 22px;
+                border-radius:100px;margin-bottom:28px">
+      Chương trình cộng tác viên
+    </div>
+    <!-- Tiêu đề -->
+    <h1 class="text-4xl md:text-5xl font-black leading-tight tracking-tight mb-6"
+        style="color:#ffc107;letter-spacing:-1px">
+      Kiếm tiền cùng SwiftCopy.Drive
     </h1>
-    <p class="text-[#adb5bd] text-base md:text-lg mb-10 max-w-xl mx-auto">
-      Giới thiệu bạn bè dùng SwiftCopy.Drive và nhận <strong class="text-white">125.000đ hoa hồng</strong> cho mỗi khách mua gói Trọn đời qua link cá nhân của bạn.
+    <!-- Mô tả -->
+    <p class="text-lg leading-relaxed mb-12 mx-auto" style="color:#adb5bd;max-width:620px">
+      Hợp tác phát triển cùng nền tảng lưu trữ thông minh. Chia sẻ cơ hội, nhận
+      <strong style="color:#fff">125.000đ hoa hồng</strong> cho mỗi đơn Trọn đời —
+      thu nhập thụ động bền vững.
     </p>
-
-    <!-- 3 điểm nổi bật -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-      <div class="bg-white/[.07] border border-white/10 rounded-2xl px-5 py-5">
-        <div class="text-2xl mb-2">💰</div>
-        <div class="font-bold text-base mb-1">Hoa hồng 50%</div>
-        <div class="text-[#adb5bd] text-sm">125.000đ / đơn Trọn đời — thanh toán thủ công qua ngân hàng</div>
-      </div>
-      <div class="bg-white/[.07] border border-white/10 rounded-2xl px-5 py-5">
-        <div class="text-2xl mb-2">⚡</div>
-        <div class="font-bold text-base mb-1">Thanh toán nhanh</div>
-        <div class="text-[#adb5bd] text-sm">Admin xử lý trong vòng 24–48h sau khi bạn yêu cầu</div>
-      </div>
-      <div class="bg-white/[.07] border border-white/10 rounded-2xl px-5 py-5">
-        <div class="text-2xl mb-2">📊</div>
-        <div class="font-bold text-base mb-1">Theo dõi realtime</div>
-        <div class="text-[#adb5bd] text-sm">Dashboard CTV xem số khách, hoa hồng và lịch sử thanh toán</div>
-      </div>
+    <!-- CTA buttons -->
+    <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+      <button class="hero-btn-primary" onclick="loginCTV()">Đăng ký làm CTV</button>
+      <button class="hero-btn-secondary" onclick="loginCTV()">Đăng nhập CTV</button>
     </div>
   </div>
 </section>
 
-<!-- ══ Main content ════════════════════════════════════════════ -->
+<!-- ══ Main content (JS-controlled sections) ══════════════════════════════ -->
 <main class="max-w-5xl mx-auto px-4 py-10">
   <div id="ctvGlobalMsg"></div>
 
@@ -140,17 +216,19 @@
     <p class="text-[#868e96] text-sm">Đang kiểm tra thông tin...</p>
   </div>
 
-  <!-- ── Chưa đăng nhập (2 section: đăng ký + đăng nhập) ── -->
+  <!-- ── Chưa đăng nhập: 2 cards ── -->
   <div id="sec-unauthenticated" style="display:block">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-      <!-- Phần 2: Đăng ký CTV mới -->
+      <!-- Đăng ký CTV mới -->
       <div class="section-card">
         <div class="flex items-center gap-3 mb-5">
           <div class="icon-badge">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <line x1="19" y1="8" x2="19" y2="14"/>
+              <line x1="22" y1="11" x2="16" y2="11"/>
             </svg>
           </div>
           <div>
@@ -158,23 +236,20 @@
             <p class="text-[#868e96] text-sm">Chưa tham gia chương trình</p>
           </div>
         </div>
-
         <p class="text-[#495057] text-sm mb-5 leading-relaxed">
           Đăng nhập bằng Google để xác minh danh tính, sau đó điền thông tin và gửi đơn. Admin sẽ duyệt trong vòng 1–2 ngày làm việc.
         </p>
-
         <div class="bg-[#fffbea] border border-[#ffe082] rounded-xl p-4 mb-5">
           <p class="text-[#7a5a00] text-sm font-medium mb-1">💡 Lưu ý quan trọng</p>
           <p class="text-[#7a5a00] text-xs">1 email chỉ được đăng ký làm <strong>CTV hoặc người dùng</strong> — không thể dùng chung. Nếu đã có tài khoản người dùng, vui lòng dùng email khác.</p>
         </div>
-
         <button class="google-btn" onclick="loginCTV()">
           <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
           Đăng nhập với Google để đăng ký
         </button>
       </div>
 
-      <!-- Phần 3: Đăng nhập CTV đã duyệt -->
+      <!-- Đăng nhập CTV đã duyệt -->
       <div class="section-card">
         <div class="flex items-center gap-3 mb-5">
           <div class="icon-badge">
@@ -188,11 +263,9 @@
             <p class="text-[#868e96] text-sm">Đã có tài khoản CTV được duyệt</p>
           </div>
         </div>
-
         <p class="text-[#495057] text-sm mb-5 leading-relaxed">
           Đăng nhập bằng tài khoản Google đã đăng ký làm CTV để truy cập dashboard theo dõi hoa hồng và danh sách khách hàng.
         </p>
-
         <div class="mb-5">
           <div class="flex items-center gap-2 text-sm text-[#495057] mb-2">
             <span class="text-[#099268]">✓</span> Xem hoa hồng theo ngày/tuần/tháng
@@ -204,17 +277,16 @@
             <span class="text-[#099268]">✓</span> Yêu cầu thanh toán hoa hồng
           </div>
         </div>
-
         <button class="google-btn" onclick="loginCTV()">
           <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
           Đăng nhập bằng Google
         </button>
       </div>
 
-    </div><!-- /grid -->
-  </div><!-- /#sec-unauthenticated -->
+    </div>
+  </div>
 
-  <!-- ── Đang xử lý — redirect sang dashboard ── -->
+  <!-- ── Đang redirect sang dashboard ── -->
   <div id="sec-redirecting" style="display:none" class="text-center py-16">
     <div class="spinner"></div>
     <p class="text-[#099268] font-semibold text-lg mb-1">Chào mừng trở lại!</p>
@@ -248,13 +320,13 @@
     </div>
   </div>
 
-  <!-- ── Form đăng ký (sau khi đăng nhập + eligible) ── -->
+  <!-- ── Form đăng ký (sau khi login + eligible) ── -->
   <div id="sec-register_form" style="display:none" class="max-w-lg mx-auto">
     <div class="section-card">
       <h2 class="font-bold text-[#212529] text-xl mb-1">Điền thông tin đăng ký</h2>
       <p class="text-[#868e96] text-sm mb-6">Tài khoản Google của bạn đã được xác minh. Điền thêm thông tin bên dưới để hoàn tất đăng ký.</p>
 
-      <!-- Email hiển thị (readonly từ Google) -->
+      <!-- Email (readonly từ Google) -->
       <div class="mb-4">
         <label class="block text-sm font-semibold text-[#212529] mb-1.5">Email <span class="text-[#868e96] font-normal">(từ tài khoản Google)</span></label>
         <div class="form-input bg-[#f8f9fa] text-[#868e96]" style="display:flex;align-items:center">
@@ -290,8 +362,7 @@
         </label>
       </div>
 
-      <button id="ctvSubmitBtn" class="btn-amber w-full justify-center" onclick="submitCTVForm()"
-        style="width:100%;justify-content:center">
+      <button id="ctvSubmitBtn" class="btn-amber" onclick="submitCTVForm()" style="width:100%;justify-content:center">
         Gửi đơn đăng ký
       </button>
       <p class="text-xs text-[#adb5bd] text-center mt-3">Sau khi gửi, admin sẽ xem xét và phản hồi trong 1–2 ngày làm việc.</p>
@@ -315,13 +386,43 @@
 
 </main>
 
+<!-- ══ Stats Section (luôn hiển thị — value prop) ══════════════════════════ -->
+<section class="bg-white py-20 px-6">
+  <div class="max-w-5xl mx-auto">
+    <!-- 3 cột số liệu -->
+    <div class="stats-wrap">
+      <div class="stat-col">
+        <div class="stat-number">50%</div>
+        <div class="stat-title">Mức hoa hồng</div>
+        <p class="stat-desc">Nhận ngay 50% doanh thu cho mỗi đơn Trọn đời (125.000đ) đăng ký qua link cá nhân của bạn. Thanh toán thủ công qua ngân hàng.</p>
+      </div>
+      <div class="stat-col">
+        <div class="stat-number">Realtime</div>
+        <div class="stat-title">Thống kê minh bạch</div>
+        <p class="stat-desc">Dashboard CTV tự động cập nhật số khách, hoa hồng phát sinh và lịch sử thanh toán theo thời gian thực.</p>
+      </div>
+      <div class="stat-col">
+        <div class="stat-number">24/7</div>
+        <div class="stat-title">Thu nhập thụ động</div>
+        <p class="stat-desc">Link giới thiệu hoạt động liên tục. Bạn không cần online — hoa hồng vẫn tích lũy mỗi khi có khách mua qua link.</p>
+      </div>
+    </div>
+
+    <!-- Điều khoản -->
+    <div style="text-align:center;padding-top:28px;border-top:1px solid #f1f5f9;margin-top:28px">
+      <span class="terms-footer-link" onclick="openTermsModal('ctv_terms')">Điều khoản CTV</span>
+      <span class="terms-footer-link" onclick="openTermsModal('ctv_payment_terms')">Điều khoản thanh toán</span>
+    </div>
+  </div>
+</section>
+
 <!-- ══ Modal điều khoản ════════════════════════════════════════ -->
 <div id="termsModal" onclick="if(event.target===this)closeTermsModal()"
   style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;
-         display:none;align-items:center;justify-content:center;padding:20px">
+         align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:18px;max-width:560px;width:100%;
               max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
-    <div style="padding:18px 24px;border-bottom:1px solid #e9ecef;display:flex;align-items:center;justify-content:between;gap:12px">
+    <div style="padding:18px 24px;border-bottom:1px solid #e9ecef;display:flex;align-items:center;gap:12px">
       <h3 id="termsModalTitle" style="font-weight:700;font-size:17px;color:#212529;flex:1;margin:0"></h3>
       <button onclick="closeTermsModal()" style="background:none;border:none;font-size:20px;color:#868e96;cursor:pointer;padding:0 4px">✕</button>
     </div>
@@ -330,6 +431,5 @@
 </div>
 
 <script type="module" src="ctv.js"></script>
-
 </body>
 </html>
