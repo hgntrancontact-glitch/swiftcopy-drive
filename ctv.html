@@ -83,7 +83,7 @@
     }
     .hero-btn-primary {
       display: inline-flex; align-items: center; justify-content: center;
-      padding: 15px 44px; font-size: 16px; font-weight: 700;
+      padding: 15px 44px; font-size: 16px; font-weight: 700; font-family: inherit;
       background: #ffc107; color: #212529; border: none; border-radius: 10px;
       cursor: pointer; transition: background .2s; white-space: nowrap;
       animation: smoothPulse 2s infinite ease-in-out;
@@ -93,7 +93,7 @@
     }
     .hero-btn-secondary {
       display: inline-flex; align-items: center; justify-content: center;
-      padding: 15px 44px; font-size: 16px; font-weight: 700;
+      padding: 15px 44px; font-size: 16px; font-weight: 700; font-family: inherit;
       background: rgba(255,255,255,.06); color: #fff;
       border: 1.5px solid rgba(255,255,255,.2); border-radius: 10px;
       cursor: pointer; transition: all .2s; white-space: nowrap;
@@ -110,20 +110,20 @@
       box-shadow: 0 4px 24px rgba(0,0,0,.03);
     }
     .stat-col {
-      flex: 1; padding: 44px 40px; position: relative;
+      flex: 1; padding: 32px 36px; position: relative;
     }
     .stat-col:not(:last-child)::after {
       content: ""; position: absolute; right: 0; top: 12%; height: 76%;
       width: 1px; background: #e9ecef;
     }
     .stat-number {
-      font-size: 38px; font-weight: 800; color: #ffc107; margin-bottom: 12px;
+      font-size: 36px; font-weight: 700; color: #ffc107; margin-bottom: 10px; font-family: inherit;
     }
     .stat-title {
-      font-size: 17px; font-weight: 700; color: #212529; margin-bottom: 8px;
+      font-size: 16px; font-weight: 700; color: #212529; margin-bottom: 6px; font-family: inherit;
     }
     .stat-desc {
-      font-size: 14px; color: #64748b; line-height: 1.65;
+      font-size: 14px; color: #868e96; line-height: 1.65; font-family: inherit;
     }
 
     /* ── Footer terms ── */
@@ -144,7 +144,7 @@
 
     @media (max-width: 768px) {
       .stats-wrap { flex-direction: column; }
-      .stat-col { padding: 28px 24px; text-align: center; }
+      .stat-col { padding: 20px 22px; text-align: center; }
       .stat-col:not(:last-child)::after { display: none; }
       .section-card { padding: 24px 20px; }
     }
@@ -178,7 +178,7 @@
 </header>
 
 <!-- ══ Hero ════════════════════════════════════════════════════ -->
-<section style="background:#212529" class="py-[96px] px-6 text-center text-white">
+<section style="background:#212529" class="py-[60px] px-6 text-center text-white">
   <div class="max-w-3xl mx-auto">
     <!-- Badge -->
     <div style="display:inline-block;background:rgba(255,193,7,.1);color:#ffc107;
@@ -193,7 +193,7 @@
       Kiếm tiền cùng SwiftCopy.Drive
     </h1>
     <!-- Mô tả -->
-    <p class="text-lg leading-relaxed mb-12 mx-auto" style="color:#adb5bd;max-width:620px">
+    <p class="text-lg leading-relaxed mb-8 mx-auto" style="color:#adb5bd;max-width:620px">
       Hợp tác phát triển cùng nền tảng lưu trữ thông minh. Chia sẻ cơ hội, nhận
       <strong style="color:#fff">125.000đ hoa hồng</strong> cho mỗi đơn Trọn đời —
       thu nhập thụ động bền vững.
@@ -320,7 +320,7 @@
 </main>
 
 <!-- ══ Stats Section (luôn hiển thị — value prop) ══════════════════════════ -->
-<section class="bg-white py-20 px-6">
+<section class="bg-white py-12 px-6">
   <div class="max-w-5xl mx-auto">
     <!-- 3 cột số liệu -->
     <div class="stats-wrap">
