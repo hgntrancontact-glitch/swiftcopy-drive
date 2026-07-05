@@ -66,6 +66,7 @@ if (!IS_DASHBOARD) {
   // Auto-show plan select after 30s on landing if user hasn't interacted with any modal
   setTimeout(() => {
     if (!st.gUser && !document.querySelector('.modal-overlay.active')) {
+      st._planModalSource = 'auto';
       document.getElementById('planSelectModal')?.classList.add('active');
     }
   }, 30000);

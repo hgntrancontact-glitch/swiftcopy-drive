@@ -77,12 +77,21 @@ function showLoginError(msg) {
 window.openLoginModal = (mode = 'register') => {
   if (IS_DASHBOARD) { window.location.href = '/'; return; }
   st._loginMode = mode;
+  // Explicitly logging in (not registering) clears any pre-auth plan choice from auto-popup.
+  if (mode === 'login') { st._pendingPlanChoice = null; st._planModalSource = null; }
   const titleEl = document.getElementById('loginModalTitle');
   if (titleEl) titleEl.textContent = mode === 'login' ? 'Đăng nhập' : 'Đăng ký';
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   document.getElementById('loginModal')?.classList.add('active');
   window.hideLoginWarn();
   window.hideLoginError();
+};
+
+// Close loginModal and clear any pending plan state so it doesn't leak into later sessions.
+window.closeLoginModal = () => {
+  document.getElementById('loginModal')?.classList.remove('active');
+  st._pendingPlanChoice = null;
+  st._planModalSource = null;
 };
 
 window.handleLoginContinue = () => {
@@ -186,6 +195,7 @@ async function _routeLandingAuthedUser(u) {
       const docSnap = await getDoc(doc(db, 'users', u.uid));
       const exists = docSnap.exists();
       if (st._loginMode === 'login' && !exists) {
+        st._pendingPlanChoice = null; st._planModalSource = null;
         await signOut(auth);
         setTimeout(() => {
           window.openLoginModal('login');
@@ -195,6 +205,15 @@ async function _routeLandingAuthedUser(u) {
       }
       if (!exists) {
         st.setNavUser?.(u);
+        // If user pre-selected a plan from the auto-popup before authenticating,
+        // skip planSelectModal and act on their choice directly.
+        if (st._pendingPlanChoice) {
+          const choice = st._pendingPlanChoice;
+          st._pendingPlanChoice = null; st._planModalSource = null;
+          if (choice === 'free') { window.createFreeUser(); }
+          else { window.openPlanSelectPaid(); }
+          return;
+        }
         showPlanSelect();
         return;
       }
@@ -205,9 +224,17 @@ async function _routeLandingAuthedUser(u) {
         // the doc via setDoc(). Normal users still get blocked below.
         if (u.email === ADMIN_EMAIL) {
           st.setNavUser?.(u);
+          if (st._pendingPlanChoice) {
+            const choice = st._pendingPlanChoice;
+            st._pendingPlanChoice = null; st._planModalSource = null;
+            if (choice === 'free') { window.createFreeUser(); }
+            else { window.openPlanSelectPaid(); }
+            return;
+          }
           showPlanSelect();
           return;
         }
+        st._pendingPlanChoice = null; st._planModalSource = null;
         await signOut(auth);
         setTimeout(() => {
           st.toast?.('Tài khoản này đã được đăng ký. Vui lòng chọn Đăng nhập.', 'err');
@@ -407,6 +434,8 @@ function showPlanSelect() {
 window.openPlanSelectModal = () => showPlanSelect();
 
 window.closePlanSelect = async () => {
+  st._pendingPlanChoice = null;
+  st._planModalSource = null;
   document.getElementById('planSelectModal')?.classList.remove('active');
   // Only sign out if the user already completed Google auth (mid-registration).
   // Pre-auth plan preview (no gUser yet) must not sign out — nothing to sign out from.
@@ -414,13 +443,27 @@ window.closePlanSelect = async () => {
 };
 
 // Wrapper buttons in planSelectModal: route to login if not yet authenticated.
+// When called from the auto-popup (30s timer, _planModalSource==='auto'), remember the choice
+// so _routeLandingAuthedUser can skip the second planSelectModal and act directly.
 window.choosePlanFree = () => {
-  if (!st.gUser) { document.getElementById('planSelectModal')?.classList.remove('active'); window.openLoginModal('register'); }
-  else window.createFreeUser();
+  if (!st.gUser) {
+    st._pendingPlanChoice = 'free';
+    st._planModalSource = null;
+    document.getElementById('planSelectModal')?.classList.remove('active');
+    window.openLoginModal('register');
+  } else {
+    window.createFreeUser();
+  }
 };
 window.choosePlanPaid = () => {
-  if (!st.gUser) { document.getElementById('planSelectModal')?.classList.remove('active'); window.openLoginModal('register'); }
-  else window.openPlanSelectPaid();
+  if (!st.gUser) {
+    st._pendingPlanChoice = 'paid';
+    st._planModalSource = null;
+    document.getElementById('planSelectModal')?.classList.remove('active');
+    window.openLoginModal('register');
+  } else {
+    window.openPlanSelectPaid();
+  }
 };
 
 window.createFreeUser = async () => {

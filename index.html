@@ -131,7 +131,7 @@
                 Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn,<br class="hidden md:block">chạy thẳng trên trình duyệt.
             </p>
             <div class="flex gap-3 justify-center flex-wrap">
-                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] active:scale-95 transition-all" onclick="openPlanSelectModal()">Đăng ký dùng thử</button>
+                <button class="animate-pulse-shadow px-8 py-3.5 rounded-xl font-bold text-base text-black cursor-pointer bg-[#ffc107] hover:bg-[#e6ac00] active:scale-95 transition-all" onclick="openLoginModal('register')">Đăng ký dùng thử</button>
                 <button id="btnGoLogin" class="px-8 py-3.5 rounded-xl font-bold text-base text-[#212529] cursor-pointer bg-white border-2 border-[#212529] hover:bg-[#f8f9fa] active:scale-95 transition-all" onclick="openLoginModal('login')">Đăng nhập</button>
             </div>
             <p class="text-sm text-[#868e96] mt-4">Dùng thử miễn phí hoặc mua trọn đời</p>
@@ -432,9 +432,9 @@
 
 
 <!-- ══════════════ LOGIN MODAL (premium) ══════════════ -->
-<div class="modal-overlay" id="loginModal" onclick="if(event.target===this)this.classList.remove('active')" style="background-color:rgba(0,0,0,0.85);backdrop-filter:none;">
+<div class="modal-overlay" id="loginModal" onclick="if(event.target===this)closeLoginModal()" style="background-color:rgba(0,0,0,0.85);backdrop-filter:none;">
   <div class="modal-wrapper" style="max-width:400px;padding:0;border-radius:20px;overflow:hidden;position:relative;">
-    <button onclick="document.getElementById('loginModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">✕</button>
+    <button onclick="closeLoginModal()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">✕</button>
     <div style="background:#212529;padding:28px 28px 20px;">
       <div id="loginModalTitle" style="font-size:20px;font-weight:900;color:#fff;margin-bottom:6px;">Đăng ký</div>
       <div style="font-size:13px;color:#adb5bd;line-height:1.65;">Sao chép toàn bộ thư mục Google Drive nhanh chóng, an toàn — chạy thẳng trên trình duyệt.</div>

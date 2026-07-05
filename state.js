@@ -22,6 +22,8 @@ export const st = {
   _paymentContext: null, _loginMode: 'register',
   _kickPollTimer: null, _maintenancePromise: null,
   _authExpiredHandled: false, _resumeAfterReauth: null,
+  _pendingPlanChoice: null,  // 'free' | 'paid' | null — plan chosen from auto-popup before auth
+  _planModalSource: null,    // 'auto' | null — 'auto' when the 30s timer opens planSelectModal
 
   // Execution control (read/written by app.js + drive-api.js)
   pauseFlag: false, stopFlag: false, runMode: 'idle',
