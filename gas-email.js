@@ -57,6 +57,10 @@ function doPost(e) {
       case 'ctv_client_kicked':            handleCTVClientKicked(data);            break;
       case 'ctv_client_deleted':           handleCTVClientDeleted(data);           break;
       case 'ctv_urgent_payment':           handleCTVUrgentPayment(data);           break;
+      case 'ctv_kicked':                   handleCTVKicked(data);                  break;
+      case 'ctv_deleted_permanently':      handleCTVDeletedPermanently(data);      break;
+      case 'ctv_readded':                  handleCTVReadded(data);                 break;
+      case 'ctv_kick_alert':               handleCTVKickAlert(data);               break;
       default:
         throw new Error('Unknown type: ' + data.type);
     }
@@ -561,6 +565,82 @@ function handleCTVUrgentPayment(data) {
   const html = buildEmailHtml({
     iconBg: '#fffbea', iconColor: '#d97706', iconChar: '◷',
     title: 'Yêu cầu thanh toán gấp từ CTV',
+    bodyHtml: bodyHtml,
+    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 20. CTV: Tài khoản bị kick ──────────────────────────────────────────────
+// Payload: { type, toEmail, ctvName, reason, siteUrl }
+function handleCTVKicked(data) {
+  const subject = 'Thông báo: Tài khoản CTV của bạn đang bị tạm khoá';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.ctvName || data.toEmail) + '</b>, tài khoản CTV của bạn đã bị tạm khoá bởi quản trị viên.</p>' +
+    (data.reason ? _fieldTable(_fieldRow('Lý do', _esc(data.reason))) : '') +
+    '<div style="background:#fff5f5;border:1px solid #ffe3e3;border-radius:10px;padding:12px 14px;font-size:13px;color:#c92a2a;line-height:1.6;font-family:Arial,sans-serif">Hoa hồng đã phát sinh trước đó <b>vẫn được giữ nguyên và thanh toán đầy đủ</b>. Nếu bạn cho rằng đây là sự nhầm lẫn, vui lòng liên hệ bộ phận hỗ trợ.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#fff5f5', iconColor: '#dc3545', iconChar: '!',
+    title: 'Tài khoản CTV của bạn đang bị tạm khoá',
+    bodyHtml: bodyHtml,
+    ctaText: 'Liên hệ hỗ trợ', ctaUrl: (data.siteUrl || SITE_URL),
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 21. CTV: Tài khoản bị xoá vĩnh viễn ────────────────────────────────────
+// Payload: { type, toEmail, ctvName, siteUrl }
+function handleCTVDeletedPermanently(data) {
+  const subject = 'Thông báo: Tài khoản CTV của bạn đã bị xoá';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.ctvName || data.toEmail) + '</b>, tài khoản CTV của bạn đã bị xoá vĩnh viễn khỏi hệ thống.</p>' +
+    '<div style="background:#fff5f5;border:1px solid #ffe3e3;border-radius:10px;padding:12px 14px;font-size:13px;color:#c92a2a;line-height:1.6;font-family:Arial,sans-serif">Hoa hồng đã được duyệt và thanh toán trước đó <b>không bị ảnh hưởng</b>. Bạn có thể đăng ký lại chương trình CTV nếu muốn tiếp tục hợp tác.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#fff5f5', iconColor: '#dc3545', iconChar: '✕',
+    title: 'Tài khoản CTV của bạn đã bị xoá',
+    bodyHtml: bodyHtml,
+    ctaText: 'Đăng ký lại CTV', ctaUrl: (data.siteUrl || SITE_URL) + '/ctv',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 22. CTV: Tài khoản được thêm lại ────────────────────────────────────────
+// Payload: { type, toEmail, ctvName, ctvCode, affiliateLink, note, siteUrl }
+function handleCTVReadded(data) {
+  const subject = 'Tài khoản CTV của bạn đã được kích hoạt lại';
+  const link = data.affiliateLink || ((data.siteUrl || SITE_URL) + '?r=' + _esc(data.ctvCode || ''));
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.ctvName || data.toEmail) + '</b>, tài khoản CTV của bạn đã được kích hoạt lại. Bạn có thể tiếp tục sử dụng dashboard và chia sẻ link giới thiệu.</p>' +
+    (data.note ? '<div style="background:#f8f9fa;border-left:3px solid #c9a84c;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#495057;font-family:Arial,sans-serif"><b>Ghi chú từ admin:</b> ' + _esc(data.note) + '</div>' : '') +
+    _fieldTable(_fieldRow('Mã CTV', '<span style="font-family:monospace;font-weight:900;font-size:15px;color:#d97706">' + _esc(data.ctvCode || '') + '</span>') + _fieldRow('Link giới thiệu', '<a href="' + link + '" style="color:#2563eb">' + link.replace('https://','') + '</a>'));
+  const html = buildEmailHtml({
+    iconBg: '#e6fcf5', iconColor: '#099268', iconChar: '★',
+    title: 'Tài khoản CTV đã được kích hoạt lại',
+    bodyHtml: bodyHtml,
+    ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL) + '/ctv',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 23. ADMIN: CTV đã bị kick vẫn cố đăng nhập ──────────────────────────────
+// Payload: { type, ctvName, ctvEmail, ctvCode, siteUrl }
+function handleCTVKickAlert(data) {
+  const subject = 'CTV đã bị kick vẫn cố đăng nhập';
+  const rowsHtml =
+    _fieldRow('Họ tên CTV', _esc(data.ctvName || '')) +
+    _fieldRow('Email CTV', _esc(data.ctvEmail || '')) +
+    _fieldRow('Mã CTV', _esc(data.ctvCode || '')) +
+    _fieldRow('Thời gian', _nowStr());
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">CTV dưới đây đang bị khoá nhưng vừa cố đăng nhập vào hệ thống.</p>' +
+    _fieldTable(rowsHtml);
+  const html = buildEmailHtml({
+    iconBg: '#fff5f5', iconColor: '#dc3545', iconChar: '!',
+    title: 'CTV đã bị kick vẫn cố đăng nhập',
     bodyHtml: bodyHtml,
     ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin',
     ctaBg: '#ffc107', ctaColor: '#212529'

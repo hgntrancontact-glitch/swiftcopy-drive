@@ -311,9 +311,9 @@ tbody tr:last-child td{border-bottom:none}
         <div style="overflow-x:auto;max-height:220px;overflow-y:auto">
           <table>
             <thead><tr>
-              <th>CTV</th><th>Mã</th><th>Tổng khách</th><th>Đã mua</th><th>HH chưa trả</th><th>HH đã trả</th><th>Ngày tham gia</th><th>Thao tác</th>
+              <th>CTV</th><th>Mã</th><th>Trạng thái</th><th>Tổng khách</th><th>Đã mua</th><th>HH chưa trả</th><th>HH đã trả</th><th>Ngày tham gia</th><th>Thao tác</th>
             </tr></thead>
-            <tbody id="ctvActiveBody"><tr><td colspan="8" class="empty-cell">Chưa có CTV nào.</td></tr></tbody>
+            <tbody id="ctvActiveBody"><tr><td colspan="9" class="empty-cell">Chưa có CTV nào.</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -455,6 +455,52 @@ tbody tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- KICK CTV MODAL -->
+<div id="kickCTVModal" class="modal-ov">
+  <div class="modal">
+    <div class="modal-h"><h3>Kick CTV</h3></div>
+    <div class="modal-b">
+      <p id="kickCTVMsg">Bạn chắc chắn muốn kick CTV này?</p>
+      <label class="modal-label">Lý do kick (bắt buộc)</label>
+      <textarea id="kickCTVReason" class="modal-textarea" placeholder="Nhập lý do kick..."></textarea>
+    </div>
+    <div class="modal-f">
+      <button class="btn-cancel" onclick="closeKickCTVModal()">Huỷ</button>
+      <button class="btn-confirm-red" onclick="doKickCTV()"><svg class="ic" style="color:#fff"><use href="#ic-ban"/></svg> Xác nhận kick</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CTV MODAL -->
+<div id="deleteCTVModal" class="modal-ov">
+  <div class="modal">
+    <div class="modal-h"><h3>Xoá CTV vĩnh viễn</h3></div>
+    <div class="modal-b">
+      <p id="deleteCTVMsg">Xoá CTV này? Thao tác không thể hoàn tác — toàn bộ dữ liệu tài khoản CTV sẽ bị xoá vĩnh viễn.</p>
+    </div>
+    <div class="modal-f">
+      <button class="btn-cancel" onclick="closeDeleteCTVModal()">Huỷ</button>
+      <button class="btn-confirm-red" onclick="doDeleteCTV()">🗑 Xác nhận xoá</button>
+    </div>
+  </div>
+</div>
+
+<!-- READD CTV MODAL -->
+<div id="readdCTVModal" class="modal-ov">
+  <div class="modal">
+    <div class="modal-h"><h3>Thêm lại CTV</h3></div>
+    <div class="modal-b">
+      <p id="readdCTVMsg">Kích hoạt lại tài khoản CTV này và gửi email thông báo cho họ?</p>
+      <label class="modal-label">Ghi chú / Lời nhắn gửi kèm email</label>
+      <textarea id="readdCTVNote" class="modal-textarea" placeholder="Nhập lời nhắn hoặc ghi chú..."></textarea>
+    </div>
+    <div class="modal-f">
+      <button class="btn-cancel" onclick="closeReaddCTVModal()">Huỷ</button>
+      <button class="btn-confirm-green" onclick="doReaddCTV()"><svg class="ic" style="color:#fff"><use href="#ic-plus"/></svg> Thêm lại</button>
+    </div>
+  </div>
+</div>
+
 <!-- CTV DETAIL MODAL -->
 <div id="ctvDetailModal" class="modal-ov">
   <div class="modal" style="max-width:620px">
@@ -519,6 +565,9 @@ let allCTVs = [];
 let _approveCTVId = null, _approveCTVName = '', _approveCTVEmail = '', _approveCTVPhone = '';
 let _approveCTVGeneratedCode = '';
 let _rejectCTVId = null, _rejectCTVName = '', _rejectCTVEmail = '';
+let _kickCTVId = null, _kickCTVName = '', _kickCTVEmail = '', _kickCTVCode = '';
+let _deleteCTVId = null, _deleteCTVName = '', _deleteCTVEmail = '', _deleteCTVCode = '';
+let _readdCTVId = null, _readdCTVName = '', _readdCTVEmail = '', _readdCTVCode = '';
 
 // ── Helpers ────────────────────────────────────────────────────────
 function maskEmail(email) {
@@ -571,7 +620,7 @@ async function loadCTVs() {
     const snap = await getDocs(query(collection(db, 'affiliates'), orderBy('createdAt', 'desc')));
     allCTVs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     const pending = allCTVs.filter(c => c.status === 'pending');
-    const active  = allCTVs.filter(c => c.status === 'active');
+    const active  = allCTVs.filter(c => c.status === 'active' || c.status === 'kicked');
     const now24 = Date.now() - 86400000;
     const payment = active.filter(c =>
       (c.totalEarned||0) - (c.totalPaid||0) > 0 ||
@@ -605,20 +654,31 @@ function renderPendingCTVs(list) {
 
 function renderActiveCTVs(list) {
   const tbody = document.getElementById('ctvActiveBody'); if (!tbody) return;
-  if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">Chưa có CTV nào được duyệt.</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty-cell">Chưa có CTV nào được duyệt.</td></tr>'; return; }
   tbody.innerHTML = list.map(c => {
     const dt = c.createdAt?.toDate ? c.createdAt.toDate().toLocaleString('vi-VN') : '—';
     const pend = ((c.totalEarned||0) - (c.totalPaid||0)).toLocaleString('vi-VN') + 'đ';
     const paid = (c.totalPaid||0).toLocaleString('vi-VN') + 'đ';
-    return `<tr>
+    const isKicked = c.status === 'kicked';
+    const statusBadge = isKicked
+      ? `<span class="badge red" style="font-size:11px"><span class="badge-dot" style="background:var(--red)"></span>Đang khoá</span>`
+      : `<span class="badge green" style="font-size:11px"><span class="badge-dot" style="background:var(--green)"></span>Hoạt động</span>`;
+    const actions = isKicked
+      ? `<button class="act-btn act-approve" onclick="openReaddCTVModal('${c.id}','${esc(c.name)}','${esc(c.email)}','${esc(c.code)}')">↩ Thêm lại</button>
+         <button class="act-btn act-kick" style="margin-left:4px" onclick="openDeleteCTVModal('${c.id}','${esc(c.name)}','${esc(c.email)}','${esc(c.code)}')">🗑 Xoá</button>`
+      : `<button class="act-btn act-btn-blue" onclick="openCTVDetailModal('${c.id}')">Chi tiết</button>
+         <button class="act-btn act-kick" style="margin-left:4px" onclick="openKickCTVModal('${c.id}','${esc(c.name)}','${esc(c.email)}','${esc(c.code)}')">Kick</button>
+         <button class="act-btn" style="margin-left:4px;background:var(--red-light);color:var(--red)" onclick="openDeleteCTVModal('${c.id}','${esc(c.name)}','${esc(c.email)}','${esc(c.code)}')">🗑</button>`;
+    return `<tr style="${isKicked ? 'opacity:.75;background:#fffbfb' : ''}">
       <td><div class="u-name">${esc(c.name||'—')}</div><div class="u-email">${esc(c.email||'—')}</div></td>
       <td><span class="ctv-code">${esc(c.code||'—')}</span></td>
+      <td>${statusBadge}</td>
       <td style="text-align:center;font-weight:700">${c.totalClients||0}</td>
       <td style="text-align:center;font-weight:700;color:var(--green)">${c.totalConverted||0}</td>
       <td style="text-align:right;font-weight:700;color:var(--red)">${pend}</td>
       <td style="text-align:right;font-weight:700;color:var(--green)">${paid}</td>
       <td><span class="dt-txt">${dt}</span></td>
-      <td><button class="act-btn act-btn-blue" onclick="openCTVDetailModal('${c.id}')">Chi tiết</button></td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap">${actions}</div></td>
     </tr>`;
   }).join('');
 }
@@ -1094,6 +1154,67 @@ window.doReadd = async () => {
   } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };
 
+
+// ── CTV Kick ────────────────────────────────────────────────────────
+window.openKickCTVModal = (id, name, email, code) => {
+  _kickCTVId = id; _kickCTVName = name; _kickCTVEmail = email; _kickCTVCode = code;
+  document.getElementById('kickCTVMsg').textContent = `Kick CTV "${name}" (${email})?`;
+  document.getElementById('kickCTVReason').value = '';
+  document.getElementById('kickCTVModal').classList.add('on');
+};
+window.closeKickCTVModal = () => { document.getElementById('kickCTVModal').classList.remove('on'); };
+window.doKickCTV = async () => {
+  const reason = document.getElementById('kickCTVReason').value.trim();
+  if (!reason) { toast('Vui lòng nhập lý do kick!', 'warn'); return; }
+  closeKickCTVModal();
+  try {
+    await updateDoc(doc(db, 'affiliates', _kickCTVId), {
+      status: 'kicked', kickReason: reason, kickedAt: serverTimestamp()
+    });
+    toast('✓ Đã kick CTV', 'ok');
+    await callGAS({ type: 'ctv_kicked', toEmail: _kickCTVEmail, ctvName: _kickCTVName, reason, siteUrl: SITE_URL });
+    await loadCTVs();
+  } catch(e) { toast('Lỗi: ' + e.message, 'err'); }
+};
+
+// ── CTV Delete ──────────────────────────────────────────────────────
+window.openDeleteCTVModal = (id, name, email, code) => {
+  _deleteCTVId = id; _deleteCTVName = name; _deleteCTVEmail = email; _deleteCTVCode = code;
+  document.getElementById('deleteCTVMsg').textContent = `Xoá CTV "${name}" (${email})? Thao tác không thể hoàn tác — toàn bộ dữ liệu tài khoản CTV sẽ bị xoá vĩnh viễn.`;
+  document.getElementById('deleteCTVModal').classList.add('on');
+};
+window.closeDeleteCTVModal = () => { document.getElementById('deleteCTVModal').classList.remove('on'); };
+window.doDeleteCTV = async () => {
+  closeDeleteCTVModal();
+  try {
+    await callGAS({ type: 'ctv_deleted_permanently', toEmail: _deleteCTVEmail, ctvName: _deleteCTVName, siteUrl: SITE_URL });
+    await deleteDoc(doc(db, 'affiliates', _deleteCTVId));
+    toast('✓ Đã xoá CTV ' + _deleteCTVEmail, 'ok');
+    await loadCTVs();
+  } catch(e) { toast('Lỗi xoá: ' + e.message, 'err'); }
+};
+
+// ── CTV Readd ───────────────────────────────────────────────────────
+window.openReaddCTVModal = (id, name, email, code) => {
+  _readdCTVId = id; _readdCTVName = name; _readdCTVEmail = email; _readdCTVCode = code;
+  document.getElementById('readdCTVMsg').textContent = `Kích hoạt lại tài khoản CTV "${name}" (${email})?`;
+  document.getElementById('readdCTVNote').value = '';
+  document.getElementById('readdCTVModal').classList.add('on');
+};
+window.closeReaddCTVModal = () => { document.getElementById('readdCTVModal').classList.remove('on'); };
+window.doReaddCTV = async () => {
+  const note = document.getElementById('readdCTVNote').value.trim();
+  closeReaddCTVModal();
+  try {
+    await updateDoc(doc(db, 'affiliates', _readdCTVId), {
+      status: 'active', readdedAt: serverTimestamp(), readdNote: note || ''
+    });
+    toast('✓ Đã thêm lại CTV', 'ok');
+    await callGAS({ type: 'ctv_readded', toEmail: _readdCTVEmail, ctvName: _readdCTVName,
+      ctvCode: _readdCTVCode, affiliateLink: `${SITE_URL}?r=${_readdCTVCode}`, note, siteUrl: SITE_URL });
+    await loadCTVs();
+  } catch(e) { toast('Lỗi: ' + e.message, 'err'); }
+};
 
 window.changePlan = async (uid, email, name, newPlan) => {
   if (!newPlan) return;

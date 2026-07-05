@@ -7,7 +7,7 @@ import { initializeApp }
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, query, where, getDocs, addDoc, getDoc, doc, serverTimestamp,
-         updateDoc, orderBy, increment }
+         updateDoc, orderBy, increment, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -151,8 +151,12 @@ if (document.getElementById('sec-loading')) {
           setTimeout(() => { window.location.href = '/ctv-dashboard'; }, 1800);
         } else if (result.status === 'pending') {
           showSection('pending');
+        } else if (result.status === 'kicked') {
+          await signOut(auth);
+          showMsg('Tài khoản CTV của bạn đang bị tạm khoá. Vui lòng liên hệ admin để được hỗ trợ.', 'err');
+          showSection('unauthenticated');
         } else {
-          // suspended / rejected
+          // rejected / unknown
           showMsg('Tài khoản CTV của bạn đã bị ' + result.status + '.', 'err');
           showSection('unauthenticated');
         }
@@ -209,12 +213,19 @@ if (document.getElementById('dash-loading')) {
   let _dash = null;        // { id, ...affiliateDoc fields }
   let _comms = [];         // commission records sorted createdAt desc
   let _currentTab = 0;
+  let _ctvDocUnsubscribe = null; // onSnapshot unsubscribe fn
 
   // helper: ẩn tất cả screens, hiện screen chỉ định
   function _showScreen(name) {
-    ['dash-loading','dash-error','dash-main'].forEach(id => {
+    const screens = ['dash-loading','dash-error','dash-main','dash-kicked'];
+    screens.forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.style.display = id === name ? (id === 'dash-main' ? 'block' : 'flex') : 'none';
+      if (!el) return;
+      if (id === name) {
+        el.style.display = (id === 'dash-main') ? 'block' : 'flex';
+      } else {
+        el.style.display = 'none';
+      }
     });
   }
 
@@ -466,12 +477,71 @@ if (document.getElementById('dash-loading')) {
     }
   };
 
+  // ── Real-time listener — phát hiện bị kick ngay lập tức ─────
+  function _startCTVDocListener(docId) {
+    if (_ctvDocUnsubscribe) { _ctvDocUnsubscribe(); _ctvDocUnsubscribe = null; }
+    _ctvDocUnsubscribe = onSnapshot(doc(db, 'affiliates', docId), (snap) => {
+      if (!snap.exists()) { window.location.href = '/ctv'; return; }
+      const d = snap.data();
+      if (d.status === 'kicked') {
+        const reasonEl = document.getElementById('ctvKickedReasonText');
+        if (reasonEl) reasonEl.textContent = d.kickReason || '(Không có lý do)';
+        _showScreen('dash-kicked');
+      }
+    });
+  }
+
+  // ── Readd welcome — hiện đúng 1 lần cho mỗi readdedAt ───────
+  function checkCTVReaddWelcome() {
+    if (!_dash?.readdedAt) return;
+    const readdTs = _dash.readdedAt?.toMillis?.();
+    if (!readdTs) return;
+    const flagKey = 'swiftcopy_ctv_readd_' + _dash.code;
+    const stored = localStorage.getItem(flagKey);
+    if (stored === String(readdTs)) return; // đã hiện cho lần readd này
+    localStorage.setItem(flagKey, String(readdTs));
+    // Điền link vào modal
+    const linkEl = document.getElementById('ctvReaddWelcomeLink');
+    if (linkEl) {
+      const link = 'https://swiftcopydrive.vercel.app?r=' + _dash.code;
+      linkEl.textContent = link.replace('https://', '');
+      linkEl.href = link;
+    }
+    const modal = document.getElementById('ctvReaddWelcomeModal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  window.closeCTVReaddWelcome = function() {
+    const modal = document.getElementById('ctvReaddWelcomeModal');
+    if (modal) modal.style.display = 'none';
+  };
+
   // ── onAuthStateChanged — chỉ chạy trên ctv-dashboard.html ─
   onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = '/ctv'; return; }
 
     try {
       const result = await checkCTVStatus(user);
+
+      // CTV bị kick — hiện màn hình kicked, báo admin
+      if (result.state === 'affiliate' && result.status === 'kicked') {
+        const d = result.doc;
+        const reasonEl = document.getElementById('ctvKickedReasonText');
+        if (reasonEl) reasonEl.textContent = d.kickReason || '(Không có lý do)';
+        _showScreen('dash-kicked');
+        // Báo admin fire-and-forget
+        fetch('/api/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'ctv_kick_alert',
+            ctvName: d.name, ctvEmail: d.email, ctvCode: d.code,
+            siteUrl: 'https://swiftcopydrive.vercel.app'
+          })
+        }).catch(() => {});
+        return;
+      }
+
       if (result.state !== 'affiliate' || result.status !== 'active') {
         window.location.href = '/ctv';
         return;
@@ -494,6 +564,12 @@ if (document.getElementById('dash-loading')) {
 
       _renderOverview();
       _showScreen('dash-main');
+
+      // Real-time listener để phát hiện bị kick ngay lập tức
+      _startCTVDocListener(_dash.id);
+
+      // Hiện welcome modal nếu vừa được readd
+      checkCTVReaddWelcome();
 
     } catch (e) {
       const errMsg = document.getElementById('dash-error-msg');
