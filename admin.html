@@ -293,7 +293,7 @@ tbody tr:last-child td{border-bottom:none}
           <span class="card-t">📋 Đơn đăng ký chờ duyệt</span>
           <button class="btn-sm" onclick="loadCTVs()"><svg class="ic"><use href="#ic-refresh"/></svg> Làm mới</button>
         </div>
-        <div style="overflow-x:auto">
+        <div style="overflow-x:auto;max-height:220px;overflow-y:auto">
           <table>
             <thead><tr>
               <th>Người đăng ký</th><th>SĐT</th><th>Ghi chú</th><th>Ngày đăng ký</th><th>Thao tác</th>
@@ -308,7 +308,7 @@ tbody tr:last-child td{border-bottom:none}
         <div class="card-h">
           <span class="card-t">🤝 Danh sách CTV đang hoạt động</span>
         </div>
-        <div style="overflow-x:auto">
+        <div style="overflow-x:auto;max-height:220px;overflow-y:auto">
           <table>
             <thead><tr>
               <th>CTV</th><th>Mã</th><th>Tổng khách</th><th>Đã mua</th><th>HH chưa trả</th><th>HH đã trả</th><th>Ngày tham gia</th><th>Thao tác</th>
@@ -323,7 +323,7 @@ tbody tr:last-child td{border-bottom:none}
         <div class="card-h">
           <span class="card-t">💰 Hoa hồng chờ thanh toán</span>
         </div>
-        <div style="overflow-x:auto">
+        <div style="overflow-x:auto;max-height:220px;overflow-y:auto">
           <table>
             <thead><tr>
               <th>CTV</th><th>Mã</th><th>Số tiền chờ trả</th><th>Yêu cầu</th><th>Thao tác</th>
@@ -500,7 +500,7 @@ const firebaseConfig = {
 const ADMIN_EMAIL = "hgntran.contact@gmail.com";
 // GAS_URL đã chuyển vào Vercel env var — xem api/email.js
 const SITE_NAME   = "SwiftCopy.Drive";
-const SITE_URL    = "https://swiftcopydrive.com";
+const SITE_URL    = "https://swiftcopydrive.vercel.app";
 
 
 const app      = initializeApp(firebaseConfig);
@@ -572,7 +572,11 @@ async function loadCTVs() {
     allCTVs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     const pending = allCTVs.filter(c => c.status === 'pending');
     const active  = allCTVs.filter(c => c.status === 'active');
-    const payment = active.filter(c => (c.totalEarned||0) - (c.totalPaid||0) > 0);
+    const now24 = Date.now() - 86400000;
+    const payment = active.filter(c =>
+      (c.totalEarned||0) - (c.totalPaid||0) > 0 ||
+      (c.lastPaidActionAt?.toDate?.()?.getTime?.() > now24)
+    );
     renderPendingCTVs(pending);
     renderActiveCTVs(active);
     renderCTVPayments(payment);
@@ -622,15 +626,26 @@ function renderActiveCTVs(list) {
 function renderCTVPayments(list) {
   const tbody = document.getElementById('ctvPaymentBody'); if (!tbody) return;
   if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">Không có hoa hồng chờ thanh toán.</td></tr>'; return; }
+  const now24 = Date.now() - 86400000;
   tbody.innerHTML = list.map(c => {
     const pend = (c.totalEarned||0) - (c.totalPaid||0);
+    const justPaid = pend <= 0 && (c.lastPaidActionAt?.toDate?.()?.getTime?.() > now24);
     const urgentBadge = c.urgentRequest ? `<span class="badge red" style="margin-left:4px">⚡ Gấp!</span>` : '';
+    if (justPaid) {
+      return `<tr style="opacity:.6">
+        <td><div class="u-name">${esc(c.name||'—')}</div><div class="u-email">${esc(c.email||'—')}</div></td>
+        <td><span class="ctv-code">${esc(c.code||'—')}</span></td>
+        <td style="text-align:right;font-weight:700;color:var(--green)">0đ</td>
+        <td><span style="color:var(--green);font-weight:700">✓ Đã thanh toán</span></td>
+        <td style="color:var(--text2);font-size:12px">Biến mất sau 24 giờ</td>
+      </tr>`;
+    }
     return `<tr>
       <td><div class="u-name">${esc(c.name||'—')} ${urgentBadge}</div><div class="u-email">${esc(c.email||'—')}</div></td>
       <td><span class="ctv-code">${esc(c.code||'—')}</span></td>
       <td style="text-align:right;font-weight:700;font-size:15px;color:var(--red)">${pend.toLocaleString('vi-VN')}đ</td>
       <td>${c.urgentRequest ? '<span style="color:var(--red);font-weight:700">Yêu cầu gấp</span>' : '—'}</td>
-      <td><button class="act-btn act-approve" onclick="markCTVPaid('${c.id}','${esc(c.code)}','${esc(c.name)}','${esc(c.email)}',${pend})">✓ Đã thanh toán</button></td>
+      <td><button class="act-btn act-approve" onclick="markCTVPaid('${c.id}','${esc(c.code)}','${esc(c.name)}','${esc(c.email)}',${pend})">✓ Cần thanh toán</button></td>
     </tr>`;
   }).join('');
 }
@@ -658,7 +673,7 @@ window.doApproveCTV = async () => {
     await updateDoc(doc(db, 'affiliates', _approveCTVId), {
       status: 'active', code, approvedAt: serverTimestamp()
     });
-    await callGAS({ type: 'ctv_welcome', toCTVEmail: _approveCTVEmail, ctvName: _approveCTVName,
+    await callGAS({ type: 'ctv_welcome', toEmail: _approveCTVEmail, ctvName: _approveCTVName,
       ctvCode: code, affiliateLink: `${SITE_URL}?r=${code}`, siteUrl: SITE_URL });
     toast(`✓ Đã duyệt CTV — mã: ${code}`, 'ok');
     await loadCTVs();
@@ -693,16 +708,20 @@ window.openCTVDetailModal = async (affiliateId) => {
   if (!ctv) return;
   _ctvDetailCache = { ctv, comms: [] };
   document.getElementById('ctvDetailTitle').textContent = `Chi tiết CTV — ${ctv.name}`;
+  const bi = ctv.bankInfo || {};
   document.getElementById('ctvDetailInfo').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
       <div><div class="modal-label">Họ tên</div><div style="font-weight:700">${esc(ctv.name||'—')}</div></div>
       <div><div class="modal-label">Mã CTV</div><div class="ctv-code" style="font-size:16px">${esc(ctv.code||'—')}</div></div>
-      <div><div class="modal-label">Email</div><div style="font-size:12px">${esc(ctv.email||'—')}</div></div>
       <div><div class="modal-label">SĐT</div><div style="font-size:12px">${esc(ctv.phone||'—')}</div></div>
+      <div><div class="modal-label">Email</div><div style="font-size:12px">${esc(ctv.email||'—')}</div></div>
       <div><div class="modal-label">HH kiếm được</div><div style="font-weight:700;color:var(--green)">${(ctv.totalEarned||0).toLocaleString('vi-VN')}đ</div></div>
-      <div><div class="modal-label">Đã thanh toán</div><div style="font-weight:700">${(ctv.totalPaid||0).toLocaleString('vi-VN')}đ</div></div>
       <div><div class="modal-label">Chờ thanh toán</div><div style="font-weight:700;color:var(--red)">${((ctv.totalEarned||0)-(ctv.totalPaid||0)).toLocaleString('vi-VN')}đ</div></div>
+      <div><div class="modal-label">Đã thanh toán</div><div style="font-weight:700">${(ctv.totalPaid||0).toLocaleString('vi-VN')}đ</div></div>
       <div><div class="modal-label">Khách / Đã mua</div><div style="font-weight:700">${ctv.totalClients||0} / ${ctv.totalConverted||0}</div></div>
+      <div><div class="modal-label">Ngân hàng</div><div style="font-size:12px">${esc(bi.bankName||'—')}</div></div>
+      <div style="grid-column:1/3"><div class="modal-label">Số tài khoản</div><div style="font-size:12px;font-family:monospace">${esc(bi.bankAccount||'—')}</div></div>
+      <div><div class="modal-label">Chủ tài khoản</div><div style="font-size:12px">${esc(bi.bankHolder||'—')}</div></div>
     </div>`;
   const commBody = document.getElementById('ctvDetailCommBody');
   commBody.innerHTML = '<tr><td colspan="5" class="empty-cell" style="padding:16px!important">Đang tải...</td></tr>';
@@ -775,13 +794,14 @@ async function loadCTVTerms() {
 // ── CTV Payment ─────────────────────────────────────────────────────
 window.markCTVPaid = async (affiliateId, code, name, email, amount) => {
   const amt = Number(amount);
-  if (!confirm(`Xác nhận đã thanh toán ${amt.toLocaleString('vi-VN')}đ hoa hồng cho ${name}?`)) return;
   try {
     const commSnap = await getDocs(query(collection(db,'affiliates',affiliateId,'commissions'), where('status','==','pending')));
     await Promise.all(commSnap.docs.map(d =>
       updateDoc(doc(db,'affiliates',affiliateId,'commissions',d.id), { status:'paid', paidAt:serverTimestamp() })
     ));
-    await updateDoc(doc(db,'affiliates',affiliateId), { totalPaid: increment(amt), urgentRequest: false });
+    await updateDoc(doc(db,'affiliates',affiliateId), {
+      totalPaid: increment(amt), urgentRequest: false, lastPaidActionAt: serverTimestamp()
+    });
     toast('✓ Đã đánh dấu thanh toán hoa hồng!', 'ok');
     await loadCTVs();
   } catch(e) { toast('Lỗi: ' + e.message, 'err'); }
@@ -962,7 +982,7 @@ window.doDeleteUser = async () => {
       const ctvSnap = await getDocs(query(collection(db,'affiliates'), where('code','==',deletedUser.referredBy)));
       if (!ctvSnap.empty) {
         const ctv = ctvSnap.docs[0].data();
-        callGAS({ type:'ctv_client_deleted', toCTVEmail:ctv.email, ctvName:ctv.name, clientEmail:maskEmail(deletedUser.email), siteUrl:SITE_URL });
+        callGAS({ type:'ctv_client_deleted', toEmail:ctv.email, ctvName:ctv.name, clientEmail:maskEmail(deletedUser.email), siteUrl:SITE_URL });
       }
     }
     await loadUsers(); await loadStats();
@@ -1010,7 +1030,7 @@ window.approveUpgrade = async (uid, email, name) => {
           await updateDoc(doc(db,'affiliates',ctvDoc.id), {
             totalEarned: increment(125000), totalConverted: increment(1)
           });
-          callGAS({ type:'ctv_commission_earned', toCTVEmail:ctv.email, ctvName:ctv.name,
+          callGAS({ type:'ctv_commission_earned', toEmail:ctv.email, ctvName:ctv.name,
             clientEmail:maskEmail(upgradedUser.email), amount:125000, siteUrl:SITE_URL });
         }
       } catch(e) { console.warn('[CTV] Commission update failed:', e); }
@@ -1044,7 +1064,7 @@ window.doKick = async () => {
       const ctvSnap = await getDocs(query(collection(db,'affiliates'), where('code','==',kickedUser.referredBy)));
       if (!ctvSnap.empty) {
         const ctv = ctvSnap.docs[0].data();
-        callGAS({ type:'ctv_client_kicked', toCTVEmail:ctv.email, ctvName:ctv.name, clientEmail:maskEmail(kickedUser.email), siteUrl:SITE_URL });
+        callGAS({ type:'ctv_client_kicked', toEmail:ctv.email, ctvName:ctv.name, clientEmail:maskEmail(kickedUser.email), siteUrl:SITE_URL });
       }
     }
     await loadUsers(); await loadStats();

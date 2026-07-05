@@ -437,7 +437,7 @@ function handleAdminCTVApplied(data) {
 // Payload: { type, toEmail, ctvName, code, siteUrl }
 function handleCTVWelcome(data) {
   const subject = 'Bạn đã được duyệt làm CTV — SwiftCopy.Drive';
-  const affLink = (data.siteUrl || SITE_URL) + '?r=' + _esc(data.code || '');
+  const affLink = data.affiliateLink || ((data.siteUrl || SITE_URL) + '?r=' + _esc(data.ctvCode || data.code || ''));
   const bodyHtml =
     '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.ctvName || data.toEmail) + '</b>, đơn đăng ký cộng tác viên của bạn đã được duyệt! Bạn sẽ nhận <b>hoa hồng 50% = 125.000đ</b> cho mỗi khách mua gói Trọn đời qua link của bạn.</p>' +
     '<div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:10px;padding:14px 16px;margin-bottom:14px;font-family:Arial,sans-serif">' +

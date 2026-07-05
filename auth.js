@@ -23,7 +23,7 @@ const firebaseConfig = {
 };
 
 const ADMIN_EMAIL = "hgntran.contact@gmail.com";
-const SITE_URL    = "https://swiftcopydrive.com";
+const SITE_URL    = "https://swiftcopydrive.vercel.app";
 
 const fbApp    = initializeApp(firebaseConfig);
 const auth     = getAuth(fbApp);
@@ -396,11 +396,8 @@ async function _incrementCTVClient(code) {
     const snap = await getDocs(query(collection(db, 'affiliates'), where('code', '==', code)));
     if (snap.empty) return;
     await updateDoc(snap.docs[0].ref, { totalClients: increment(1) });
-    const aff = snap.docs[0].data();
-    if (aff.email && st.gUser?.email) {
-      _gasPost({ type: 'ctv_new_signup', toEmail: aff.email, ctvName: aff.name || aff.email,
-                 clientEmail: _maskEmail(st.gUser.email), siteUrl: SITE_URL });
-    }
+    // ctv_new_signup chỉ gửi khi khách mua Trọn đời (approveUpgrade trong admin.html)
+    // không gửi khi đăng ký free để tránh thông báo nhầm cho CTV
   } catch {} // silent — không để lỗi CTV block luồng đăng ký user
 }
 

@@ -26,9 +26,11 @@ const provider  = new GoogleAuthProvider();
 
 let currentUser = null;
 let currentCTVDoc = null; // {id, ...data} khi đã là CTV
+let _ctvLoginMode = 'login'; // 'login' | 'register'
 
 // ── Auth ──────────────────────────────────────────────────────
-window.loginCTV = async function() {
+window.loginCTV = async function(mode = 'login') {
+  _ctvLoginMode = mode;
   try {
     provider.setCustomParameters({ prompt: 'select_account' });
     await signInWithPopup(auth, provider);
@@ -46,22 +48,15 @@ window.logoutCTV = async function() {
 };
 
 // ── Status check ──────────────────────────────────────────────
-// Trả về: { state: 'affiliate'|'existing_user'|'eligible', status?, doc? }
+// Trả về: { state: 'affiliate'|'eligible', status?, doc? }
 export async function checkCTVStatus(user) {
-  // 1. Kiểm tra affiliates theo email (Security Rule cho phép đọc email match)
+  // Kiểm tra affiliates theo email (Security Rule cho phép đọc email match)
   const q = query(collection(db, 'affiliates'), where('email', '==', user.email));
   const snap = await getDocs(q);
   if (!snap.empty) {
     const d = snap.docs[0].data();
     return { state: 'affiliate', status: d.status, doc: { id: snap.docs[0].id, ...d } };
   }
-
-  // 2. Kiểm tra users theo uid (CTV có thể đọc doc của chính mình)
-  const userSnap = await getDoc(doc(db, 'users', user.uid));
-  if (userSnap.exists()) {
-    return { state: 'existing_user' };
-  }
-
   return { state: 'eligible' };
 }
 
@@ -101,7 +96,7 @@ window.submitCTVForm = async function() {
         type: 'admin_ctv_applied',
         userName: name, userEmail: currentUser.email,
         phone, note: note || '',
-        siteUrl: 'https://swiftcopydrive.com'
+        siteUrl: 'https://swiftcopydrive.vercel.app'
       })
     }).catch(() => {});
 
@@ -115,7 +110,7 @@ window.submitCTVForm = async function() {
 // ── Helper hiển thị section ───────────────────────────────────
 // Dùng trên trang ctv.html — ctv-dashboard.html có logic riêng
 function showSection(name) {
-  const all = ['loading','unauthenticated','pending','redirecting','user_conflict','register_form','success'];
+  const all = ['loading','unauthenticated','pending','redirecting','register_form','success'];
   all.forEach(s => {
     const el = document.getElementById('sec-' + s);
     if (el) el.style.display = s === name ? 'block' : 'none';
@@ -143,6 +138,13 @@ if (document.getElementById('sec-loading')) {
       const result = await checkCTVStatus(user);
 
       if (result.state === 'affiliate') {
+        // Chế độ Đăng ký: email đã có tài khoản CTV → báo lỗi
+        if (_ctvLoginMode === 'register') {
+          await signOut(auth);
+          showMsg('Email này đã có tài khoản CTV. Vui lòng chọn "Đăng nhập CTV" để tiếp tục.', 'err');
+          showSection('unauthenticated');
+          return;
+        }
         currentCTVDoc = result.doc;
         if (result.status === 'active') {
           showSection('redirecting');
@@ -154,9 +156,14 @@ if (document.getElementById('sec-loading')) {
           showMsg('Tài khoản CTV của bạn đã bị ' + result.status + '.', 'err');
           showSection('unauthenticated');
         }
-      } else if (result.state === 'existing_user') {
-        showSection('user_conflict');
       } else {
+        // Chế độ Đăng nhập: chưa có tài khoản CTV → báo lỗi
+        if (_ctvLoginMode === 'login') {
+          await signOut(auth);
+          showMsg('Email này chưa đăng ký CTV. Vui lòng chọn "Đăng ký làm CTV" để tạo tài khoản mới.', 'err');
+          showSection('unauthenticated');
+          return;
+        }
         // Eligible — hiện form đăng ký với email đã biết
         const emailEl = document.getElementById('ctvEmailDisplay');
         const nameInp = document.getElementById('ctvName');
@@ -258,29 +265,30 @@ if (document.getElementById('dash-loading')) {
     const todayStart  = new Date(now); todayStart.setHours(0,0,0,0);
     const weekStart   = new Date(now.getTime() - 7*24*60*60*1000);
     const monthStart  = new Date(now.getFullYear(), now.getMonth(), 1);
+    const yearStart   = new Date(now.getFullYear(), 0, 1);
 
     const earnToday  = _comms.filter(c => c.createdAt?.toDate?.() >= todayStart).reduce((s,c)=>s+c.amount,0);
     const earnWeek   = _comms.filter(c => c.createdAt?.toDate?.() >= weekStart ).reduce((s,c)=>s+c.amount,0);
     const earnMonth  = _comms.filter(c => c.createdAt?.toDate?.() >= monthStart).reduce((s,c)=>s+c.amount,0);
+    const earnYear   = _comms.filter(c => c.createdAt?.toDate?.() >= yearStart ).reduce((s,c)=>s+c.amount,0);
     const pending    = _comms.filter(c => c.status === 'pending').reduce((s,c)=>s+c.amount,0);
     const paid       = _dash.totalPaid || 0;
-    const clients    = _dash.totalClients || 0;
     const converted  = _dash.totalConverted || _comms.length;
-    const rate       = clients > 0 ? Math.round(converted / clients * 100) : 0;
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     set('stat-today',    _fmtMoney(earnToday));
     set('stat-week',     _fmtMoney(earnWeek));
     set('stat-month',    _fmtMoney(earnMonth));
+    set('stat-year',     _fmtMoney(earnYear));
     set('stat-pending',  _fmtMoney(pending));
     set('stat-paid',     _fmtMoney(paid));
-    set('stat-rate',     rate + '%');
-    set('stat-clients',  clients);
     set('stat-converted', converted);
+    set('stat-month-label', 'Tháng ' + (now.getMonth() + 1));
+    set('stat-year-label',  'Tổng thu nhập ' + now.getFullYear());
 
-    const link = 'https://swiftcopydrive.com?r=' + _dash.code;
+    const link = 'https://swiftcopydrive.vercel.app?r=' + _dash.code;
     const ld = document.getElementById('affLinkDisplay');
-    if (ld) ld.textContent = link;
+    if (ld) ld.textContent = link.replace('https://', '');
   }
 
   // ── Tab 1: Danh sách khách (converted = có commission) ───
@@ -339,43 +347,46 @@ if (document.getElementById('dash-loading')) {
 
   // ── Tab 3: Thông tin CTV ──────────────────────────────────
   function _renderProfile() {
-    const link = 'https://swiftcopydrive.com?r=' + _dash.code;
+    const link = 'https://swiftcopydrive.vercel.app?r=' + _dash.code;
     const ld2 = document.getElementById('affLinkDisplay2');
-    if (ld2) ld2.textContent = link;
+    if (ld2) ld2.textContent = link.replace('https://', '');
     const cd = document.getElementById('ctvCodeDisplay');
     if (cd) cd.textContent = _dash.code;
 
-    // Điền thông tin ngân hàng nếu đã lưu
+    const bn = document.getElementById('bankName');
+    const ba = document.getElementById('bankAccount');
+    const bh = document.getElementById('bankHolder');
+    const saveBankBtn = document.getElementById('saveBankBtn');
+    const editBankBtn = document.getElementById('editBankBtn');
+
+    // Điền + khoá thông tin ngân hàng nếu đã lưu
     if (_dash.bankInfo) {
       const bi = _dash.bankInfo;
-      const bn = document.getElementById('bankName');
-      const ba = document.getElementById('bankAccount');
-      const bh = document.getElementById('bankHolder');
-      if (bn) bn.value = bi.bankName || '';
-      if (ba) ba.value = bi.bankAccount || '';
-      if (bh) bh.value = bi.bankHolder || '';
+      if (bn) { bn.value = bi.bankName || ''; bn.disabled = true; }
+      if (ba) { ba.value = bi.bankAccount || ''; ba.disabled = true; }
+      if (bh) { bh.value = bi.bankHolder || ''; bh.disabled = true; }
+      if (saveBankBtn) saveBankBtn.style.display = 'none';
+      if (editBankBtn) editBankBtn.style.display = 'inline-block';
+    } else {
+      if (bn) bn.disabled = false;
+      if (ba) ba.disabled = false;
+      if (bh) bh.disabled = false;
+      if (saveBankBtn) saveBankBtn.style.display = 'inline-block';
+      if (editBankBtn) editBankBtn.style.display = 'none';
     }
 
-    // Trạng thái urgentRequest + giới hạn tháng
+    // Trạng thái urgentRequest
     const urgentPend = document.getElementById('urgent-pending-info');
     const urgentBtn  = document.getElementById('urgentBtn');
-    const urgentRemEl = document.getElementById('urgent-remaining');
-    const thisMonth  = new Date().toISOString().slice(0, 7);
-    const sameMonth  = (_dash.urgentPayReqMonth || '') === thisMonth;
-    const usedCount  = sameMonth ? (_dash.urgentPayReqCount || 0) : 0;
-    const remaining  = Math.max(0, 2 - usedCount);
-    if (urgentRemEl) urgentRemEl.textContent = remaining + '/2 lượt còn lại tháng này';
     if (_dash.urgentRequest) {
       if (urgentPend) urgentPend.style.display = 'block';
       if (urgentBtn)  { urgentBtn.disabled = true; urgentBtn.style.opacity = '.5'; urgentBtn.textContent = 'Đang chờ xử lý...'; }
-    } else if (remaining === 0) {
-      if (urgentBtn)  { urgentBtn.disabled = true; urgentBtn.style.opacity = '.5'; urgentBtn.textContent = 'Đã hết lượt tháng này'; }
     }
   }
 
   // ── Copy affiliate link ───────────────────────────────────
   window.copyAffLink = function() {
-    const link = 'https://swiftcopydrive.com?r=' + _dash.code;
+    const link = 'https://swiftcopydrive.vercel.app?r=' + _dash.code;
     navigator.clipboard.writeText(link).then(() => _toast('Đã sao chép link!')).catch(() => _toast('Sao chép thất bại'));
   };
 
@@ -394,11 +405,34 @@ if (document.getElementById('dash-loading')) {
       await updateDoc(doc(db, 'affiliates', _dash.id), { bankInfo: { bankName, bankAccount, bankHolder } });
       _dash.bankInfo = { bankName, bankAccount, bankHolder };
       _toast('Đã lưu thông tin ngân hàng!');
+      // Sau khi lưu: khoá inputs + hiện nút Chỉnh sửa
+      const bn = document.getElementById('bankName');
+      const ba = document.getElementById('bankAccount');
+      const bh = document.getElementById('bankHolder');
+      const editBankBtn = document.getElementById('editBankBtn');
+      if (bn) bn.disabled = true;
+      if (ba) ba.disabled = true;
+      if (bh) bh.disabled = true;
+      if (btn) btn.style.display = 'none';
+      if (editBankBtn) editBankBtn.style.display = 'inline-block';
     } catch (e) {
       _toast('Lỗi lưu: ' + e.message);
-    } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Lưu thông tin ngân hàng'; }
     }
+  };
+
+  // ── Chỉnh sửa thông tin ngân hàng ────────────────────────
+  window.editBankInfo = function() {
+    const bn = document.getElementById('bankName');
+    const ba = document.getElementById('bankAccount');
+    const bh = document.getElementById('bankHolder');
+    const saveBankBtn = document.getElementById('saveBankBtn');
+    const editBankBtn = document.getElementById('editBankBtn');
+    if (bn) bn.disabled = false;
+    if (ba) ba.disabled = false;
+    if (bh) bh.disabled = false;
+    if (saveBankBtn) { saveBankBtn.disabled = false; saveBankBtn.textContent = 'Lưu thông tin ngân hàng'; saveBankBtn.style.display = 'inline-block'; }
+    if (editBankBtn) editBankBtn.style.display = 'none';
   };
 
   // ── Yêu cầu thanh toán gấp ───────────────────────────────
@@ -406,27 +440,11 @@ if (document.getElementById('dash-loading')) {
     const pending = _comms.filter(c => c.status === 'pending').reduce((s,c)=>s+c.amount,0);
     if (pending === 0) { _toast('Không có hoa hồng nào đang chờ thanh toán'); return; }
 
-    // Giới hạn 2 lần/tháng
-    const thisMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-    const sameMonth = (_dash.urgentPayReqMonth || '') === thisMonth;
-    const reqCount  = sameMonth ? (_dash.urgentPayReqCount || 0) : 0;
-    if (reqCount >= 2) {
-      _toast('Bạn đã sử dụng 2/2 lượt yêu cầu thanh toán gấp tháng này. Vui lòng chờ tháng sau.');
-      return;
-    }
-
     const btn = document.getElementById('urgentBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Đang gửi yêu cầu...'; }
     try {
-      const newCount = reqCount + 1;
-      await updateDoc(doc(db, 'affiliates', _dash.id), {
-        urgentRequest: true,
-        urgentPayReqCount: newCount,
-        urgentPayReqMonth: thisMonth
-      });
+      await updateDoc(doc(db, 'affiliates', _dash.id), { urgentRequest: true });
       _dash.urgentRequest = true;
-      _dash.urgentPayReqCount = newCount;
-      _dash.urgentPayReqMonth = thisMonth;
       // Thông báo admin
       fetch('/api/email', {
         method: 'POST',
@@ -435,7 +453,7 @@ if (document.getElementById('dash-loading')) {
           type: 'ctv_urgent_payment',
           ctvName: _dash.name, toCTVEmail: _dash.email,
           amount: pending, code: _dash.code,
-          siteUrl: 'https://swiftcopydrive.com'
+          siteUrl: 'https://swiftcopydrive.vercel.app'
         })
       }).catch(() => {});
       const urgentPend = document.getElementById('urgent-pending-info');

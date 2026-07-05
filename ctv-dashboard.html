@@ -5,15 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Dashboard CTV — SwiftCopy.Drive</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    body { margin: 0; background: #f1f3f5; font-family: 'Nunito Sans', sans-serif; color: #212529; min-height: 100vh; }
-    h1,h2,h3,h4 { font-family: 'Nunito', sans-serif; margin: 0; }
+    body { margin: 0; background: #f1f3f5; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; color: #212529; min-height: 100vh; }
+    h1,h2,h3,h4 { margin: 0; }
 
     /* ── Header ─────────────────────────────────────── */
     .ctv-header { background: #212529; color: #fff; padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
-    .ctv-logo-text { font-family: 'Nunito', sans-serif; font-size: 20px; font-weight: 800; color: #ffc107; }
+    .ctv-logo-text { font-size: 20px; font-weight: 800; color: #fff; }
     .ctv-badge-pill { background: #ffc107; color: #212529; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 20px; letter-spacing: .5px; }
     .header-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
     .nav-name { font-size: 14px; font-weight: 700; }
@@ -23,7 +22,7 @@
 
     /* ── Tab nav ─────────────────────────────────────── */
     .tab-nav { background: #fff; border-bottom: 2px solid #e9ecef; display: flex; padding: 0 20px; overflow-x: auto; }
-    .tab-btn { padding: 14px 16px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; background: transparent; color: #868e96; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: .15s; font-family: 'Nunito', sans-serif; white-space: nowrap; }
+    .tab-btn { padding: 14px 16px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; background: transparent; color: #868e96; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: .15s; font-family: inherit; white-space: nowrap; }
     .tab-btn:hover { color: #212529; }
     .tab-btn.active { color: #212529; border-bottom-color: #ffc107; }
 
@@ -105,8 +104,8 @@
 <!-- Loading -->
 <div id="dash-loading" style="display:flex">
   <header class="ctv-header" style="position:fixed;top:0;left:0;right:0">
-    <svg width="30" height="30" viewBox="0 0 40 40" fill="none" style="border-radius:8px"><rect width="40" height="40" rx="8" fill="#ffc107"/><path d="M10 20 L20 10 L30 20" stroke="#dc3545" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20 10 L20 32" stroke="#212529" stroke-width="3.5" stroke-linecap="round"/><path d="M10 32 L30 32" stroke="#212529" stroke-width="3.5" stroke-linecap="round"/></svg>
-    <span class="ctv-logo-text">SwiftCopy.Drive</span>
+    <svg width="32" height="32" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="border-radius:10px;flex-shrink:0"><rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/><text x="32" y="48" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="48" fill="#111110">S</text><path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="ctv-logo-text">SwiftCopy<span style="color:#dc3545">.</span>Drive</span>
     <span class="ctv-badge-pill">CTV</span>
   </header>
   <div class="full-screen" style="margin-top:60px">
@@ -118,8 +117,8 @@
 <!-- Error -->
 <div id="dash-error" style="display:none">
   <header class="ctv-header">
-    <svg width="30" height="30" viewBox="0 0 40 40" fill="none" style="border-radius:8px"><rect width="40" height="40" rx="8" fill="#ffc107"/><path d="M10 20 L20 10 L30 20" stroke="#dc3545" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20 10 L20 32" stroke="#212529" stroke-width="3.5" stroke-linecap="round"/><path d="M10 32 L30 32" stroke="#212529" stroke-width="3.5" stroke-linecap="round"/></svg>
-    <span class="ctv-logo-text">SwiftCopy.Drive</span>
+    <svg width="32" height="32" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="border-radius:10px;flex-shrink:0"><rect x="0" y="0" width="64" height="64" rx="13" fill="#f5c518"/><text x="32" y="48" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="48" fill="#111110">S</text><path d="M 47 16 L 56 16 M 51 11 L 56 16 L 51 21" fill="none" stroke="#e8291c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="ctv-logo-text">SwiftCopy<span style="color:#dc3545">.</span>Drive</span>
   </header>
   <div class="full-screen">
     <div style="font-size:42px">⚠️</div>
@@ -136,7 +135,7 @@
   <header class="ctv-header">
     <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0">
       <svg width="32" height="32" viewBox="0 0 40 40" fill="none" style="border-radius:8px"><rect width="40" height="40" rx="8" fill="#ffc107"/><path d="M10 20 L20 10 L30 20" stroke="#dc3545" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M20 10 L20 32" stroke="#212529" stroke-width="3.5" stroke-linecap="round"/><path d="M10 32 L30 32" stroke="#212529" stroke-width="3.5" stroke-linecap="round"/></svg>
-      <span class="ctv-logo-text">SwiftCopy.Drive</span>
+      <span class="ctv-logo-text">SwiftCopy<span style="color:#dc3545">.</span>Drive</span>
     </a>
     <span class="ctv-badge-pill">CTV</span>
     <div class="header-right">
@@ -182,13 +181,18 @@
       </div>
       <div class="stat-box">
         <div id="stat-month" class="stat-num" style="color:#212529">0đ</div>
-        <div class="stat-sub">Tháng này</div>
+        <div class="stat-sub" id="stat-month-label">Tháng này</div>
       </div>
+    </div>
+    <!-- Tổng thu nhập năm -->
+    <div class="stat-box" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;text-align:left;padding:14px 20px">
+      <div class="stat-sub" style="margin:0" id="stat-year-label">Tổng thu nhập năm nay</div>
+      <div id="stat-year" class="stat-num" style="color:#099268">0đ</div>
     </div>
 
     <!-- Thanh toán -->
     <div class="card-label" style="padding-left:2px">Thanh toán</div>
-    <div class="stats-grid cols3">
+    <div class="stats-grid cols2">
       <div class="stat-box">
         <div id="stat-pending" class="stat-num" style="color:#b07600">0đ</div>
         <div class="stat-sub">Chưa thanh toán</div>
@@ -197,25 +201,12 @@
         <div id="stat-paid" class="stat-num" style="color:#099268">0đ</div>
         <div class="stat-sub">Đã thanh toán</div>
       </div>
-      <div class="stat-box">
-        <div id="stat-rate" class="stat-num" style="color:#1971c2">0%</div>
-        <div class="stat-sub">Tỷ lệ chuyển đổi</div>
-      </div>
     </div>
 
-    <!-- Khách hàng overview -->
-    <div class="card">
-      <div class="card-label">Tổng quan khách hàng</div>
-      <div class="stats-grid cols2">
-        <div style="text-align:center;padding:16px;background:#f8f9fa;border-radius:10px">
-          <div id="stat-clients" style="font-family:'Nunito',sans-serif;font-size:30px;font-weight:800;color:#212529">0</div>
-          <div style="font-size:12px;color:#868e96;margin-top:5px;font-weight:600">Khách đã đăng ký qua link</div>
-        </div>
-        <div style="text-align:center;padding:16px;background:#f8f9fa;border-radius:10px">
-          <div id="stat-converted" style="font-family:'Nunito',sans-serif;font-size:30px;font-weight:800;color:#099268">0</div>
-          <div style="font-size:12px;color:#868e96;margin-top:5px;font-weight:600">Khách đã mua Trọn đời</div>
-        </div>
-      </div>
+    <!-- Khách đã mua Trọn đời -->
+    <div class="stat-box" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;text-align:left;padding:14px 20px">
+      <div class="stat-sub" style="margin:0">Khách đã mua Trọn đời qua link</div>
+      <div id="stat-converted" class="stat-num" style="color:#099268">0</div>
     </div>
 
   </div><!-- /tab-0 -->
@@ -230,7 +221,7 @@
         </div>
         <span id="clients-count-badge" class="bdg bdg-green" style="font-size:13px">0 khách</span>
       </div>
-      <div class="tbl-wrap">
+      <div class="tbl-wrap" style="max-height:360px;overflow-y:auto">
         <table class="ctv-tbl">
           <thead>
             <tr>
@@ -259,7 +250,7 @@
         </div>
         <span id="comm-count-badge" class="bdg bdg-amber" style="font-size:13px">0 giao dịch</span>
       </div>
-      <div class="tbl-wrap">
+      <div class="tbl-wrap" style="max-height:360px;overflow-y:auto">
         <table class="ctv-tbl">
           <thead>
             <tr>
@@ -310,6 +301,7 @@
         <input id="bankHolder" class="form-input" type="text" placeholder="NGUYEN VAN A (viết hoa, không dấu)"/>
       </div>
       <button id="saveBankBtn" class="btn-amber" onclick="window.saveBankInfo()">Lưu thông tin ngân hàng</button>
+      <button id="editBankBtn" class="btn-amber" onclick="window.editBankInfo()" style="display:none">Chỉnh sửa thông tin ngân hàng</button>
     </div>
 
     <!-- Yêu cầu thanh toán gấp -->
@@ -318,10 +310,8 @@
       <div class="urgent-box">
         <p style="font-size:13px;color:#495057;margin:0 0 10px;line-height:1.6">
           Nếu bạn cần nhận hoa hồng sớm hơn chu kỳ thông thường, hãy gửi yêu cầu thanh toán gấp.
-          Admin sẽ ưu tiên xử lý trong <strong>24 giờ</strong>.<br/>
-          <span style="color:#868e96;font-size:12px">(Tối đa 2 lần/tháng)</span>
+          Admin sẽ ưu tiên xử lý trong <strong>24 giờ</strong>.
         </p>
-        <div id="urgent-remaining" style="font-size:12px;color:#868e96;margin-bottom:8px"></div>
         <div id="urgent-pending-info" style="display:none;background:#fffbea;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#b07600">
           ⏳ Đang có yêu cầu thanh toán gấp. Admin sẽ xử lý sớm.
         </div>
