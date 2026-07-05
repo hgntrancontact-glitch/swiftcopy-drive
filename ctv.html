@@ -188,8 +188,8 @@
       Chương trình cộng tác viên
     </div>
     <!-- Tiêu đề -->
-    <h1 class="text-4xl md:text-5xl font-black leading-tight tracking-tight mb-6"
-        style="color:#ffc107;letter-spacing:-1px">
+    <h1 class="text-4xl md:text-5xl font-bold leading-tight mb-6"
+        style="color:#ffc107;letter-spacing:-0.5px">
       Kiếm tiền cùng SwiftCopy.Drive
     </h1>
     <!-- Mô tả -->
@@ -207,7 +207,7 @@
 </section>
 
 <!-- ══ Main content (JS-controlled sections) ══════════════════════════════ -->
-<main class="max-w-5xl mx-auto px-4 py-10">
+<main class="max-w-5xl mx-auto px-4">
   <div id="ctvGlobalMsg"></div>
 
   <!-- ── Loading ── -->
@@ -227,7 +227,7 @@
   </div>
 
   <!-- ── Đơn đang chờ duyệt ── -->
-  <div id="sec-pending" style="display:none" class="max-w-lg mx-auto">
+  <div id="sec-pending" style="display:none" class="max-w-lg mx-auto py-10">
     <div class="status-box bg-[#fffbea] border border-[#ffe082]">
       <div class="text-4xl mb-4">⏳</div>
       <h2 class="font-bold text-[#7a5a00] text-xl mb-2">Đơn của bạn đang chờ duyệt</h2>
@@ -239,7 +239,7 @@
   </div>
 
   <!-- ── Email đã là tài khoản người dùng ── -->
-  <div id="sec-user_conflict" style="display:none" class="max-w-lg mx-auto">
+  <div id="sec-user_conflict" style="display:none" class="max-w-lg mx-auto py-10">
     <div class="status-box bg-[#fff5f5] border border-[#ffe3e3]">
       <div class="text-4xl mb-4">⚠️</div>
       <h2 class="font-bold text-[#c92a2a] text-xl mb-2">Email này đã là tài khoản người dùng</h2>
@@ -254,7 +254,7 @@
   </div>
 
   <!-- ── Form đăng ký (sau khi login + eligible) ── -->
-  <div id="sec-register_form" style="display:none" class="max-w-lg mx-auto">
+  <div id="sec-register_form" style="display:none" class="max-w-lg mx-auto py-10">
     <div class="section-card">
       <h2 class="font-bold text-[#212529] text-xl mb-1">Điền thông tin đăng ký</h2>
       <p class="text-[#868e96] text-sm mb-6">Tài khoản Google của bạn đã được xác minh. Điền thêm thông tin bên dưới để hoàn tất đăng ký.</p>
@@ -303,7 +303,7 @@
   </div>
 
   <!-- ── Đã gửi thành công ── -->
-  <div id="sec-success" style="display:none" class="max-w-lg mx-auto">
+  <div id="sec-success" style="display:none" class="max-w-lg mx-auto py-10">
     <div class="status-box bg-[#ebfbee] border border-[#d3f9d8]">
       <div class="text-5xl mb-4">🎉</div>
       <h2 class="font-bold text-[#2f9e44] text-xl mb-2">Đơn đăng ký đã được gửi!</h2>
@@ -320,7 +320,7 @@
 </main>
 
 <!-- ══ Stats Section (luôn hiển thị — value prop) ══════════════════════════ -->
-<section class="bg-white py-12 px-6">
+<section class="bg-white py-10 px-6">
   <div class="max-w-5xl mx-auto">
     <!-- 3 cột số liệu -->
     <div class="stats-wrap">
