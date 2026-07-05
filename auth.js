@@ -390,17 +390,6 @@ function _maskEmail(email) {
   return user.slice(0, show) + '****' + user.slice(-show) + '@' + domain;
 }
 
-async function _incrementCTVClient(code) {
-  if (!code) return;
-  try {
-    const snap = await getDocs(query(collection(db, 'affiliates'), where('code', '==', code)));
-    if (snap.empty) return;
-    await updateDoc(snap.docs[0].ref, { totalClients: increment(1) });
-    // ctv_new_signup chỉ gửi khi khách mua Trọn đời (approveUpgrade trong admin.html)
-    // không gửi khi đăng ký free để tránh thông báo nhầm cho CTV
-  } catch {} // silent — không để lỗi CTV block luồng đăng ký user
-}
-
 // ── Plan selection ────────────────────────────────────────────
 function showPlanSelect() {
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
@@ -447,7 +436,6 @@ window.createFreeUser = async () => {
       ...affFields
     };
     await setDoc(doc(db, 'users', st.gUser.uid), userData);
-    if (affFields.referredBy) _incrementCTVClient(affFields.referredBy);
     sendRegEmail(st.gUser);
     _sendRegisterFreeSuccessEmail(st.gUser);
     window.location.href = '/copy-drive';
@@ -476,7 +464,6 @@ async function createPaidPendingUser() {
       ...affFields
     };
     await setDoc(doc(db, 'users', st.gUser.uid), userData);
-    if (affFields.referredBy) _incrementCTVClient(affFields.referredBy);
     st.gUserData = { id: st.gUser.uid, ...userData };
     sendUpgradeRequestEmail(st.gUser);
     _sendRegisterPaidPendingEmail(st.gUser);
