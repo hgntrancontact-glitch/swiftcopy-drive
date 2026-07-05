@@ -29,9 +29,12 @@ service cloud.firestore {
         && !('upgradedAt'  in request.resource.data)
       );
 
-      // Cập nhật: không được thay đổi plan / approved / status / email
+      // Cập nhật: không được THAY ĐỔI plan / approved / status / email
       // User chỉ được cập nhật: freeUsedMB, freeResetAt, upgradeRequestedAt,
       //                          displayName, photoURL (profile sync)
+      // Lưu ý: request.resource.data là doc ĐẦY ĐỦ sau merge — nếu dùng
+      //   !('approvedAt' in request.resource.data) sẽ deny mọi update khi doc
+      //   đã có field đó (admin set). Phải check "field tồn tại nhưng KHÔNG THAY ĐỔI".
       allow update: if isAdmin() || (
         request.auth != null
         && request.auth.uid == userId
@@ -39,11 +42,11 @@ service cloud.firestore {
         && request.resource.data.approved == resource.data.approved
         && request.resource.data.status   == resource.data.status
         && request.resource.data.email    == resource.data.email
-        && !('kickReason'  in request.resource.data)
-        && !('readdedAt'   in request.resource.data)
-        && !('readdNote'   in request.resource.data)
-        && !('approvedAt'  in request.resource.data)
-        && !('upgradedAt'  in request.resource.data)
+        && (!('kickReason' in request.resource.data) || request.resource.data.kickReason == resource.data.kickReason)
+        && (!('readdedAt'  in request.resource.data) || request.resource.data.readdedAt  == resource.data.readdedAt)
+        && (!('readdNote'  in request.resource.data) || request.resource.data.readdNote  == resource.data.readdNote)
+        && (!('approvedAt' in request.resource.data) || request.resource.data.approvedAt == resource.data.approvedAt)
+        && (!('upgradedAt' in request.resource.data) || request.resource.data.upgradedAt == resource.data.upgradedAt)
       );
 
       // Xóa: chỉ admin
@@ -62,8 +65,12 @@ service cloud.firestore {
     // ── Collection: settings ────────────────────────────────────────────────
     // Chỉ admin (admin-maintenance.html) được đọc/ghi trực tiếp.
     // api/maintenance.js đọc qua service account → bypass Rules hoàn toàn.
+    // Ngoại lệ: ctv_terms và ctv_payment_terms được đọc bởi user đã login
+    // (ctv.js cần đọc điều khoản từ client để hiện modal cho CTV).
     match /settings/{docId} {
       allow read, write: if isAdmin();
+      allow read: if request.auth != null
+        && docId in ['ctv_terms', 'ctv_payment_terms'];
     }
 
     // ── Collection: affiliates ──────────────────────────────────────────────
