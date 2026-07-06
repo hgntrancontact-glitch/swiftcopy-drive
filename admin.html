@@ -146,12 +146,14 @@ tbody tr:last-child td{border-bottom:none}
 .btn-confirm-green:hover{background:#15803d;transform:translateY(-1px)}
 
 @media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:639px){
+  .nav{height:auto;flex-wrap:wrap;padding:10px 16px;gap:0}
+  .nav-brand{width:100%;padding-bottom:8px;border-bottom:1px solid var(--border2);margin-bottom:8px}
+  .nav-right{width:100%;justify-content:flex-end;gap:8px}
+}
 @media(max-width:600px){
-  .nav{padding:0 14px;gap:10px}
-  .nav-brand{gap:8px}
   .nav-logo{font-size:15px}
   .nav-email{display:none}
-  .nav-right{gap:8px}
   .auth-card{padding:32px 24px}
 }
 @media(max-width:480px){
@@ -244,10 +246,24 @@ tbody tr:last-child td{border-bottom:none}
       <div class="stat-box blue"   onclick="filterUsers('upgrade')">  <div class="n" id="sUpgrade">—</div><div class="l">Chờ nâng cấp</div></div>
     </div>
 
-    <!-- ADMIN TABS -->
-    <div class="admin-tab-nav">
-      <button class="admin-tab-btn active" data-tab="users" onclick="switchAdminTab('users')">👥 Khách hàng</button>
-      <button class="admin-tab-btn" data-tab="ctv" onclick="switchAdminTab('ctv')">🤝 Quản lý CTV <span id="ctvPendingBadge" style="display:none;background:var(--red-mid);color:#fff;font-size:10px;font-weight:900;padding:1px 7px;border-radius:99px;margin-left:2px"></span></button>
+    <!-- ADMIN TABS + SEARCH -->
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="admin-tab-nav" style="flex:1;min-width:0">
+        <button class="admin-tab-btn active" data-tab="users" onclick="switchAdminTab('users')">👥 Khách hàng</button>
+        <button class="admin-tab-btn" data-tab="ctv" onclick="switchAdminTab('ctv')">🤝 Quản lý CTV <span id="ctvPendingBadge" style="display:none;background:var(--red-mid);color:#fff;font-size:10px;font-weight:900;padding:1px 7px;border-radius:99px;margin-left:2px"></span></button>
+      </div>
+      <div style="position:relative;flex-shrink:0">
+        <input id="adminSearchInput" type="text" placeholder="Tìm tên, email, SĐT, mã CTV..." autocomplete="off"
+          style="width:240px;padding:7px 30px 7px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--text1);outline:none"
+          oninput="onAdminSearch(this.value)"
+          onfocus="document.getElementById('adminSearchDrop').style.display='block'"
+          onblur="setTimeout(()=>{document.getElementById('adminSearchDrop').style.display='none'},200)"
+        />
+        <button id="adminSearchClear" onclick="clearAdminSearch()" style="display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:0">×</button>
+        <div id="adminSearchDrop" style="display:none;position:absolute;top:calc(100% + 4px);right:0;width:320px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);max-height:360px;overflow-y:auto;z-index:200">
+          <div id="adminSearchResults" style="padding:8px 0"></div>
+        </div>
+      </div>
     </div>
 
     <!-- TAB: KHÁCH HÀNG -->
@@ -352,7 +368,7 @@ tbody tr:last-child td{border-bottom:none}
             </div>
           </div>
           <div style="margin-top:16px;padding:12px 14px;background:var(--blue-light);border:1px solid var(--blue-border);border-radius:10px;font-size:12px;color:var(--blue)">
-            ℹ️ Link giới thiệu CTV: <code style="font-weight:700">https://swiftcopydrive.com?r=MACTV</code>
+            ℹ️ Link giới thiệu CTV: <code style="font-weight:700">https://swiftcopydrive.vercel.app?r=MACTV</code>
           </div>
 
           <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px">
@@ -388,6 +404,35 @@ tbody tr:last-child td{border-bottom:none}
 </div>
 
 <!-- DELETE MODAL -->
+<!-- USER HISTORY MODAL -->
+<div id="userHistoryModal" class="modal-ov">
+  <div class="modal" style="max-width:700px;width:95%">
+    <div class="modal-h" style="display:flex;align-items:center;justify-content:space-between">
+      <h3>Lịch sử sao chép — <span id="histUserName" style="color:var(--blue);font-weight:700"></span></h3>
+      <button class="btn-cancel" style="margin:0;padding:4px 12px;font-size:12px" onclick="closeUserHistoryModal()">✕ Đóng</button>
+    </div>
+    <div class="modal-b" style="padding:0">
+      <div style="padding:12px 18px 8px;display:flex;justify-content:flex-end;">
+        <button class="btn-confirm-red" style="font-size:12px;padding:5px 14px" onclick="deleteAllHistory()">🗑 Xóa tất cả</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;min-width:500px;border-collapse:collapse">
+          <thead>
+            <tr style="background:var(--surface2)">
+              <th style="padding:10px 14px;text-align:left;font-size:12px;color:var(--text2);font-weight:700;border-bottom:1px solid var(--border)">Ngày thực hiện</th>
+              <th style="padding:10px 10px;text-align:center;font-size:12px;color:var(--text2);font-weight:700;border-bottom:1px solid var(--border)">Thành công</th>
+              <th style="padding:10px 10px;text-align:center;font-size:12px;color:var(--text2);font-weight:700;border-bottom:1px solid var(--border)">Lỗi</th>
+              <th style="padding:10px 10px;text-align:center;font-size:12px;color:var(--text2);font-weight:700;border-bottom:1px solid var(--border)">Thư mục</th>
+              <th style="padding:10px 10px;text-align:center;font-size:12px;color:var(--text2);font-weight:700;border-bottom:1px solid var(--border)">Xóa</th>
+            </tr>
+          </thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="deleteModal" class="modal-ov">
   <div class="modal">
     <div class="modal-h"><h3>Xoá tài khoản vĩnh viễn</h3></div>
@@ -633,6 +678,7 @@ async function loadCTVs() {
     if (badge) { badge.textContent = pending.length || ''; badge.style.display = pending.length ? 'inline' : 'none'; }
   } catch(e) { toast('Lỗi tải CTV: ' + e.message, 'err'); }
 }
+window.loadCTVs = loadCTVs;
 
 function renderPendingCTVs(list) {
   const tbody = document.getElementById('ctvPendingBody'); if (!tbody) return;
@@ -989,6 +1035,7 @@ function renderUsers(filter){
     // Actions
     let actions = '';
     const deleteBtn = `<button class="act-btn" style="background:#fff5f5;color:#fa5252;border:1px solid #ffe3e3;" onclick="openDeleteModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">🗑 Xóa</button>`;
+    const histBtn = `<button class="act-btn act-btn-blue" onclick="openUserHistory('${u.id}','${esc(u.displayName||u.email)}')">📋 Lịch sử</button>`;
     if (u.status==='kicked'){
       actions = `<div class="act-row">
         <button class="act-btn act-readd" onclick="openReaddModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
@@ -1004,6 +1051,7 @@ function renderUsers(filter){
         : '';
       actions = `<div class="act-row">
         ${upgradeBtn}
+        ${histBtn}
         <button class="act-btn act-kick" onclick="openKickModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
           <svg class="ic"><use href="#ic-ban"/></svg> Kick
         </button>
@@ -1014,6 +1062,7 @@ function renderUsers(filter){
         <button class="act-btn act-upgrade" onclick="approveUpgrade('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
           ⬆ Duyệt nâng cấp
         </button>
+        ${histBtn}
         <button class="act-btn act-kick" onclick="openKickModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
           <svg class="ic"><use href="#ic-ban"/></svg> Kick
         </button>
@@ -1024,6 +1073,7 @@ function renderUsers(filter){
         <button class="act-btn act-approve" onclick="approveUser('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
           <svg class="ic"><use href="#ic-check"/></svg> Kích hoạt
         </button>
+        ${histBtn}
         <button class="act-btn act-kick" onclick="openKickModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
           <svg class="ic"><use href="#ic-ban"/></svg> Kick
         </button>
@@ -1076,6 +1126,157 @@ window.doDeleteUser = async () => {
 
 window.filterUsers = f => renderUsers(f);
 
+// ── Admin Search ─────────────────────────────────────────────────────
+let _searchTimer = null;
+function removeDiacriticsSearch(str) {
+  return (str || '').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[đĐ]/g, c => c==='đ'?'d':'D').toLowerCase();
+}
+function highlight(text, q) {
+  if (!q) return text;
+  const idx = removeDiacriticsSearch(text).indexOf(removeDiacriticsSearch(q));
+  if (idx < 0) return text;
+  return text.slice(0, idx) + '<b style="background:#fff3cd;border-radius:2px">' + text.slice(idx, idx + q.length) + '</b>' + text.slice(idx + q.length);
+}
+window.onAdminSearch = (val) => {
+  clearTimeout(_searchTimer);
+  const clear = document.getElementById('adminSearchClear');
+  if (clear) clear.style.display = val ? 'block' : 'none';
+  if (!val.trim()) { document.getElementById('adminSearchResults').innerHTML = ''; return; }
+  _searchTimer = setTimeout(() => _doSearch(val.trim()), 200);
+};
+window.clearAdminSearch = () => {
+  const inp = document.getElementById('adminSearchInput');
+  if (inp) { inp.value = ''; inp.dispatchEvent(new Event('input')); }
+  const clear = document.getElementById('adminSearchClear');
+  if (clear) clear.style.display = 'none';
+  document.getElementById('adminSearchResults').innerHTML = '';
+};
+function _doSearch(q) {
+  const qNorm = removeDiacriticsSearch(q);
+  const results = document.getElementById('adminSearchResults');
+  if (!results) return;
+  const matchField = v => removeDiacriticsSearch(v).includes(qNorm);
+
+  const userMatches = (allUsers || []).filter(u =>
+    matchField(u.displayName) || matchField(u.email)
+  );
+  const ctvMatches = (allCTVs || []).filter(c =>
+    matchField(c.name) || matchField(c.email) || matchField(c.phone) || matchField(c.code)
+  );
+
+  if (!userMatches.length && !ctvMatches.length) {
+    results.innerHTML = '<div style="padding:12px 14px;font-size:13px;color:var(--text3)">Không tìm thấy kết quả phù hợp</div>';
+    return;
+  }
+
+  const total = userMatches.length + ctvMatches.length;
+  let html = `<div style="padding:6px 14px 4px;font-size:11px;color:var(--text3);font-weight:700">${total} kết quả — Khách hàng (${userMatches.length}) · CTV (${ctvMatches.length})</div>`;
+
+  if (userMatches.length) {
+    html += `<div style="padding:4px 14px 2px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:700">👥 Khách hàng</div>`;
+    html += userMatches.slice(0, 8).map(u => `
+      <div style="padding:7px 14px;cursor:pointer;border-radius:6px;margin:1px 4px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''" onclick="jumpToUser('${u.id}')">
+        <div style="font-size:13px;font-weight:600">${highlight(u.displayName || u.email, q)}</div>
+        <div style="font-size:11px;color:var(--text3)">${highlight(u.email, q)}</div>
+      </div>`).join('');
+  }
+  if (ctvMatches.length) {
+    html += `<div style="padding:4px 14px 2px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-top:4px">🤝 CTV</div>`;
+    html += ctvMatches.slice(0, 5).map(c => `
+      <div style="padding:7px 14px;cursor:pointer;border-radius:6px;margin:1px 4px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''" onclick="jumpToCTV('${c.id}')">
+        <div style="font-size:13px;font-weight:600">${highlight(c.name || c.email, q)} <span class="ctv-code" style="font-size:11px">${highlight(c.code||'', q)}</span></div>
+        <div style="font-size:11px;color:var(--text3)">${highlight(c.email, q)}${c.phone ? ' · ' + highlight(c.phone, q) : ''}</div>
+      </div>`).join('');
+  }
+  results.innerHTML = html;
+}
+window.jumpToUser = (uid) => {
+  switchAdminTab('users');
+  document.getElementById('adminSearchDrop').style.display = 'none';
+  setTimeout(() => {
+    const row = document.querySelector(`tr[data-uid="${uid}"]`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.style.transition = 'background .2s';
+    row.style.background = '#fff9db';
+    setTimeout(() => { row.style.background = ''; }, 1800);
+  }, 100);
+};
+window.jumpToCTV = (id) => {
+  switchAdminTab('ctv');
+  document.getElementById('adminSearchDrop').style.display = 'none';
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#ctvActiveBody tr, #ctvPendingBody tr');
+    for (const row of rows) {
+      if (row.innerHTML.includes(id)) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.style.transition = 'background .2s';
+        row.style.background = '#fff9db';
+        setTimeout(() => { row.style.background = ''; }, 1800);
+        break;
+      }
+    }
+  }, 300);
+};
+
+// ── User History Modal ───────────────────────────────────────────────
+let _histUid = '', _histName = '';
+window.openUserHistory = async (uid, name) => {
+  _histUid = uid; _histName = name;
+  const modal = document.getElementById('userHistoryModal');
+  if (!modal) return;
+  document.getElementById('histUserName').textContent = name;
+  document.getElementById('histBody').innerHTML = '<tr><td colspan="5" class="empty-cell">Đang tải...</td></tr>';
+  modal.classList.add('on');
+  await _loadUserHistory();
+};
+window.closeUserHistoryModal = () => {
+  const modal = document.getElementById('userHistoryModal');
+  if (modal) modal.classList.remove('on');
+};
+async function _loadUserHistory() {
+  const tbody = document.getElementById('histBody');
+  if (!tbody || !_histUid) return;
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'history'),
+      where('uid', '==', _histUid),
+      orderBy('createdAt', 'desc')
+    ));
+    if (snap.empty) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">Chưa có lịch sử sao chép.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = snap.docs.map(d => {
+      const r = d.data();
+      const dt = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+      return `<tr>
+        <td><span class="dt-txt">${dt}</span></td>
+        <td style="text-align:center;font-weight:700;color:var(--green)">${r.copied ?? 0}</td>
+        <td style="text-align:center;font-weight:700;color:var(--red)">${r.failed ?? 0}</td>
+        <td style="text-align:center;font-weight:700;color:var(--text2)">${r.folders ?? 0}</td>
+        <td style="text-align:center"><button class="act-btn" style="background:#fff5f5;color:#fa5252;border:1px solid #ffe3e3;padding:3px 10px;" onclick="deleteHistRecord('${d.id}')">🗑</button></td>
+      </tr>`;
+    }).join('');
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="5" class="empty-cell">Lỗi: ${e.message}</td></tr>`; }
+}
+window.deleteHistRecord = async (docId) => {
+  try {
+    await deleteDoc(doc(db, 'history', docId));
+    await _loadUserHistory();
+  } catch(e) { toast('Lỗi xóa: ' + e.message, 'err'); }
+};
+window.deleteAllHistory = async () => {
+  if (!_histUid) return;
+  if (!confirm(`Xóa toàn bộ lịch sử của "${_histName}"? Thao tác không thể hoàn tác.`)) return;
+  try {
+    const snap = await getDocs(query(collection(db, 'history'), where('uid', '==', _histUid)));
+    const deletes = snap.docs.map(d => deleteDoc(doc(db, 'history', d.id)));
+    await Promise.all(deletes);
+    toast('✓ Đã xóa toàn bộ lịch sử', 'ok');
+    await _loadUserHistory();
+  } catch(e) { toast('Lỗi: ' + e.message, 'err'); }
+};
 
 window.approveUser = async (uid, email, name) => {
   const btns = document.querySelectorAll(`tr[data-uid="${uid}"] .act-btn`);

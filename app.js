@@ -600,7 +600,7 @@ function updateClInfo() {
       const over = Math.ceil(mb - remainMB);
       sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip} &nbsp;<span style="color:#e67700;font-weight:700;">⚠ Vượt ${over}MB còn lại — <a href="#" onclick="openUpgradeModal();return false;" style="color:#d97706;text-decoration:underline">Nâng cấp gói</a></span>`;
     } else {
-      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip} <span style="color:#adb5bd;">(còn ${Math.round(remainMB)}MB / 500MB)</span>`;
+      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip} <span style="color:#adb5bd;">(còn ${Math.round(remainMB)}MB / 150MB)</span>`;
     }
   } else {
     sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip}`;
@@ -1289,7 +1289,7 @@ async function _runCopyInternal(isResume) {
     if (!st.stopFlag) {
       setStatus('Hoàn thành ' + elapsed + 's');
       clearSession();
-      if (st.gUserData?.plan !== 'free') await saveHist(srcId, sn, destId, dn, elapsed);
+      await saveHist(srcId, sn, destId, dn, elapsed);
       showComplModal(elapsed, st._videoFilesCount);
     } else if (!st._authExpiredHandled) {
       setStatus('Đã dừng sao chép');
@@ -1620,9 +1620,9 @@ window.closeModal = () => document.getElementById('modalOv').classList.remove('a
 
 // ── FREE PLAN ─────────────────────────────────────────────────
 // Real-time lock for "Bắt đầu sao chép": locked if the cycle quota is already
-// exhausted (usedMB >= 500, regardless of current selection — quota used is
+// exhausted (usedMB >= 150, regardless of current selection — quota used is
 // quota used, even if the user later unticks files), OR if used+selected would
-// push the cycle past the 50MB margin (usedMB + selMB > 550). "Kiểm tra trước"
+// push the cycle past the 20MB margin (usedMB + selMB > 170). "Kiểm tra trước"
 // is never touched by this — only btnStart, and only while runMode is idle.
 let _freeQuotaLockTimer = null;
 function refreshFreeQuotaLock() {
@@ -1656,7 +1656,7 @@ function refreshFreeQuotaLock() {
   box.style.display = 'block';
   box.innerHTML = `
     <div style="display:flex;align-items:center;gap:7px;color:#c92a2a;font-weight:800;font-size:13.5px;margin-bottom:4px;"><span>⚠</span><span>Đã đạt giới hạn gói Miễn phí</span></div>
-    <div style="font-size:12.5px;color:#862e2e;margin-bottom:8px;">Bạn đã sao chép <b>${Math.round(usedMB)}</b>/500 MB trong chu kỳ 5 giờ hiện tại</div>
+    <div style="font-size:12.5px;color:#862e2e;margin-bottom:8px;">Bạn đã sao chép <b>${Math.round(usedMB)}</b>/150 MB trong chu kỳ 5 giờ hiện tại</div>
     <div style="height:6px;background:#ffe3e3;border-radius:999px;overflow:hidden;margin-bottom:8px;"><div style="height:100%;width:${pct}%;background:#e03131;border-radius:999px;"></div></div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
       <span style="font-size:11.5px;color:#a14b4b;">${Math.round(remainMB)} MB còn lại trong chu kỳ này — reset sau ${h}h${String(m).padStart(2, '0')}p</span>
@@ -1741,7 +1741,7 @@ function updateFreeBanner() {
   const resetAt  = st.gUserData.freeResetAt?.toMillis ? st.gUserData.freeResetAt.toMillis() : Date.now();
   const resetStr = new Date(resetAt + FREE_RESET_MS).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   banner.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;"><span>⚡</span><span>Gói Miễn phí — Còn <b>${remainMB}</b> MB / 500 MB (reset lúc <b>${resetStr}</b>)</span></div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;"><span>⚡</span><span>Gói Miễn phí — Còn <b>${remainMB}</b> MB / 150 MB (reset lúc <b>${resetStr}</b>)</span></div>
     <button onclick="openUpgradeModal()" style="flex-shrink:0;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Nâng cấp lên Trọn đời →</button>`;
   banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;';
 }

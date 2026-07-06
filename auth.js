@@ -396,6 +396,7 @@ export function sendUpgradeRequestEmail(u){ _gasPost({ type: 'upgrade_request', 
 function _notifyAdminKicked(u, reason)    { _gasPost({ type: 'kick_alert',       userEmail: u.email, userName: u.displayName || u.email, reason: reason || '?' }); }
 function _sendRegisterFreeSuccessEmail(u) { _gasPost({ type: 'register_free_success', toEmail: u.email, userName: u.displayName || u.email, siteUrl: SITE_URL }); }
 function _sendRegisterPaidPendingEmail(u) { _gasPost({ type: 'register_paid_pending',  toEmail: u.email, userName: u.displayName || u.email, siteUrl: SITE_URL }); }
+function _sendUpgradeRequestReceivedEmail(u) { _gasPost({ type: 'upgrade_request_received', toEmail: u.email, userName: u.displayName || u.email, siteUrl: SITE_URL }); }
 
 // ── Affiliate referral helper ─────────────────────────────────
 // Reads affiliateCode from localStorage, validates TTL (30 days),
@@ -589,6 +590,7 @@ async function _doUpgradeRequestInternal() {
     await updateDoc(doc(db, 'users', st.gUser.uid), { upgradeRequestedAt: serverTimestamp() });
     st.gUserData.upgradeRequestedAt = { toMillis: () => Date.now() };
     sendUpgradeRequestEmail(st.gUser);
+    _sendUpgradeRequestReceivedEmail(st.gUser);
     st.updateFreeBanner?.();
     st.toast?.('Đã gửi yêu cầu! Admin sẽ xác nhận thanh toán và kích hoạt sớm nhất', 'ok');
   } catch (e) { st.toast?.('Lỗi: ' + e.message, 'err'); }

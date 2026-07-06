@@ -10,6 +10,12 @@
       ]
     }
   ],
+  "crons": [
+    {
+      "path": "/api/cron-upgrade-reminder",
+      "schedule": "0 13 * * *"
+    }
+  ],
   "rewrites": [
     { "source": "/copy-drive",     "destination": "/dashboard.html"     },
     { "source": "/ctv",            "destination": "/ctv.html"           },

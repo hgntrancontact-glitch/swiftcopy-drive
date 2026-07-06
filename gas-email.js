@@ -28,7 +28,7 @@
 
 const ADMIN_EMAIL = 'hgntran.contact@gmail.com'; // ← Email nhận thông báo admin
 const SITE_NAME   = 'SwiftCopy.Drive';
-const SITE_URL    = 'https://swiftcopydrive.com';  // ← URL web thật (dùng làm fallback)
+const SITE_URL    = 'https://swiftcopydrive.vercel.app';  // ← URL web thật (dùng làm fallback)
 
 // ── ENTRY POINT ────────────────────────────────────────────────────
 // GAS gọi doPost() mỗi khi web app nhận POST request
@@ -61,6 +61,8 @@ function doPost(e) {
       case 'ctv_deleted_permanently':      handleCTVDeletedPermanently(data);      break;
       case 'ctv_readded':                  handleCTVReadded(data);                 break;
       case 'ctv_kick_alert':               handleCTVKickAlert(data);               break;
+      case 'upgrade_request_received':     handleUpgradeRequestReceived(data);     break;
+      case 'upgrade_reminder':             handleUpgradeReminder(data);            break;
       default:
         throw new Error('Unknown type: ' + data.type);
     }
@@ -294,7 +296,7 @@ function handleRegisterFreeSuccess(data) {
         '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#a07820;font-weight:800;background:#fffdf5;border-bottom:1px solid #f0d060;font-family:Arial,sans-serif">Trọn đời</td>' +
       '</tr>' +
       compareRow('Sao chép file &amp; thư mục', '✓', '#495057', '✓') +
-      compareRow('Dung lượng', '500MB / 5 giờ', '#495057', 'Không giới hạn') +
+      compareRow('Dung lượng', '150MB / 5 giờ', '#495057', 'Không giới hạn') +
       compareRow('Copy video', '✕', '#dc3545', '✓ Không giới hạn') +
       compareRow('File không có nút tải', '✕', '#dc3545', '✓') +
       compareRow('Tự resume mất mạng', '✕', '#dc3545', '✓') +
@@ -376,7 +378,7 @@ function handlePlanDowngradedByAdmin(data) {
         '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#a07820;font-weight:800;background:#fffdf5;border-bottom:1px solid #f0d060;font-family:Arial,sans-serif">Trọn đời</td>' +
       '</tr>' +
       compareRow('Sao chép file &amp; thư mục', '✓', '#495057', '✓') +
-      compareRow('Dung lượng', '500MB / 5 giờ', '#495057', 'Không giới hạn') +
+      compareRow('Dung lượng', '150MB / 5 giờ', '#495057', 'Không giới hạn') +
       compareRow('Copy video', '✕', '#dc3545', '✓ Không giới hạn') +
       compareRow('File không có nút tải', '✕', '#dc3545', '✓') +
       compareRow('Tự resume mất mạng', '✕', '#dc3545', '✓') +
@@ -621,6 +623,61 @@ function handleCTVReadded(data) {
     title: 'Tài khoản CTV đã được kích hoạt lại',
     bodyHtml: bodyHtml,
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL) + '/ctv',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 24. THÔNG BÁO USER: đã nhận yêu cầu nâng cấp ───────────────────────────
+// Gửi khi: user free bấm "Tôi đã thanh toán" (_doUpgradeRequestInternal trong auth.js)
+// Payload: { type, toEmail, userName, siteUrl }
+function handleUpgradeRequestReceived(data) {
+  const subject = 'Đã nhận yêu cầu nâng cấp của bạn';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Chúng tôi đã nhận được yêu cầu nâng cấp lên gói <b>Trọn đời</b> của bạn. Admin sẽ xác nhận trong vòng <b>24 giờ</b> và gửi email thông báo khi tài khoản được kích hoạt.</p>' +
+    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Bạn có thể theo dõi trạng thái ngay trên trang tài khoản — đăng nhập và nhìn vào phần trạng thái gói dịch vụ phía trên màn hình.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#fffbea', iconColor: '#d97706', iconChar: '◷',
+    title: 'Đã nhận yêu cầu nâng cấp của bạn',
+    bodyHtml: bodyHtml,
+    ctaText: 'Xem trạng thái tài khoản', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── 25. EMAIL NHẮC NÂNG CẤP ĐỊNH KỲ (gửi bởi Vercel Cron Job) ───────────────
+// Gửi định kỳ cho user Free mỗi 3 ngày kể từ ngày đăng ký, dừng sau 2 năm
+// Payload: { type, toEmail, userName, siteUrl }
+function handleUpgradeReminder(data) {
+  const subject = 'Hãy nâng cấp gói trọn đời để Copy dữ liệu Drive';
+  const compareRow = (label, freeVal, freeColor, paidVal) =>
+    '<tr>' +
+      '<td style="padding:7px 6px;color:#495057;font-size:12.5px;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + label + '</td>' +
+      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;color:' + freeColor + ';border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + freeVal + '</td>' +
+      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;font-weight:700;color:#a07820;background:#fffdf5;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + paidVal + '</td>' +
+    '</tr>';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,<br>Bạn đang sử dụng gói miễn phí sẽ giảm trải nghiệm sao chép Drive và làm giảm suất công việc của bạn. Đây là những gì bạn đang bỏ lỡ nếu chưa nâng cấp:</p>' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:14px">' +
+      '<tr>' +
+        '<td style="padding:8px 6px;border-bottom:1px solid #e9ecef"></td>' +
+        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#495057;font-weight:700;border-bottom:1px solid #e9ecef;font-family:Arial,sans-serif">Miễn phí</td>' +
+        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#a07820;font-weight:800;background:#fffdf5;border-bottom:1px solid #f0d060;font-family:Arial,sans-serif">Trọn đời</td>' +
+      '</tr>' +
+      compareRow('Sao chép file &amp; thư mục', '✓', '#495057', '✓') +
+      compareRow('Dung lượng', '150MB / 5 giờ', '#495057', 'Không giới hạn') +
+      compareRow('Copy video', '✕', '#dc3545', '✓ Không giới hạn') +
+      compareRow('File không có nút tải', '✕', '#dc3545', '✓') +
+      compareRow('Tự resume mất mạng', '✕', '#dc3545', '✓') +
+    '</table>' +
+    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Gói Trọn đời: không giới hạn dung lượng, copy cả video, tự tiếp tục nếu mất mạng — chỉ <b>250.000đ</b>, dùng một lần mãi mãi.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#fffbea', iconColor: '#d97706', iconChar: '◷',
+    title: 'Hãy nâng cấp gói trọn đời để Copy dữ liệu Drive',
+    bodyHtml: bodyHtml,
+    ctaText: 'Nâng cấp trọn đời ngay', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
   GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });

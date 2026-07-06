@@ -93,11 +93,16 @@
     #dashToast.show { opacity: 1; }
 
     /* ── Responsive ──────────────────────────────────── */
+    @media (max-width: 639px) {
+      .ctv-header { height: auto; flex-wrap: wrap; padding: 10px 14px; gap: 0; }
+      .ctv-header > a { width: 100%; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,.12); margin-bottom: 8px; }
+      .header-right { margin-left: 0; width: 100%; justify-content: space-between; }
+      .ctv-badge-pill { display: none; }
+    }
     @media (max-width: 600px) {
       .stats-grid.cols3 { grid-template-columns: repeat(2, 1fr); }
-      .ctv-header { padding: 0 14px; }
       .ctv-logo-text { font-size: 17px; }
-      .nav-name { font-size: 13px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .nav-name { font-size: 13px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .tab-panel { padding: 16px 10px; }
     }
   </style>
