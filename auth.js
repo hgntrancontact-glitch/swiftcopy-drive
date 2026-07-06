@@ -8,7 +8,7 @@ import { initializeApp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot,
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, onSnapshot,
          collection, getDocs, where, query, increment }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { st, IS_DASHBOARD, FREE_MB_LIMIT, FREE_RESET_MS, releasePauseWaiters } from './state.js';
@@ -85,6 +85,12 @@ window.openLoginModal = (mode = 'register') => {
   document.getElementById('loginModal')?.classList.add('active');
   window.hideLoginWarn();
   window.hideLoginError();
+  // Reset terms checkbox + disable action buttons
+  const tc = document.getElementById('loginTermsCheck');
+  if (tc) { tc.checked = false; }
+  const gb = document.getElementById('loginGoogleBtn'), cb = document.getElementById('loginContinueBtn');
+  if (gb) { gb.disabled = true; gb.style.opacity = '.45'; }
+  if (cb) { cb.disabled = true; cb.style.opacity = '.45'; }
 };
 
 // Close loginModal and clear any pending plan state so it doesn't leak into later sessions.
@@ -101,6 +107,38 @@ window.handleLoginContinue = () => {
 
 window.openRegisterModal = () => window.openLoginModal();
 window.doLogout = () => signOut(auth);
+
+window.openSelfDeleteModal1 = () => {
+  document.getElementById('selfDeleteModal1')?.classList.add('active');
+};
+window.closeSelfDeleteModal1 = () => {
+  document.getElementById('selfDeleteModal1')?.classList.remove('active');
+};
+window.openSelfDeleteModal2 = () => {
+  document.getElementById('selfDeleteModal1')?.classList.remove('active');
+  document.getElementById('selfDeleteModal2')?.classList.add('active');
+};
+window.closeSelfDeleteModal2 = () => {
+  document.getElementById('selfDeleteModal2')?.classList.remove('active');
+};
+window.selfDeleteAccount = async () => {
+  document.getElementById('selfDeleteModal2')?.classList.remove('active');
+  const u = st.gUser;
+  const ud = st.gUserData;
+  if (!u) return;
+  try {
+    st.stopFlag = true;
+    _gasPost({ type: 'account_deleted_permanently', toEmail: u.email, userName: u.displayName || u.email, siteUrl: SITE_URL });
+    _gasPost({ type: 'admin_self_delete_notice', userEmail: u.email, userName: u.displayName || u.email, plan: ud?.plan || 'free', siteUrl: SITE_URL });
+    await deleteDoc(doc(db, 'users', u.uid));
+    sessionStorage.removeItem('swiftcopy_gtok');
+    await signOut(auth);
+    window.location.href = '/';
+  } catch (e) {
+    console.error('selfDeleteAccount', e);
+    st.toast?.('Lỗi: ' + e.message, 'err');
+  }
+};
 
 // Closing the payment modal mid-registration (before the Firestore doc is created) leaves a
 // "ghost" signed-in Firebase session with no doc — the next register attempt then behaves
@@ -486,6 +524,13 @@ window.createFreeUser = async () => {
   } catch (e) { st.toast?.('Lỗi tạo tài khoản: ' + e.message, 'err'); await signOut(auth); }
 };
 
+function _resetPaymentTerms() {
+  const tc = document.getElementById('paymentTermsCheck');
+  const btn = document.getElementById('paymentConfirmBtn');
+  if (tc) tc.checked = false;
+  if (btn) { btn.disabled = true; btn.style.opacity = '.45'; }
+}
+
 window.openPlanSelectPaid = () => {
   st._paymentContext = 'new';
   document.getElementById('planSelectModal')?.classList.remove('active');
@@ -493,6 +538,7 @@ window.openPlanSelectPaid = () => {
   const loginBtn   = document.getElementById('paymentLoginBtn');
   if (upgradeBtn) upgradeBtn.style.display = 'flex';
   if (loginBtn)   loginBtn.style.display   = 'none';
+  _resetPaymentTerms();
   document.getElementById('paymentModal')?.classList.add('active');
 };
 
@@ -572,6 +618,7 @@ window.openUpgradeModal = () => {
   const upgradeBtn = document.getElementById('paymentUpgradeBtn');
   if (loginBtn)   loginBtn.style.display   = 'none';
   if (upgradeBtn) upgradeBtn.style.display = 'flex';
+  _resetPaymentTerms();
   document.getElementById('paymentModal')?.classList.add('active');
 };
 

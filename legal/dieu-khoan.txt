@@ -1,5 +1,5 @@
 ĐIỀU KHOẢN SỬ DỤNG
-SwiftCopy.Drive | Cập nhật lần cuối: 22/06/2026
+SwiftCopy.Drive | Cập nhật lần cuối: 07/07/2026
 1. Giới thiệu
 Chào mừng bạn đến với SwiftCopy.Drive (sau đây gọi là "Dịch vụ" hoặc "Công cụ"). Bằng cách truy cập hoặc sử dụng Dịch vụ, bạn đồng ý bị ràng buộc bởi các Điều khoản Sử dụng này. Nếu bạn không đồng ý với bất kỳ điều khoản nào, vui lòng ngừng sử dụng ngay lập tức.
 
@@ -17,8 +17,12 @@ Dịch vụ bao gồm các tính năng:
     • Được Quản trị viên phê duyệt sau khi thanh toán thành công
     • Không sử dụng Dịch vụ cho các mục đích vi phạm pháp luật
 
+Người dùng cam kết chỉ sử dụng Dịch vụ để sao chép dữ liệu thuộc quyền sở hữu hợp pháp của mình, hoặc dữ liệu đã được bên thứ ba chia sẻ/cấp quyền hợp lệ cho người dùng truy cập. SwiftCopy.Drive hoàn toàn không chịu trách nhiệm đối với bất kỳ hành vi vi phạm bản quyền hay sở hữu trí tuệ nào do người dùng thực hiện.
+
+SwiftCopy.Drive không uỷ quyền cho bất kỳ cộng tác viên hay bên thứ ba nào đại diện phát ngôn hoặc cam kết các tính năng nằm ngoài phạm vi mô tả chính thức trên website. Chúng tôi hoàn toàn miễn trừ trách nhiệm đối với các giao dịch, phát ngôn giả mạo hoặc lừa đảo từ các đại lý/kênh không chính thức.
+
 4. Tài khoản và Thanh toán
-SwiftCopy.Drive áp dụng mô hình thanh toán một lần — bạn chỉ trả tiền một lần duy nhất và được sử dụng trọn đời mà không phát sinh thêm phí. Tài khoản được kích hoạt thủ công bởi Quản trị viên sau khi xác nhận thanh toán thành công.
+SwiftCopy.Drive áp dụng mô hình thanh toán một lần — bạn chỉ trả tiền một lần duy nhất và được sử dụng không giới hạn thời gian theo vòng đời hoạt động của sản phẩm, trừ trường hợp có thay đổi từ chính sách Google Drive API hoặc các nguyên nhân bất khả kháng khác. Tài khoản được kích hoạt thủ công bởi Quản trị viên sau khi xác nhận thanh toán thành công.
 Bạn có trách nhiệm:
     • Bảo mật thông tin tài khoản Google của mình
     • Không chia sẻ quyền truy cập tài khoản ${BRAND} cho người khác
@@ -34,6 +38,8 @@ SwiftCopy.Drive cung cấp Dịch vụ "nguyên trạng" (as-is). Chúng tôi kh
     • Thiệt hại gián tiếp phát sinh từ việc sử dụng hoặc không thể sử dụng Dịch vụ
     • Thay đổi chính sách của Google ảnh hưởng đến hoạt động của Dịch vụ
 
+Trong mọi trường hợp, trách nhiệm tối đa của SwiftCopy.Drive đối với bất kỳ khiếu nại, tổn thất hay thiệt hại nào của người dùng sẽ không vượt quá tổng số tiền mà người dùng đó đã thực tế thanh toán để mua Dịch vụ.
+
 7. Chấm dứt tài khoản
 Chúng tôi có quyền đình chỉ hoặc chấm dứt tài khoản của bạn nếu:
     • Bạn vi phạm bất kỳ điều khoản nào trong tài liệu này
@@ -47,3 +53,6 @@ Chúng tôi có quyền cập nhật Điều khoản Sử dụng bất cứ lúc
 Nếu có bất kỳ câu hỏi nào về Điều khoản Sử dụng này, vui lòng liên hệ:
     • Email: hgntran.contact@gmail.com
     • Website: swiftcopydrive.vercel.app
+
+10. Luật áp dụng và giải quyết tranh chấp
+Các Điều khoản này được điều chỉnh và giải thích theo pháp luật của nước Cộng hòa Xã hội Chủ nghĩa Việt Nam. Mọi tranh chấp phát sinh (nếu có) sẽ được ưu tiên giải quyết thông qua thương lượng, hòa giải. Trường hợp không thể thương lượng, tranh chấp sẽ được giải quyết tại Tòa án có thẩm quyền tại Việt Nam.

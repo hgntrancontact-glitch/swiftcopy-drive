@@ -49,8 +49,8 @@ service cloud.firestore {
         && (!('upgradedAt' in request.resource.data) || request.resource.data.upgradedAt == resource.data.upgradedAt)
       );
 
-      // Xóa: chỉ admin
-      allow delete: if isAdmin();
+      // Xóa: admin hoặc chính user tự xoá tài khoản của mình
+      allow delete: if isAdmin() || request.auth.uid == userId;
     }
 
     // ── Collection: history ─────────────────────────────────────────────────

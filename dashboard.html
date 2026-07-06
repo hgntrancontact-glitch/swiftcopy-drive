@@ -393,6 +393,9 @@
 
       </div>
 
+      <div style="text-align:center;padding-top:24px;padding-bottom:4px;">
+        <button onclick="openSelfDeleteModal1()" style="background:none;border:none;color:#adb5bd;font-size:12px;cursor:pointer;text-decoration:underline;padding:0;" onmouseover="this.style.color='#868e96'" onmouseout="this.style.color='#adb5bd'">Xoá tài khoản</button>
+      </div>
     </div>
   </main>
 </div>
@@ -654,9 +657,14 @@
       </div>
       <!-- Contact -->
       <div style="font-size:12px;color:#868e96;text-align:center;">Cần hỗ trợ? <a href="mailto:hgntran.contact@gmail.com" style="color:#212529;font-weight:700;text-decoration:none;">hgntran.contact@gmail.com</a></div>
+      <!-- Checkbox điều khoản -->
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;line-height:1.6;">
+        <input type="checkbox" id="paymentTermsCheck" onchange="(function(c){var b=document.getElementById('paymentConfirmBtn');b.disabled=!c;b.style.opacity=c?'1':'.45';})(this.checked)" style="margin-top:2px;width:15px;height:15px;accent-color:#ffc107;flex-shrink:0;cursor:pointer;" />
+        <span style="font-size:12.5px;color:#495057;">Tôi đã đọc và đồng ý với <a href="/dieu-khoan" target="_blank" rel="noopener" style="color:#212529;font-weight:700;text-decoration:underline;">Điều khoản sử dụng</a> và <a href="/bao-mat" target="_blank" rel="noopener" style="color:#212529;font-weight:700;text-decoration:underline;">Chính sách bảo mật</a>.</span>
+      </label>
       <!-- Button -->
       <div id="paymentUpgradeBtn" style="display:flex;flex-direction:column;gap:6px;">
-        <button onclick="showPaymentConfirm()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Hoàn tất thanh toán</button>
+        <button id="paymentConfirmBtn" onclick="showPaymentConfirm()" disabled style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;opacity:.45;" onmouseover="if(!this.disabled)this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Hoàn tất thanh toán</button>
         <div style="font-size:11px;color:#adb5bd;text-align:center;">Nhấn để gửi yêu cầu — admin sẽ xác nhận và kích hoạt sớm nhất</div>
       </div>
       <!-- Không dùng nữa — ẩn -->
@@ -965,6 +973,33 @@
     </div>
     <div style="padding:16px 20px 18px">
       <button onclick="closeVideo360Warn()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:13.5px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Đã hiểu</button>
+    </div>
+  </div>
+</div>
+
+<!-- SELF DELETE MODAL 1 -->
+<div class="modal-overlay" id="selfDeleteModal1" onclick="if(event.target===this)closeSelfDeleteModal1()">
+  <div class="modal-wrapper" style="max-width:440px;padding:28px 24px 24px">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="width:52px;height:52px;background:#fff5f5;border:1.5px solid #ffa8a8;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:24px;">⚠</div>
+    </div>
+    <h3 style="text-align:center;font-size:17px;font-weight:800;color:#212529;margin:0 0 14px">Xoá tài khoản vĩnh viễn?</h3>
+    <p style="font-size:13.5px;color:#495057;line-height:1.75;margin:0 0 22px">Đây là hành động cần suy nghĩ trước khi thao tác. Khi thực hiện thao tác này, tài khoản của bạn sẽ bị xoá vĩnh viễn khỏi SwiftCopy.Drive và không thể đăng nhập để sử dụng dịch vụ sao chép Drive từ hệ thống của chúng tôi nữa, trừ khi bạn đăng ký lại tài khoản mới. Bạn có chắc chắn muốn tiếp tục không?</p>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeSelfDeleteModal1()" style="flex:1;background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f1f3f5'">Huỷ</button>
+      <button onclick="openSelfDeleteModal2()" style="flex:1;background:#dc3545;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#dc3545'">Chắc chắn</button>
+    </div>
+  </div>
+</div>
+
+<!-- SELF DELETE MODAL 2 -->
+<div class="modal-overlay" id="selfDeleteModal2" onclick="if(event.target===this)closeSelfDeleteModal2()">
+  <div class="modal-wrapper" style="max-width:440px;padding:28px 24px 24px">
+    <h3 style="text-align:center;font-size:17px;font-weight:800;color:#212529;margin:0 0 14px">Xác nhận lần cuối</h3>
+    <p style="font-size:13.5px;color:#495057;line-height:1.75;margin:0 0 22px">Đây là hành động cuối cùng, không thể hoàn tác. Sau khi xoá, bạn sẽ được đăng xuất khỏi hệ thống ngay lập tức.</p>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeSelfDeleteModal2()" style="flex:1;background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f1f3f5'">Huỷ</button>
+      <button onclick="selfDeleteAccount()" style="flex:1;background:#dc3545;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#dc3545'">Xoá vĩnh viễn</button>
     </div>
   </div>
 </div>

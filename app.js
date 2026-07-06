@@ -1289,7 +1289,7 @@ async function _runCopyInternal(isResume) {
     if (!st.stopFlag) {
       setStatus('Hoàn thành ' + elapsed + 's');
       clearSession();
-      await saveHist(srcId, sn, destId, dn, elapsed);
+      await saveHist(elapsed);
       showComplModal(elapsed, st._videoFilesCount);
     } else if (!st._authExpiredHandled) {
       setStatus('Đã dừng sao chép');
@@ -1515,8 +1515,8 @@ window.resumeSession = async () => {
 };
 window.clearSession = clearSession;
 
-async function saveHist(si, sn, di, dn, el) {
-  try { await addDoc(collection(db, 'history'), { uid: st.gUser.uid, email: st.gUser.email, srcId: si, srcName: sn, destId: di, destName: dn, copied: st.stats.copied, failed: st.stats.failed, folders: st.stats.folders, elapsed: el, createdAt: serverTimestamp() }); }
+async function saveHist(el) {
+  try { await addDoc(collection(db, 'history'), { uid: st.gUser.uid, email: st.gUser.email, copied: st.stats.copied, failed: st.stats.failed, folders: st.stats.folders, elapsed: el, createdAt: serverTimestamp() }); }
   catch (e) { console.warn('saveHist', e); }
 }
 

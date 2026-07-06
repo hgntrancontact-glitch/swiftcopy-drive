@@ -412,6 +412,10 @@ tbody tr:last-child td{border-bottom:none}
       <button class="btn-cancel" style="margin:0;padding:4px 12px;font-size:12px" onclick="closeUserHistoryModal()">✕ Đóng</button>
     </div>
     <div class="modal-b" style="padding:0">
+      <div id="histPaymentNote" style="display:none;margin:12px 18px 0;padding:10px 14px;background:#fffbea;border:1px solid #ffe082;border-radius:8px;font-size:13px;color:#7a5a00">
+        <div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#d97706;margin-bottom:5px">Ghi chú thanh toán</div>
+        <div id="histPaymentNoteText"></div>
+      </div>
       <div style="padding:12px 18px 8px;display:flex;justify-content:flex-end;">
         <button class="btn-confirm-red" style="font-size:12px;padding:5px 14px" onclick="deleteAllHistory()">🗑 Xóa tất cả</button>
       </div>
@@ -429,6 +433,22 @@ tbody tr:last-child td{border-bottom:none}
           <tbody id="histBody"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- APPROVE PAYMENT MODAL -->
+<div id="approvePaymentModal" class="modal-ov">
+  <div class="modal">
+    <div class="modal-h"><h3 id="approvePaymentTitle">Kích hoạt tài khoản</h3></div>
+    <div class="modal-b">
+      <p id="approvePaymentMsg" style="margin-bottom:12px"></p>
+      <label class="modal-label">Ghi chú thanh toán <span style="color:#adb5bd;font-weight:400">(tuỳ chọn)</span></label>
+      <textarea id="approvePaymentNote" class="modal-textarea" placeholder="Ví dụ: Đã nhận CK 250k ngày 07/07, ref: xxxxxx..."></textarea>
+    </div>
+    <div class="modal-f">
+      <button class="btn-cancel" onclick="closeApprovePaymentModal()">Huỷ</button>
+      <button class="btn-confirm-green" onclick="doApproveWithNote()"><svg class="ic" style="color:#fff"><use href="#ic-check"/></svg> Xác nhận</button>
     </div>
   </div>
 </div>
@@ -604,6 +624,7 @@ let currentFilter = 'all';
 let _kickUid = null, _kickEmail = '', _kickName = '';
 let _readdUid = null, _readdEmail = '', _readdName = '';
 let _deleteUid = null, _deleteEmail = '', _deleteName = '';
+let _approveUid = null, _approveEmail = '', _approveName = '', _approveType = '';
 
 // ── CTV State ──────────────────────────────────────────────────────
 let allCTVs = [];
@@ -1045,7 +1066,7 @@ function renderUsers(filter){
       </div>`;
     } else if (u.approved){
       const upgradeBtn = (u.upgradeRequestedAt && u.plan!=='paid')
-        ? `<button class="act-btn act-upgrade" onclick="approveUpgrade('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
+        ? `<button class="act-btn act-upgrade" onclick="openApprovePaymentModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}','upgrade')">
              ⬆ Duyệt nâng cấp
            </button>`
         : '';
@@ -1059,7 +1080,7 @@ function renderUsers(filter){
       </div>`;
     } else if (u.upgradeRequestedAt && u.plan !== 'paid'){
       actions = `<div class="act-row">
-        <button class="act-btn act-upgrade" onclick="approveUpgrade('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
+        <button class="act-btn act-upgrade" onclick="openApprovePaymentModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}','upgrade')">
           ⬆ Duyệt nâng cấp
         </button>
         ${histBtn}
@@ -1070,7 +1091,7 @@ function renderUsers(filter){
       </div>`;
     } else {
       actions = `<div class="act-row">
-        <button class="act-btn act-approve" onclick="approveUser('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">
+        <button class="act-btn act-approve" onclick="openApprovePaymentModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}','user')">
           <svg class="ic"><use href="#ic-check"/></svg> Kích hoạt
         </button>
         ${histBtn}
@@ -1227,6 +1248,15 @@ window.openUserHistory = async (uid, name) => {
   if (!modal) return;
   document.getElementById('histUserName').textContent = name;
   document.getElementById('histBody').innerHTML = '<tr><td colspan="5" class="empty-cell">Đang tải...</td></tr>';
+  const user = allUsers.find(u => u.id === uid);
+  const noteDiv = document.getElementById('histPaymentNote');
+  const noteTxt = document.getElementById('histPaymentNoteText');
+  if (user?.paymentNote && noteDiv && noteTxt) {
+    noteTxt.textContent = user.paymentNote;
+    noteDiv.style.display = 'block';
+  } else if (noteDiv) {
+    noteDiv.style.display = 'none';
+  }
   modal.classList.add('on');
   await _loadUserHistory();
 };
@@ -1278,27 +1308,49 @@ window.deleteAllHistory = async () => {
   } catch(e) { toast('Lỗi: ' + e.message, 'err'); }
 };
 
-window.approveUser = async (uid, email, name) => {
+window.openApprovePaymentModal = (uid, email, name, type) => {
+  _approveUid = uid; _approveEmail = email; _approveName = name; _approveType = type;
+  const isUpgrade = type === 'upgrade';
+  document.getElementById('approvePaymentTitle').textContent = isUpgrade ? 'Duyệt nâng cấp Trọn đời' : 'Kích hoạt tài khoản';
+  document.getElementById('approvePaymentMsg').textContent = isUpgrade
+    ? `Duyệt nâng cấp lên gói Trọn đời cho "${name}" (${email})?`
+    : `Kích hoạt tài khoản "${name}" (${email})?`;
+  document.getElementById('approvePaymentNote').value = '';
+  document.getElementById('approvePaymentModal').classList.add('on');
+};
+window.closeApprovePaymentModal = () => {
+  document.getElementById('approvePaymentModal').classList.remove('on');
+};
+window.doApproveWithNote = async () => {
+  const note = document.getElementById('approvePaymentNote').value.trim();
+  closeApprovePaymentModal();
+  if (_approveType === 'upgrade') {
+    await approveUpgrade(_approveUid, _approveEmail, _approveName, note);
+  } else {
+    await approveUser(_approveUid, _approveEmail, _approveName, note);
+  }
+};
+
+window.approveUser = async (uid, email, name, paymentNote) => {
   const btns = document.querySelectorAll(`tr[data-uid="${uid}"] .act-btn`);
   btns.forEach(b=>b.disabled=true);
   try {
-    await updateDoc(doc(db,'users',uid),{
-      approved:true, status:'approved', approvedAt:serverTimestamp()
-    });
+    const upd = { approved:true, status:'approved', approvedAt:serverTimestamp() };
+    if (paymentNote) upd.paymentNote = paymentNote;
+    await updateDoc(doc(db,'users',uid), upd);
     toast('✓ Đã kích hoạt!','ok');
     await callGAS({ type: 'account_approved', toEmail: email, userName: name, siteUrl: SITE_URL });
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi: '+e.message,'err'); btns.forEach(b=>b.disabled=false); }
 };
 
-window.approveUpgrade = async (uid, email, name) => {
+window.approveUpgrade = async (uid, email, name, paymentNote) => {
   const btns = document.querySelectorAll(`tr[data-uid="${uid}"] .act-btn`);
   btns.forEach(b=>b.disabled=true);
   try {
-    await updateDoc(doc(db,'users',uid),{
-      approved:true, status:'approved',
-      plan:'paid', upgradeRequestedAt:null, upgradedAt:serverTimestamp()
-    });
+    const upd = { approved:true, status:'approved', plan:'paid', upgradeRequestedAt:null, upgradedAt:serverTimestamp() };
+    if (paymentNote) upd.paymentNote = paymentNote;
+    await updateDoc(doc(db,'users',uid), upd);
     toast('✓ Đã nâng cấp lên Trọn đời!','ok');
     await callGAS({ type: 'upgrade_approved', toEmail: email, userName: name, siteUrl: SITE_URL });
     const upgradedUser = allUsers.find(u => u.id === uid);

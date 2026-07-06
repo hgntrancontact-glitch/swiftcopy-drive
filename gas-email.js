@@ -63,6 +63,7 @@ function doPost(e) {
       case 'ctv_kick_alert':               handleCTVKickAlert(data);               break;
       case 'upgrade_request_received':     handleUpgradeRequestReceived(data);     break;
       case 'upgrade_reminder':             handleUpgradeReminder(data);            break;
+      case 'admin_self_delete_notice':     handleAdminSelfDeleteNotice(data);      break;
       default:
         throw new Error('Unknown type: ' + data.type);
     }
@@ -698,6 +699,30 @@ function handleCTVKickAlert(data) {
   const html = buildEmailHtml({
     iconBg: '#fff5f5', iconColor: '#dc3545', iconChar: '!',
     title: 'CTV đã bị kick vẫn cố đăng nhập',
+    bodyHtml: bodyHtml,
+    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── THÔNG BÁO ADMIN: user tự xoá tài khoản ──────────────────────────
+// Gửi khi: user bấm "Xoá vĩnh viễn" trong dashboard.html
+// Payload: { type, userEmail, userName, plan, siteUrl }
+function handleAdminSelfDeleteNotice(data) {
+  const subject = 'Một người dùng vừa tự xoá tài khoản';
+  const bodyHtml =
+    '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Người dùng dưới đây đã tự thực hiện xoá tài khoản của họ ngay trên dashboard, không thông qua admin.</p>' +
+    _fieldTable(
+      _fieldRow('Họ tên', data.userName || data.userEmail) +
+      _fieldRow('Email', data.userEmail) +
+      _fieldRow('Gói đang dùng', data.plan === 'paid' ? 'Trọn đời' : 'Miễn phí') +
+      _fieldRow('Thời gian xoá', _nowStr())
+    ) +
+    '<div style="margin-top:16px;background:#fff5f5;border:1px solid #ffe3e3;border-radius:8px;padding:12px 14px;font-size:12.5px;color:#a32d2d;font-family:Arial,sans-serif;line-height:1.6">Lưu lại email này để đối chiếu nếu sau này người dùng liên hệ hỏi về việc tài khoản bị mất quyền truy cập.</div>';
+  const html = buildEmailHtml({
+    iconBg: '#fff5f5', iconColor: '#a32d2d', iconChar: '!',
+    title: 'Một người dùng vừa tự xoá tài khoản',
     bodyHtml: bodyHtml,
     ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin',
     ctaBg: '#ffc107', ctaColor: '#212529'
