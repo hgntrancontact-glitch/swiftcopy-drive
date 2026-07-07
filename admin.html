@@ -1293,16 +1293,24 @@ async function _loadUserHistory() {
         <td style="text-align:center;font-weight:700;color:var(--green)">${r.copied ?? 0}</td>
         <td style="text-align:center;font-weight:700;color:var(--red)">${r.failed ?? 0}</td>
         <td style="text-align:center;font-weight:700;color:var(--text2)">${r.folders ?? 0}</td>
-        <td style="text-align:center"><button class="act-btn" style="background:#fff5f5;color:#fa5252;border:1px solid #ffe3e3;padding:3px 10px;" onclick="deleteHistRecord('${d.id}')">🗑</button></td>
+        <td style="text-align:center"><button class="act-btn" style="background:#fff5f5;color:#fa5252;border:1px solid #ffe3e3;padding:3px 10px;" onclick="deleteHistRecord(this,'${d.id}')">🗑</button></td>
       </tr>`;
     }).join('');
   } catch(e) { tbody.innerHTML = `<tr><td colspan="5" class="empty-cell">Lỗi: ${e.message}</td></tr>`; }
 }
-window.deleteHistRecord = async (docId) => {
+window.deleteHistRecord = async (btn, docId) => {
+  const row = btn.closest('tr');
+  btn.disabled = true; btn.style.opacity = '0.4';
+  if (row) { row.style.transition = 'opacity .35s ease'; row.style.opacity = '0'; }
   try {
+    await new Promise(r => setTimeout(r, 360));
     await deleteDoc(doc(db, 'history', docId));
     await _loadUserHistory();
-  } catch(e) { toast('Lỗi xóa: ' + e.message, 'err'); }
+  } catch(e) {
+    if (row) { row.style.opacity = '1'; }
+    btn.disabled = false; btn.style.opacity = '1';
+    toast('Lỗi xóa: ' + e.message, 'err');
+  }
 };
 window.deleteAllHistory = async () => {
   if (!_histUid) return;

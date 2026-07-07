@@ -288,11 +288,12 @@
       <!-- Checkbox điều khoản -->
       <div class="mb-6">
         <label class="flex items-start gap-3 cursor-pointer">
-          <input id="ctvTerms" type="checkbox" class="mt-0.5 accent-[#ffc107]" style="width:16px;height:16px;flex-shrink:0">
+          <input id="ctvTerms" type="checkbox" class="mt-0.5 accent-[#ffc107]" style="width:16px;height:16px;flex-shrink:0" onchange="document.getElementById('ctvTermsError').style.display='none'">
           <span class="text-sm text-[#495057]">
             Tôi đã đọc và đồng ý với <span class="terms-link" onclick="openTermsModal('ctv_terms')">Điều khoản CTV</span> và <span class="terms-link" onclick="openTermsModal('ctv_payment_terms')">Điều khoản thanh toán hoa hồng</span> của SwiftCopy.Drive.
           </span>
         </label>
+        <div id="ctvTermsError" style="display:none;color:#dc3545;font-size:12px;margin-top:6px;">Vui lòng đồng ý điều khoản trước khi tiếp tục.</div>
       </div>
 
       <button id="ctvSubmitBtn" class="btn-amber" onclick="submitCTVForm()" style="width:100%;justify-content:center">

@@ -85,12 +85,11 @@ window.openLoginModal = (mode = 'register') => {
   document.getElementById('loginModal')?.classList.add('active');
   window.hideLoginWarn();
   window.hideLoginError();
-  // Reset terms checkbox + disable action buttons
+  // Reset terms checkbox + hide warning
   const tc = document.getElementById('loginTermsCheck');
-  if (tc) { tc.checked = false; }
-  const gb = document.getElementById('loginGoogleBtn'), cb = document.getElementById('loginContinueBtn');
-  if (gb) { gb.disabled = true; gb.style.opacity = '.45'; }
-  if (cb) { cb.disabled = true; cb.style.opacity = '.45'; }
+  if (tc) tc.checked = false;
+  const err = document.getElementById('loginTermsError');
+  if (err) err.style.display = 'none';
 };
 
 // Close loginModal and clear any pending plan state so it doesn't leak into later sessions.
@@ -101,6 +100,12 @@ window.closeLoginModal = () => {
 };
 
 window.handleLoginContinue = () => {
+  const tc = document.getElementById('loginTermsCheck');
+  if (tc && !tc.checked) {
+    const err = document.getElementById('loginTermsError');
+    if (err) err.style.display = 'block';
+    return;
+  }
   window.hideLoginError();
   if (st._loginMode === 'login') { window.doLogin(); } else { window.showLoginWarn(); }
 };
@@ -526,9 +531,9 @@ window.createFreeUser = async () => {
 
 function _resetPaymentTerms() {
   const tc = document.getElementById('paymentTermsCheck');
-  const btn = document.getElementById('paymentConfirmBtn');
   if (tc) tc.checked = false;
-  if (btn) { btn.disabled = true; btn.style.opacity = '.45'; }
+  const err = document.getElementById('paymentTermsError');
+  if (err) err.style.display = 'none';
 }
 
 window.openPlanSelectPaid = () => {
@@ -564,6 +569,12 @@ async function createPaidPendingUser() {
 
 // ── Payment flow ──────────────────────────────────────────────
 window.showPaymentConfirm = () => {
+  const tc = document.getElementById('paymentTermsCheck');
+  if (tc && !tc.checked) {
+    const err = document.getElementById('paymentTermsError');
+    if (err) err.style.display = 'block';
+    return;
+  }
   document.getElementById('paymentModal')?.classList.remove('active');
   document.getElementById('paymentConfirmModal')?.classList.add('active');
 };

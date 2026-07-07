@@ -71,7 +71,7 @@ window.submitCTVForm = async function() {
 
   if (!name)  { showMsg('Vui lòng nhập họ tên.', 'err'); return; }
   if (!phone) { showMsg('Vui lòng nhập số điện thoại.', 'err'); return; }
-  if (!terms) { showMsg('Vui lòng đồng ý điều khoản trước khi gửi.', 'err'); return; }
+  if (!terms) { const e = document.getElementById('ctvTermsError'); if (e) e.style.display = 'block'; return; }
 
   const btn = document.getElementById('ctvSubmitBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Đang gửi...'; }

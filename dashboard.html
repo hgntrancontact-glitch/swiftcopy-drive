@@ -659,12 +659,13 @@
       <div style="font-size:12px;color:#868e96;text-align:center;">Cần hỗ trợ? <a href="mailto:hgntran.contact@gmail.com" style="color:#212529;font-weight:700;text-decoration:none;">hgntran.contact@gmail.com</a></div>
       <!-- Checkbox điều khoản -->
       <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;line-height:1.6;">
-        <input type="checkbox" id="paymentTermsCheck" onchange="(function(c){var b=document.getElementById('paymentConfirmBtn');b.disabled=!c;b.style.opacity=c?'1':'.45';})(this.checked)" style="margin-top:2px;width:15px;height:15px;accent-color:#ffc107;flex-shrink:0;cursor:pointer;" />
+        <input type="checkbox" id="paymentTermsCheck" onchange="document.getElementById('paymentTermsError').style.display='none'" style="margin-top:2px;width:15px;height:15px;accent-color:#ffc107;flex-shrink:0;cursor:pointer;" />
         <span style="font-size:12.5px;color:#495057;">Tôi đã đọc và đồng ý với <a href="/dieu-khoan" target="_blank" rel="noopener" style="color:#212529;font-weight:700;text-decoration:underline;">Điều khoản sử dụng</a> và <a href="/bao-mat" target="_blank" rel="noopener" style="color:#212529;font-weight:700;text-decoration:underline;">Chính sách bảo mật</a>.</span>
       </label>
+      <div id="paymentTermsError" style="display:none;color:#dc3545;font-size:12px;margin-top:4px;">Vui lòng đồng ý điều khoản trước khi tiếp tục.</div>
       <!-- Button -->
       <div id="paymentUpgradeBtn" style="display:flex;flex-direction:column;gap:6px;">
-        <button id="paymentConfirmBtn" onclick="showPaymentConfirm()" disabled style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;opacity:.45;" onmouseover="if(!this.disabled)this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Hoàn tất thanh toán</button>
+        <button id="paymentConfirmBtn" onclick="showPaymentConfirm()" style="width:100%;background:#ffc107;color:#212529;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.01em;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Hoàn tất thanh toán</button>
         <div style="font-size:11px;color:#adb5bd;text-align:center;">Nhấn để gửi yêu cầu — admin sẽ xác nhận và kích hoạt sớm nhất</div>
       </div>
       <!-- Không dùng nữa — ẩn -->
