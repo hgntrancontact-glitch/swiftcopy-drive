@@ -8,7 +8,7 @@
 
 Web app cho phép sao chép thư mục Google Drive (kể cả Shared Drive) sang Drive khác — không cần tải về máy rồi tải lên lại. Chạy 100% trên trình duyệt, không có backend riêng.
 
-**Mô hình kinh doanh:** Mua 1 lần dùng trọn đời. Khách thanh toán ngoài hệ thống (Zalo/email), admin vào `admin.html` bấm "Kích hoạt" thủ công.
+**Mô hình kinh doanh:** 3 gói dịch vụ — Dùng thử (miễn phí, 1 lần), Ngắn hạn (39k/3 lượt), Trọn đời (290k/vĩnh viễn). Khách thanh toán ngoài hệ thống (Zalo/email), admin vào `admin.html` bấm "Kích hoạt" thủ công. Commission CTV: 145k/đơn Trọn đời (50% × 290k).
 
 ---
 
@@ -145,7 +145,7 @@ pollKickStatus() (30s interval khi đang ở sec='app'):
 **Lưu ý `#startModal` đã bị xóa hoàn toàn** — thay bằng `#loginModal` + `#planSelectModal`.
 
 ### state.js — shared state (~63 dòng)
-- `IS_DASHBOARD`, `FREE_MB_LIMIT`, `FREE_RESET_MS`, `FMIME` — constants dùng chung
+- `IS_DASHBOARD`, `TRIAL_MB_LIMIT`, `FMIME` — constants dùng chung (`TRIAL_MB_LIMIT = 2048` MB = 2 GB)
 - `ns()` — factory trả object stats rỗng `{copied, failed, folders, topFolders, ...}`
 - `export const st = {...}` — **object mutable dùng chung toàn bộ code**. Tất cả file import cùng object reference → mutation ở file nào đều visible ngay lập tức.
 - `pausePoint()` — export để cả `drive-api.js` và `app.js` dùng
@@ -160,9 +160,9 @@ pollKickStatus() (30s interval khi đang ở sec='app'):
 - **KHÔNG gọi hàm từ app.js hoặc auth.js** — chỉ dùng `st.*` callbacks và `st.*` state
 
 ### auth.js — Firebase + Auth + Plan (~400 dòng)
-- Import: Firebase SDK + `{ st, IS_DASHBOARD, FREE_MB_LIMIT, FREE_RESET_MS }` từ `state.js`
+- Import: Firebase SDK + `{ st, IS_DASHBOARD, TRIAL_MB_LIMIT }` từ `state.js`
 - Export: `db` (Firestore instance), `handleAuthExpired` (alias `_handleAuthExpired`), `sendRegEmail`, `sendUpgradeRequestEmail`
-- **Tất cả auth functions** gắn lên `window.*`: `doLogin`, `showLoginWarn`, `hideLoginWarn`, `openLoginModal`, `handleLoginContinue`, `doLogout`, `reAuth`, `closePlanSelect`, `createFreeUser`, `openPlanSelectPaid`, `showPaymentConfirm`, `backToPaymentModal`, `copyText`, `confirmPayment`, `closeReaddWelcome`, `openUpgradeModal`, `openUpgradeFromLimit`, `doUpgradeRequest`
+- **Tất cả auth functions** gắn lên `window.*`: `doLogin`, `showLoginWarn`, `hideLoginWarn`, `openLoginModal`, `handleLoginContinue`, `doLogout`, `reAuth`, `closePlanSelect`, `createFreeUser`, `openPlanSelectPaid`, `showPaymentConfirm`, `backToPaymentModal`, `copyText`, `confirmPayment`, `closeReaddWelcome`, `openUpgradeModal`, `openUpgradeFromLimit`, `doUpgradeRequest`, `openPlanLockedModal`, `requestCreditPurchase`
 - **Maintenance**: `getMaintenance()` gọi `/api/maintenance` (Vercel function + service account, cache promise), `getMaintenanceResult()` logic. **KHÔNG đọc Firestore trực tiếp** — người chưa đăng nhập bị Security Rules chặn.
 - `handleAuthExpired()` — xử lý 401 giữa chừng, set stopFlag, gọi `st.showNoAuth?.()`. App.js import: `{ _handleAuthExpired as handleAuthExpired }`.
 - Cross-module calls qua `st.*` callbacks được `app.js` set: `st.sec?.()`, `st.toast?.()`, `st.setNavUser?.()`, `st.updateFreeBanner?.()`, `st.checkResume?.()`, `st.showNoAuth?.()`.
@@ -176,7 +176,7 @@ pollKickStatus() (30s interval khi đang ở sec='app'):
 - **Progress**: `progStart`, `progInc`, `progFinish`, `_updateProgBar`, `updateProgInfo` — asymptotic growth, `_maxPct` ratchet, `_totalDeepCount` làm mẫu số ổn định
 - **Session/resume**: `saveSession`, `checkResume`, `resumeSession` — lưu localStorage key `swiftcopy_session`
 - **UI helpers**: `sec`, `setBtnMode`, `setStatus`, `addLog`, `updStats`, `updateFreeBanner`, `toast` (expose qua `window.toast` và `window.setStatus`)
-- **Free plan**: `checkFreeLimit`, `updateFreeUsedMB`, `showFreeLimitModal`, `updateFreeLimitCountdown`
+- **Plan locking**: `refreshPlanLock()`, `_handleCopyCompletion()` — khoá trial sau 1 lần copy, trừ credit khi hoàn tất, gửi email `trial_used_up`/`credit_used_up` qua `_sendEmail()`
 
 ### ui.js — script thường (~330 dòng)
 - Dữ liệu tĩnh: `initialReviews` (8 đánh giá mẫu), `adminFaqData` (7 câu FAQ), `policyData` (3 chính sách)
@@ -239,23 +239,28 @@ pollKickStatus() (30s interval khi đang ở sec='app'):
 
 **File service account JSON:** KHÔNG commit lên GitHub, KHÔNG để trong thư mục project. Chỉ dùng để lấy 2 giá trị trên, xong xóa đi.
 
-**12 loại email GAS xử lý (type string phải khớp chính xác):**
+**16 loại email GAS xử lý (type string phải khớp chính xác):**
 | type | Người nhận | Khi nào |
 |---|---|---|
-| `new_registration` | Admin | User lần đầu đăng ký (free — tự approved) |
+| `new_registration` | Admin | User lần đầu đăng ký (trial — tự approved) |
 | `kick_alert` | Admin | User bị kick đang cố đăng nhập lại |
 | `account_approved` | User | Admin bấm "Kích hoạt" (duyệt tài khoản mới pending) |
 | `account_kicked` | User | Admin bấm "Kick" |
 | `account_readded` | User | Admin bấm "Thêm lại" |
-| `upgrade_request` | Admin | Free user bấm "Tôi đã thanh toán" trong paymentModal |
+| `upgrade_request` | Admin | User bấm "Tôi đã thanh toán" trong paymentModal (xin Trọn đời) |
 | `upgrade_approved` | User | Admin bấm "Duyệt nâng cấp" trong admin.html |
-| `register_free_success` | User | Ngay sau khi `createFreeUser()` tạo doc thành công (đăng ký gói Free) |
-| `register_paid_pending` | User | Ngay sau khi `createPaidPendingUser()` tạo doc thành công (đăng ký gói Trọn đời, chờ admin duyệt) |
-| `account_deleted_permanently` | User | Admin bấm "Xoá" trong admin.html — `deleteDoc` xoá vĩnh viễn Firestore doc |
-| `plan_upgraded_by_admin` | User | Admin đổi dropdown Gói từ Miễn phí → Trọn đời trong bảng user |
-| `plan_downgraded_by_admin` | User | Admin đổi dropdown Gói từ Trọn đời → Miễn phí trong bảng user |
+| `register_free_success` | User | Ngay sau khi `createFreeUser()` tạo doc thành công (đăng ký gói Dùng thử) |
+| `register_paid_pending` | User | Ngay sau khi `createPaidPendingUser()` tạo doc thành công (đăng ký gói Trọn đời, chờ duyệt) |
+| `account_deleted_permanently` | User | Admin bấm "Xoá" trong admin.html — `deleteDoc` xoá vĩnh viễn |
+| `plan_upgraded_by_admin` | User | Admin đổi dropdown Gói nâng lên (dynamic `data.newPlan`) |
+| `plan_downgraded_by_admin` | User | Admin đổi dropdown Gói hạ xuống (dynamic `data.newPlan`/`data.oldPlan`) |
+| `upgrade_request_received` | User | Xác nhận yêu cầu nâng cấp đã được nhận (gửi cho user) |
+| `trial_used_up` | User | Ngay sau khi `_handleCopyCompletion()` lock trial account |
+| `credit_used_up` | User | Ngay sau khi credit về 0 trong `_handleCopyCompletion()` |
+| `credit_purchase_request` | Admin | User bấm "Mua Ngắn hạn" → `requestCreditPurchase()` tạo doc `creditRequests` |
+| `credit_added` | User | Admin duyệt yêu cầu Ngắn hạn → `approveCreditRequest()` |
 
-**Email 8/9 (`register_free_success`/`register_paid_pending`):** gửi song song với email admin đã có sẵn ở cùng điểm gọi — `createFreeUser()` gọi cả `sendRegEmail()` (báo Admin) lẫn `_sendRegisterFreeSuccessEmail()` (báo User); `createPaidPendingUser()` gọi cả `sendUpgradeRequestEmail()` (báo Admin) lẫn `_sendRegisterPaidPendingEmail()` (báo User). 2 hàm gửi mới không export — chỉ dùng nội bộ `auth.js`, theo đúng pattern `_notifyAdminKicked`. Email 8 có bảng so sánh Free/Trọn đời (`<table>` inline style) + khung gợi ý nâng cấp nền `#fffbea`. Email 9 dùng icon `◷` (ký tự hình học đơn giản, không phải emoji nhiều-codepoint, để giữ màu tuỳ biến qua CSS — theo đúng quy ước icon của 7 email trước). **Email 8 (`register_free_success`)**: subject + title đều là `'Đăng ký thành công gói Miễn phí!'` (đã đổi từ "Đăng ký ngay" trước đó); ctaText `'Đăng nhập ngay'` → trỏ về `siteUrl`.
+**Phase 2 thay đổi email:** `register_free_success` — subject/title đổi thành "Đăng ký thành công gói Dùng thử!", bảng so sánh dùng "2 GB / 1 lần dùng", giá nâng cấp 290k. `plan_upgraded/downgraded_by_admin` — nhận thêm `data.newPlan`/`data.oldPlan` động thay vì hardcode "Trọn đời"/"Miễn phí". Handler `upgrade_reminder` đã bị xoá (thay bởi cron-plan-reminder với 2 loại mới).
 
 **SITE_URL trong email:** `admin.html` khai báo `const SITE_URL = "https://swiftcopydrive.com"` và truyền qua payload `siteUrl`. GAS dùng `data.siteUrl || SITE_URL` (SITE_URL trong GAS chỉ là fallback).
 
@@ -274,9 +279,11 @@ Mỗi document trong collection `users` có các field sau:
 | `photoURL` | string | Ảnh đại diện |
 | `approved` | boolean | true = được vào app |
 | `status` | string | `'approved'` / `'pending'` / `'kicked'` |
-| `plan` | string | `'free'` hoặc `'paid'` |
-| `freeUsedMB` | number | MB đã dùng trong window hiện tại (chỉ tính cho plan=free) |
-| `freeResetAt` | Timestamp | Mốc thời gian bắt đầu window 5h hiện tại |
+| `plan` | string | `'trial'` / `'credit'` / `'lifetime'` (cũ: `'free'`/`'paid'` — backward compat) |
+| `trialUsed` | boolean | true = đã dùng hết 1 lần trial → tài khoản bị khoá |
+| `trialLockedAt` | Timestamp | (optional) Khi trial bị lock — dùng để tính cron reminder |
+| `creditsRemaining` | number | Số lượt còn lại (chỉ cho plan='credit') |
+| `creditsLockedAt` | Timestamp | (optional) Khi credit về 0 — dùng để tính cron reminder |
 | `upgradeRequestedAt` | Timestamp \| null | null nếu chưa yêu cầu nâng cấp |
 | `createdAt` | Timestamp | Lần đầu tạo tài khoản |
 | `approvedAt` | Timestamp | (optional) Thời điểm admin duyệt |
@@ -311,60 +318,77 @@ Chỉ `allowedEmails` bypass trong `app.js` (index.html). ADMIN_EMAIL không có
 Backward compat: doc cũ có `enabled:bool` thay vì `mode:string` → `mode = data.mode || (data.enabled ? 'all' : 'off')`
 
 **Quy tắc tạo user mới (qua `#planSelectModal` sau login):**
-- **Gói Free** (bấm "Dùng miễn phí"): `createFreeUser()` → `approved=true, status='approved', plan='free'` — vào app ngay
-- **Gói Trọn đời** (bấm "Đăng ký Trọn đời" → xác nhận thanh toán): `createPaidPendingUser()` → `approved=false, status='pending', plan='free', upgradeRequestedAt=serverTimestamp()` — chờ admin xác nhận
-- **Readd** bởi admin: `doReadd()` → `approved=true, status='approved', plan='paid', readdedAt=serverTimestamp()` — plan luôn là paid khi được thêm lại
+- **Gói Dùng thử** (bấm "Dùng thử miễn phí"): `createFreeUser()` → `approved=true, status='approved', plan='trial', trialUsed:false` — vào app ngay
+- **Gói Trọn đời** (bấm "Đăng ký Trọn đời" → xác nhận thanh toán): `createPaidPendingUser()` → `approved=false, status='pending', plan='trial', upgradeRequestedAt=serverTimestamp()` — chờ admin xác nhận
+- **Readd** bởi admin: `doReadd()` → `approved=true, status='approved', plan='lifetime', readdedAt=serverTimestamp()` — plan luôn là lifetime khi được thêm lại
+- **Thêm lượt Ngắn hạn** (admin): `addCredits(uid, n)` → `plan='credit', creditsRemaining+=n` — không cần tạo doc mới
+
+**Backward compat:** doc cũ `plan='free'` được xử lý như `'trial'`; `plan='paid'` như `'lifetime'` trong mọi auth/plan check.
 
 ---
 
-## Free/Paid system
+## 3-Plan system (Phase 2 — thay thế Free/Paid)
 
-### Giới hạn gói Free
-- **500 MB / 5 giờ** — tự reset sau 5 giờ kể từ `freeResetAt`
-- **Không copy video** — file video bị bỏ qua hoàn toàn (addLog + skip), không báo lỗi
-- **Không lưu lịch sử** — `saveHist()` bị gate bởi `gUserData?.plan !== 'free'`
-- Khi hết hạn mức: hiện `#freeLimitModal` với countdown đến khi reset
+### Ba gói dịch vụ
 
-### Hằng số Free plan (trong state.js, import vào app.js)
+| Gói | `plan` field | Giới hạn | Video | Resume |
+|---|---|---|---|---|
+| Dùng thử | `'trial'` (cũ: `'free'`) | 1 lần, tối đa 2 GB | ✗ | ✗ |
+| Ngắn hạn | `'credit'` | Số lượt `creditsRemaining` | ✗ | ✗ |
+| Trọn đời | `'lifetime'` (cũ: `'paid'`) | Không giới hạn | ✓ | ✓ |
+
+**Backward compat:** `plan='free'` → xử lý như `'trial'`; `plan='paid'` → xử lý như `'lifetime'` trong mọi check. Auth/app.js đều dùng `plan === 'lifetime' || plan === 'paid'` cho "đã paid".
+
+### Hằng số plan (trong state.js)
 ```js
-export const FREE_MB_LIMIT = 500;             // MB tối đa mỗi chu kỳ
-export const FREE_MB_MARGIN = 50;             // biên độ cho phép vượt khi BẮT ĐẦU 1 lượt copy mới (xem mục khoá quota bên dưới)
-export const FREE_RESET_MS = 5 * 60 * 60 * 1000;    // 5 giờ
+export const TRIAL_MB_LIMIT = 2048;   // 2 GB = giới hạn 1 lần trial
+// Không còn FREE_MB_LIMIT / FREE_MB_MARGIN / FREE_RESET_MS
 ```
 
-### Khoá nút "Bắt đầu sao chép" theo quota (real-time) — `refreshFreeQuotaLock()` trong app.js
-- Điều kiện khoá (OR — chỉ cần 1 đúng là khoá): `usedMB >= FREE_MB_LIMIT` (đã dùng hết/vượt quota chu kỳ — khoá bất kể đang chọn gì, kể cả 0 file) **HOẶC** `usedMB + selectedMB > FREE_MB_LIMIT + FREE_MB_MARGIN` (tổng dùng + đang chọn vượt biên độ 550MB).
-- `selectedMB` chỉ tính khi `st.clLoaded && countUnloadedSelectedFolders()===0` (deep scan đã xong) — nếu đang tính dung lượng thì chỉ xét điều kiện đầu (usedMB).
-- Chỉ khoá `#btnStart` (`bst.disabled`), **không bao giờ** đụng `#btnScan` — "Kiểm tra trước" luôn dùng được.
-- Chỉ áp dụng khi `st.runMode === 'idle'` — không ghi đè trạng thái nút trong lúc đang scan/copy (đã có logic riêng trong `setBtnMode('scan'/'copy')`).
-- Gọi ở 3 nơi để đảm bảo cập nhật tức thời: cuối `updateClInfo()` (mỗi lần tick/untick checklist), đầu `updateFreeBanner()` (mỗi lần gUserData đổi — reset quota, nâng cấp...), cuối `setBtnMode()` (mỗi lần chuyển mode, đặc biệt là về `idle` sau khi scan/copy xong — nơi `bst.disabled` bị reset `false` không điều kiện ở đầu hàm).
-- Khi khoá: hiện `#freeQuotaLockBox` (đặt ngay trên `#checklistWrap` trong dashboard.html) — nền `#fff5f5`/viền `#ffe3e3`, progress bar đỏ theo `usedMB/500`, đếm ngược giờ:phút đến `freeResetAt + FREE_RESET_MS` (tự cập nhật mỗi phút qua `setInterval` riêng `_freeQuotaLockTimer`, clear khi hết khoá), nút "Nâng cấp Trọn đời" → `openUpgradeModal()`.
+### Lock logic — `refreshPlanLock()` trong app.js
+- Gọi ở 3 nơi: cuối `updateClInfo()`, đầu `updateFreeBanner()`, cuối `setBtnMode()`
+- **Trial locked** (`trialUsed === true`): khoá cả `#btnScan` lẫn `#btnStart` — hiện `#planLockedModal` (2 cột Ngắn hạn/Trọn đời)
+- **Credit locked** (`creditsRemaining <= 0` khi `plan==='credit'`): khoá cả 2 nút — hiện `#planLockedModal` với tone khác
+- **Trial video block**: `plan==='trial'` — giống cũ, khoá cả 2 nút khi chọn video
+- **Credit video block**: `plan==='credit'` — cũng không hỗ trợ video, khoá khi chọn video
+- Lifetime không bị khoá bởi bất kỳ điều kiện nào (ngoài quota lock cũ đã xoá)
 
-### Resume chỉ dành cho gói Trọn đời (Free không có)
-- `checkResume()` và `window.resumeSession()` đều có guard đầu hàm: `if (st.gUserData?.plan === 'free') { clearSession(); return; }` — Free plan mất mạng/tắt máy giữa chừng phải dừng hẳn, không hiện `#resumeBanner`, user tự bấm lại từ đầu. Chỉ `plan==='paid'` mới được offer resume.
-- `session` (`localStorage` key `swiftcopy_session`) vẫn được lưu trong lúc copy bất kể gói (không tốn công tách riêng vì vô hại) — chỉ việc **hiện banner/cho phép resume** là bị chặn theo gói, không phải việc lưu session.
+### Khi copy hoàn tất — `_handleCopyCompletion()` trong app.js
+- Được gọi từ `showComplModal()` sau mỗi lượt copy thành công
+- **Trial**: `updateDoc({trialUsed:true, trialLockedAt:serverTimestamp()})` → gửi email `trial_used_up` → gọi `refreshPlanLock()`
+- **Credit**: `creditsRemaining--` → nếu về 0: `updateDoc({creditsRemaining:0, creditsLockedAt:serverTimestamp()})` + gửi `credit_used_up`; nếu còn: `updateDoc({creditsRemaining:n})` + toast
+- **Lifetime**: không làm gì
 
-### Cách tính quota khi bị ngắt giữa chừng (Free) — `_runCopyInternal()` finally block
-- `updateFreeUsedMB()` (ghi `freeUsedMB` lên Firestore) được gọi trong khối `finally` của `_runCopyInternal()` — chạy ở **mọi đường thoát** (xong/Dừng/Abort/lỗi/auth hết hạn), không chỉ nhánh thành công như trước. Điều kiện: `st.gUserData?.plan === 'free' && st._sessionCopiedMB > 0`.
-- `st._sessionCopiedMB` chỉ cộng dồn SAU khi 1 file copy thành công thực sự (`res.ok===true`, xem 3 điểm cộng trong file-worker/`copyRecTree`/`copyRecTreeFiltered`) — file đang dang dở khi bị ngắt (mất mạng/Dừng) không được tính vào, nên không bị trừ quota 2 lần nếu user copy lại từ đầu (file đã copy thành công sẽ bị `existNames()` skip ở lần chạy sau).
-- `updateFreeUsedMB()` set `st._sessionCopiedMB = 0` ngay sau khi ghi Firestore thành công — tránh cộng dồn lại nếu hàm bị gọi lần nữa.
+### Resume chỉ dành cho gói Trọn đời
+- Guard: `if (plan !== 'lifetime' && plan !== 'paid') { clearSession(); return; }` — trial và credit không có resume
+- Session vẫn được lưu trong lúc copy (không tốn công tách riêng) — chỉ việc **hiện banner/cho phép resume** là bị chặn theo gói
 
-### Luồng nâng cấp Free → Paid (đã đăng nhập)
-1. User bấm "Nâng cấp lên Trọn đời →" trong `#freeBanner`
+### Luồng yêu cầu mua lượt Ngắn hạn — từ `#planLockedModal`
+1. User bấm "Mua Ngắn hạn 39k" trong `#planLockedModal` → `requestCreditPurchase()` (auth.js)
+2. Tạo doc `creditRequests/{autoId}` với `{uid, email, name, plan:'credit', requestedAt}`
+3. Gửi email `credit_purchase_request` cho admin
+4. Admin vào admin.html → tab "Yêu cầu Ngắn hạn" → bấm "Duyệt" → `approveCreditRequest(uid, docId)`
+5. `addCredits(uid, 3)` → `updateDoc({plan:'credit', creditsRemaining: increment(3), creditsLockedAt: null})`
+6. Gửi email `credit_added` cho user
+
+### Luồng nâng cấp Trial/Credit → Lifetime (đã đăng nhập)
+1. User bấm "Đăng ký Trọn đời 290k" trong `#planLockedModal` (hoặc từ `#freeBanner`/`openUpgradeModal`)
 2. `openUpgradeModal()` → `_paymentContext='upgrade'` → mở `#paymentModal`
-3. User bấm "Tôi đã thanh toán — Xác nhận" → `showPaymentConfirm()` → mở `#paymentConfirmModal`
-4. User bấm "Xác nhận — Đã chuyển khoản" → `confirmPayment()` → gọi `_doUpgradeRequestInternal()`
-5. `_doUpgradeRequestInternal()` → set `upgradeRequestedAt=serverTimestamp()` → gửi email `upgrade_request` → `updateFreeBanner()` hiện trạng thái "Chờ xác nhận"
-6. Admin vào admin.html, thấy badge "⬆ Chờ nâng cấp", bấm "Duyệt nâng cấp" → `approveUpgrade()` → set `plan='paid', upgradeRequestedAt=null` → gửi email `upgrade_approved` cho user
+3. User bấm "Xác nhận — Đã chuyển khoản" → `confirmPayment()` → gọi `_doUpgradeRequestInternal()`
+4. `_doUpgradeRequestInternal()` → set `upgradeRequestedAt=serverTimestamp()` → gửi email `upgrade_request` → freeBanner hiện "Chờ xác nhận"
+5. Admin bấm "Duyệt nâng cấp" → `approveUpgrade()` → set `plan='lifetime', upgradeRequestedAt=null` → gửi email `upgrade_approved` + `ctv_commission_earned` (nếu có CTV giới thiệu)
 
-### `updateFreeBanner()` — 3 trạng thái (render innerHTML động)
-| Trạng thái | Điều kiện | Hiện |
-|---|---|---|
-| `plan='paid'` | gUserData.plan === 'paid' | `#premiumBadge` (vàng, crown icon), ẩn `#freeBanner` |
-| Chờ xác nhận | plan='free' + upgradeRequestedAt set | freeBanner: "⏳ Gói Trọn đời — Đang chờ admin xác nhận..." |
-| Free bình thường | plan='free', không có upgradeRequestedAt | freeBanner: dung lượng còn lại + nút "Nâng cấp" |
+### `updateFreeBanner()` — render theo plan
+| Plan | Hiện |
+|---|---|
+| `'lifetime'` / `'paid'` | `#premiumBadge` (vàng, crown icon), ẩn `#freeBanner` |
+| `'credit'` (còn lượt) | freeBanner: "X lượt còn lại" + nút nâng cấp |
+| `'credit'` (hết lượt) | freeBanner: "Đã hết lượt" + nút "Mua thêm" + nút nâng cấp |
+| `'trial'`/`'free'` (chưa dùng) | freeBanner: "2 GB / 1 lần" + nút nâng cấp |
+| `'trial'`/`'free'` (đã dùng) | freeBanner: "Đã hết lượt dùng thử" + 2 nút (Ngắn hạn/Trọn đời) |
+| `upgradeRequestedAt` set | freeBanner: "⏳ Đang chờ admin xác nhận..." |
 
-**Lưu ý:** `#freeBanner` không có con HTML tĩnh — toàn bộ nội dung được render bởi `updateFreeBanner()`. Không tạo child element tĩnh trong `#freeBanner`.
+**`#freeBanner` không có con HTML tĩnh** — toàn bộ nội dung render bởi `updateFreeBanner()`. Không tạo child element tĩnh trong `#freeBanner`.
 
 ### Biến quan trọng trong `st` object (state.js)
 Tất cả đều truy cập qua `st.<tên>`. KHÔNG khai báo lại dưới dạng biến local.
@@ -419,10 +443,9 @@ const VIDEO_CONCUR = 6;        // max concurrent video download+reupload
 // Session — trong app.js
 const SESSION_TTL = 120 * 60 * 1000; // 120 phút, tự xóa nếu cũ hơn
 
-// Free plan — trong state.js (export để auth.js và app.js cùng dùng)
-export const FREE_MB_LIMIT = 500;
-export const FREE_MB_MARGIN = 50;  // biên độ vượt cho phép khi bắt đầu 1 lượt copy mới — xem "Khoá nút Bắt đầu sao chép theo quota"
-export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
+// Plan limits — trong state.js (export để auth.js và app.js cùng dùng)
+export const TRIAL_MB_LIMIT = 2048;   // 2 GB — giới hạn duy nhất cho gói Dùng thử
+// Không còn FREE_MB_LIMIT / FREE_MB_MARGIN / FREE_RESET_MS
 ```
 
 ---
@@ -577,20 +600,20 @@ export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Đang deploy**: Vercel (`swiftcopydrive.vercel.app`) — sắp mua domain `swiftcopydrive.com`
 - **CI/CD**: Vercel tự động deploy khi push lên GitHub
 - **Email system**: ĐÃ hoạt động — `GAS_URL` lưu trong Vercel env var, proxy qua `api/email.js`, confirmed working (kick/readd/approve/upgrade đều gửi được)
-- **Email template HTML**: ĐÃ redesign, tổng 25+ loại trong `gas-email.js` (dùng chung `buildEmailHtml()`, logo SVG, nút CTA amber). Gửi qua `htmlBody`. Bao gồm: 12 loại user/admin cốt lõi + 7 loại CTV + 2 loại mới Phase 2 (`upgrade_request_received` gửi User khi gửi yêu cầu nâng cấp, `upgrade_reminder` gửi Free user định kỳ 3 ngày). **Sau khi đổi `gas-email.js` phải vào script.google.com → Deploy → Manage deployments → Edit → New version → Deploy thì code mới mới có hiệu lực** (URL không đổi).
-- **Upgrade reminder cron**: `api/cron-upgrade-reminder.js` — Vercel cron hàng ngày 13:00 UTC (20:00 VN), query Free user không bị kicked, gửi `upgrade_reminder` mỗi 3 ngày (`lastReminderDay` dedup), tối đa 730 ngày. Service account JWT giống `api/maintenance.js`. `vercel.json` đã có `"crons":[...]`. Vercel auto-redeploy từ GitHub push. Kiểm tra tại Vercel Dashboard → Settings → Cron Jobs.
-- **SITE_URL trong email**: đã set `https://swiftcopydrive.vercel.app` trong `admin.html`, `auth.js`, `api/cron-upgrade-reminder.js`, và `gas-email.js` — khi mua domain xong, đổi tất cả sang domain thật (`const SITE_URL = "https://swiftcopydrive.com"`)
+- **Email template HTML**: ĐÃ redesign, tổng 29+ loại trong `gas-email.js` (dùng chung `buildEmailHtml()`, logo SVG, nút CTA amber). Gửi qua `htmlBody`. Bao gồm: 16 loại user/admin cốt lõi (12 cũ + 4 mới Phase 2: `trial_used_up`, `credit_used_up`, `credit_purchase_request`, `credit_added`) + 7 loại CTV + 2 loại Phase 2 khác (`upgrade_request_received`, cron reminders). **Sau khi đổi `gas-email.js` phải vào script.google.com → Deploy → Manage deployments → Edit → New version → Deploy thì code mới mới có hiệu lực** (URL không đổi).
+- **Plan reminder cron** (Phase 2): `api/cron-plan-reminder.js` — Vercel cron hàng ngày 13:00 UTC (20:00 VN). Gửi reminders cho: (1) Trial users bị lock (`trialUsed=true`) vào ngày 1/3/7/14 sau `trialLockedAt`; (2) Credit users hết lượt (`creditsRemaining<=0`) vào ngày 1/3 sau `creditsLockedAt`. Dedup bằng `lastPlanReminderDay` (số nguyên, field mới — khác `lastReminderDay` của cron cũ). Không còn `api/cron-upgrade-reminder.js` (xoá khỏi `vercel.json`, file còn trong repo nhưng không được gọi).
+- **SITE_URL trong email**: đã set `https://swiftcopydrive.vercel.app` trong `admin.html`, `auth.js`, `api/cron-plan-reminder.js`, và `gas-email.js` — khi mua domain xong, đổi tất cả sang domain thật (`const SITE_URL = "https://swiftcopydrive.com"`)
 - **Auth flow**: ĐÃ implement luồng mới — #loginModal premium + #planSelectModal (chọn Free/Paid sau login), #startModal đã bị xóa. Điều hướng landing-cho-user-đã-đăng-nhập nằm trong `_routeLandingAuthedUser(u)` (auth.js) — gọi từ cả `onAuthStateChanged` lẫn trực tiếp trong `doLogin()` sau khi popup resolve (không phụ thuộc hoàn toàn vào listener — fix bug "phải F5 mới vào được dashboard sau đăng nhập lại"). `window.closePaymentModal()` signOut nếu đóng `#paymentModal` giữa chừng lúc đang đăng ký mới (chưa có Firestore doc) — không áp dụng cho flow upgrade. Đăng nhập bằng email chưa đăng ký → báo lỗi inline trong `#loginErrorMsg` (cuối `#loginView`), không mở `#planSelectModal`. Xem chi tiết 3 fix ở mục "Các lỗi đã gặp" phía trên.
 - **loginModal UI**: tiêu đề "Đăng ký", backdrop `rgba(0,0,0,0.85)` không blur — tạo cảm giác tập trung; có 2 view: `#loginView` (form mặc định) + `#loginWarnView` (cảnh báo Google chưa xét duyệt — hiện trước khi gọi popup)
 - **login_hint + account picker**: `doLogin()` luôn set `prompt: 'select_account'` (kèm `login_hint` nếu có) → Google luôn hiện account picker. `reAuth()` cũng set `prompt: 'select_account'` (KHÔNG dùng `prompt: 'consent'` vì gây hiện "Google chưa xác minh" mỗi lần)
 - **gToken + sessionStorage**: `gToken` (Google OAuth access token cho Drive API) bị reset về null mỗi khi page reload. Fix: `doLogin()` và `reAuth()` lưu `gToken` vào `sessionStorage` key `swiftcopy_gtok`; dashboard's `onAuthStateChanged` restore từ sessionStorage nếu `gToken` null. Khi logout (dashboard `!u` branch): `sessionStorage.removeItem('swiftcopy_gtok')`
 - **Checklist size display**: `#srcTotalSize` bị ẩn (display:none). `#clSizeInfo` hiện "Đã chọn: X.X GB (mp4, pdf, doc...)" — size tổng + danh sách đuôi file thực tế (top 6 theo tổng dung lượng, không phải số lượng) sau khi deep scan xong. Sort theo dung lượng để extension nào chiếm nhiều GB nhất hiện đầu tiên (ví dụ mp4 sẽ lên đầu dù ít file hơn pdf).
-- **planSelectModal UI**: backdrop `rgba(0,0,0,0.55)` + `blur(10px)`; cột Trọn đời nền `#fffdf5` (kem vàng nhạt). Tất cả 5 dòng tính năng cột Trọn đời in đậm (`<b>`). Nội dung cột Free: "Sao chép tốc độ cao file & thư mục" / "150 MB / 5 giờ (tự reset)" / "Kiểm tra quyền trước khi copy" / "Không copy video" / "Mất mạng/tắt máy không tự tiếp tục". Nội dung cột Trọn đời: "Sao chép tốc độ cao file & thư mục" / "Không giới hạn dung lượng" / "Sao chép video không giới hạn" / "Sao chép file không có nút tải về" / "Tự tiếp tục sau mất mạng/máy tắt".
+- **planSelectModal UI** (Phase 2 — 2 cột): backdrop `rgba(0,0,0,0.55)`; cột Trọn đời nền `#fffbea`. Nút "Dùng thử miễn phí" → `choosePlanFree()`; nút "Đăng ký Trọn đời →" amber → `choosePlanPaid()`. Nội dung cột Dùng thử: "2 GB, dùng 1 lần duy nhất" / "Không copy video" / "Không tự tiếp tục". Nội dung cột Trọn đời (290.000đ): "Không giới hạn dung lượng" / "Sao chép video" / "Tự tiếp tục sau mất mạng/máy tắt". Badge "PHỔ BIẾN" với animation `plan-badge-wobble`.
 - **paymentModal UI**: bố cục 2 cột (QR 185×185px bên trái + thông tin ngân hàng bên phải), max-width 520px; ô hướng dẫn: `border-left: 3px solid #c9a84c`, nền `#f8f9fa`, tiêu đề `#212529 700`, text bước `#495057`, highlight `#a07820 600`
 - **premiumBadge icon**: SVG outline crown (vương miện 3 răng + ngang band), polygon + line, stroke `#c9a84c`
-- **Premium badge**: ĐÃ implement — `#premiumBadge` hiện khi plan=paid, thay freeBanner
+- **Premium badge**: ĐÃ implement — `#premiumBadge` hiện khi `plan==='lifetime'` (hoặc `'paid'` backward compat), thay freeBanner
 - **Kick screen**: ĐÃ fix — `pollKickStatus()` hiện `#s-kicked` (không signOut), user thấy lý do và phải bấm Đăng xuất
-- **Readd + welcome modal**: ĐÃ implement — `doReadd()` set plan='paid' + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login
+- **Readd + welcome modal**: ĐÃ implement — `doReadd()` set `plan='lifetime'` + readdedAt; `#readdWelcomeModal` hiện 1 lần sau login
 - **Admin email**: hành vi đăng ký/duyệt hoàn toàn giống user thường — Đăng ký gói Trọn đời → tạo doc `pending` → hiện `#s-pend` như mọi user. Muốn vào dashboard, ADMIN_EMAIL phải tự vào `admin.html` (gate riêng bởi `ADMIN_EMAIL` constant, độc lập với field `approved`) để tự duyệt tài khoản của chính mình, rồi đăng nhập lại (hoặc bấm "Kiểm tra lại" để reload). Không có poll tự động cho trạng thái `pending` (chỉ `kicked` mới có `_pollKickStatus` 30s) — đây là thiết kế cố ý, không phải bug. Nếu vẫn thấy bypass vào thẳng dashboard dù doc đang `pending`, nhiều khả năng là do doc Firestore của tài khoản đó còn `approved:true` sót lại — cần vào `admin.html` kiểm tra/sửa lại field trực tiếp, không phải lỗi code.
   **Ngoại lệ duy nhất dành riêng cho ADMIN_EMAIL** (`auth.js`, hằng số `const ADMIN_EMAIL = "hgntran.contact@gmail.com"` khai báo riêng trong `auth.js`, KHÔNG import từ đâu khác): trong `_routeLandingAuthedUser()`, nếu bấm "Đăng ký dùng thử" (`_loginMode==='register'`) mà doc **đã tồn tại** và email khớp `ADMIN_EMAIL` → bỏ qua nhánh chặn "Tài khoản này đã được đăng ký" (vốn áp dụng cho user thường), gọi thẳng `showPlanSelect()` như thể chưa có doc — cho phép admin đăng ký lại nhiều lần để test mà không cần xoá doc thủ công mỗi lần. `createFreeUser()`/`createPaidPendingUser()` dùng `setDoc()` (ghi đè toàn bộ) nên doc cũ bị overwrite sạch, kể cả `readdedAt`/`kickReason` nếu có. **Chỉ áp dụng cho luồng "Đăng ký lại"** — luồng "Đăng nhập" với doc đã tồn tại không đổi (vẫn check `approved` bình thường, không có bypass riêng).
 - **Maintenance mode**: ĐÃ fix hoàn toàn — 3 chế độ (all/auth/dashboard) + off, trang riêng `admin-maintenance.html`. `getMaintenance()` gọi `/api/maintenance` (Vercel function + service account) thay vì Firestore trực tiếp → hoạt động đúng cho cả người chưa đăng nhập. Toggle bật/tắt trong card header, nhớ mode cuối qua `_lastActiveMode`. Vercel env vars cần có: `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`.
@@ -607,8 +630,10 @@ export const FREE_RESET_MS = 5 * 60 * 60 * 1000; // 5 giờ
 - **Redesign cột Trọn đời trong `#planSelectModal`**: (1) Nền cột Trọn đời đổi từ `#fffdf5` → `#fffbea`; (2) Nút "Đăng ký gói Trọn đời →" đổi từ `#212529` (đen) → `#ffc107` (amber) + `border:1px solid #e6a800` + chữ `#212529`; (3) Badge "PHỔ BIẾN" thêm class `plan-badge-wobble` (CSS keyframe `planBadgeWobble` trong `style.css`): xoay ±6° + scale 1.08 lúc đỉnh, 2s ease-in-out vô hạn.
 - **Tone đỏ cho "Kiểm tra trước", tone vàng mới cho "Sao chép hoàn tất" (khu vực Tiến trình đồng bộ)**: Theo yêu cầu owner đồng bộ màu sắc theo ý nghĩa hành động (đỏ = cảnh báo/kiểm tra trước khi làm, vàng = đã hoàn tất — khớp brand color). (1) `#scanSummaryBanner` (`dashboard.html`) đổi từ tone vàng/cam nhạt cũ sang tone đỏ: viền `1.5px solid #dc3545`, header nền đặc `#dc3545` chữ trắng + icon clipboard-check (SVG inline tự vẽ, không phải sprite), 2 ô số liệu "sẽ copy thành công" (xanh `#099268`)/"sẽ lỗi" (xám `#adb5bd` nếu 0, đỏ `#dc3545` nếu >0 — đổi màu cả số lẫn label qua `showScanSummaryBanner()`), nút "Xem chi tiết" nền đỏ đậm. (2) `#scanRepModal` (modal "Kiểm tra hoàn tất" hiện ngay sau khi bấm "Kiểm tra trước") đồng bộ tone đỏ trong `renderScanResult()` (app.js): viền ngoài modal `1.5px solid #dc3545`, icon tròn header đổi sang shield-check (SVG inline tự vẽ) nền đỏ đặc, nút "Bắt đầu sao chép ngay →" nền đỏ đậm — nút "Để tôi kiểm tra lại" giữ nguyên viền trung tính cũ, không đổi (theo đúng yêu cầu). (3) Thêm mới `#copyResultBanner` (`dashboard.html`, ngay sau `#scanSummaryBanner`, cùng vị trí khu Tiến trình đồng bộ) — tone vàng, viền `1.5px solid #ffc107`, header nền vàng đặc chữ đen `#212529` + icon `#ic-check-c` (tái dùng sprite có sẵn), 3 ô số liệu "thành công" (xanh)/"lỗi" (đỏ)/"thư mục" (xám `#495057` — không có biến CSS `--color-text-secondary` trong codebase nên dùng màu xám đã thiết lập sẵn cho `#sFolders`), mỗi ô bấm được riêng (`onclick="window.openModal('result'|'failed'|'folders')"`, tái dùng nguyên modal chi tiết có sẵn — không tạo modal mới), nút "Xem chi tiết" dưới cùng gọi `window.openCopyResultDetail()` (mặc định mở tab lỗi nếu có lỗi, ngược lại mở tab thành công, giống pattern `openScanDetailModal()`). Số liệu dùng đúng công thức đã thống nhất từ trước (`progDone - stats.failed` / `stats.failed` / `stats.folders`, xem entry "hợp nhất công thức..." phía trên) — không đổi cách tính, chỉ thêm hiển thị. `showCopyResultBanner()`/`hideCopyResultBanner()` (app.js) — banner chỉ hiện khi copy hoàn tất tự nhiên (cùng điểm gọi `showComplModal()` trong `_runCopyInternal`), ẩn ở 4 nơi cùng với `hideScanSummaryBanner()` (đầu `_runCopyInternal`, `doReset`, `doProgressReset`, `onInputChange('src')`). (4) `.compl-btn` ("Đã hiểu" trong modal "Sao chép hoàn tất!") đổi nền đen `#212529` → vàng đậm `#ffc107` chữ đen, hover `#e6ac00` (`style.css`).
 - **Drive label sublabels**: Drive Nguồn hiện "(Bản gốc tải về)", Drive Đích hiện "(Tải về Drive bạn)" — `text-[10px] text-[#adb5bd]`, cùng hàng với tên label. Trong `dashboard.html`.
-- **Firestore Security Rules**: ĐÃ siết — `firestore.rules` trong repo. Paste vào Firebase Console → Firestore → Rules → Publish. Quy tắc: user chỉ đọc doc của mình; tạo mới chỉ được plan='free'; cập nhật không được thay đổi plan/approved/status/email; admin (ADMIN_EMAIL) bypass toàn bộ; `settings` chỉ admin đọc/ghi trực tiếp (api/maintenance dùng service account → bypass); `history` collection: `allow create, read: if isOwner()`; **`allow update: if false; allow delete: if isAdmin();`** — chỉ admin xóa được history record (thông qua `#userHistoryModal`), user thường không xóa được. **QUAN TRỌNG: phải Apply rules trong Firebase Console sau mỗi lần sửa `firestore.rules`.**
-- **Free plan limits**: `FREE_MB_LIMIT = 150` MB / 5 giờ, `FREE_MB_MARGIN = 20` MB — trong `state.js`. Tất cả UI text (planSelectModal, app.js, gas-email.js) đã đồng bộ "150 MB".
+- **Firestore Security Rules**: ĐÃ siết — `firestore.rules` trong repo. Paste vào Firebase Console → Firestore → Rules → Publish. Quy tắc: user chỉ đọc doc của mình; tạo mới chỉ được `plan in ['trial','free']`; cập nhật không được thay đổi plan/approved/status/email; admin (ADMIN_EMAIL) bypass toàn bộ; `creditRequests` collection: user tạo + đọc doc của mình, admin full access; `settings` chỉ admin đọc/ghi trực tiếp (ngoại lệ ctv_terms/ctv_payment_terms cho CTV); `history` collection: `allow create, read: if isOwner()`; **`allow update: if false; allow delete: if isAdmin();`**. **QUAN TRỌNG: phải Apply rules trong Firebase Console sau mỗi lần sửa `firestore.rules`.**
+- **3-plan system (Phase 2 — July 2026)**: ĐÃ migrate từ `free`/`paid` sang `trial`/`credit`/`lifetime`. `TRIAL_MB_LIMIT = 2048` (2GB). `state.js` không còn `FREE_MB_LIMIT`/`FREE_RESET_MS`. `app.js` không còn `refreshFreeQuotaLock`/`checkFreeLimit`/`updateFreeUsedMB`. `auth.js` thêm `openPlanLockedModal`/`requestCreditPurchase`. Dashboard có `#planLockedModal` (2 cột Ngắn hạn 39k / Trọn đời 290k). `admin.html` có 3-option plan dropdown + tab "Yêu cầu Ngắn hạn" (`creditRequests` collection). Backward compat: `plan='free'` → `'trial'`; `plan='paid'` → `'lifetime'`.
+- **creditRequests collection**: Firestore collection mới cho yêu cầu mua Ngắn hạn. User tạo doc qua `requestCreditPurchase()`. Admin duyệt qua `approveCreditRequest(uid, docId)` → `addCredits(uid, 3)` → gửi email `credit_added`. Fields: `{uid, email, name, plan:'credit', requestedAt, status:'pending'}`.
+- **Video restriction (Phase 2)**: CHỈ gói `trial` và `credit` bị chặn video. `lifetime` (`plan==='lifetime'||plan==='paid'`) được copy video tự do. `refreshFreeVideoLock()` check `plan!=='lifetime' && plan!=='paid'` thay vì `plan==='free'`.
 - **Lịch sử sao chép**: `saveHist()` lưu cho MỌI plan (Free và Paid) — không còn gate `plan !== 'free'`. Collection `history` fields: `uid, email, srcId, srcName, destId, destName, copied, failed, folders, elapsed, createdAt`.
 - **Admin.html — search bar**: thanh tìm kiếm `#adminSearchInput` cùng hàng tab nav, debounce 200ms, `_doSearch()` normalize diacritic so sánh với `allUsers`+`allCTVs`, dropdown `#adminSearchDrop` highlight match (nền `#fff3cd`), click → `jumpToUser`/`jumpToCTV` scroll+highlight 1.8s. Clear button "×". `removeDiacriticsSearch()` NFD + accent strip + đ→d.
 - **Admin.html — lịch sử user**: nút "📋 Lịch sử" (`.act-btn-blue`) trên mỗi hàng user không bị kicked → `openUserHistory(uid, name)` → `#userHistoryModal` (700px, bảng 5 cột: Ngày / Thành công / Lỗi / Thư mục / Xóa). `deleteHistRecord(docId)` xóa 1 bản ghi; `deleteAllHistory()` batch xóa toàn bộ.
