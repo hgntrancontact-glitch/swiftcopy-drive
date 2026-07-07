@@ -1529,7 +1529,7 @@ function toast(msg,type='ok'){
   setTimeout(()=>t.classList.remove('on'),3000);
 }
 
-window.doLogin         = () => { provider.setCustomParameters({ prompt: 'select_account' }); signInWithPopup(auth, provider).catch(e=>toast('Lỗi: '+e.message,'err')); };
+window.doLogin         = () => { provider.setCustomParameters({ prompt: 'login' }); signInWithPopup(auth, provider).catch(e=>toast('Lỗi: '+e.message,'err')); };
 window.doLogout        = () => signOut(auth);
 window.tryAnotherAccount = () => { _denied = false; sec('login'); };
 </script>
