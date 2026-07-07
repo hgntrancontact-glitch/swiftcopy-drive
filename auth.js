@@ -35,9 +35,9 @@ provider.addScope('https://www.googleapis.com/auth/drive');
 window.doLogin = async () => {
   document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
   const hint = document.getElementById('loginEmailHint')?.value?.trim() || '';
-  // With login_hint: remove select_account so Google pre-fills the email or auto-selects it.
-  // Without hint: keep select_account so Google always shows the account picker.
-  provider.setCustomParameters(hint ? { login_hint: hint } : { prompt: 'select_account' });
+  // With hint: force sign-in form (prompt:'login') + pre-fill email — always shows popup.
+  // Without hint: account picker so user can choose from existing sessions.
+  provider.setCustomParameters(hint ? { login_hint: hint, prompt: 'login' } : { prompt: 'select_account' });
   try {
     const res = await signInWithPopup(auth, provider);
     st.gToken = GoogleAuthProvider.credentialFromResult(res)?.accessToken;
