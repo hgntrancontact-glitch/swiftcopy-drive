@@ -434,7 +434,7 @@ function handleAdminCTVApplied(data) {
     iconBg: '#fffbea', iconColor: '#d97706', iconChar: '★',
     title: 'Đơn đăng ký CTV mới',
     bodyHtml: bodyHtml,
-    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin',
+    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin.html',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
   GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
@@ -569,7 +569,7 @@ function handleCTVUrgentPayment(data) {
     iconBg: '#fffbea', iconColor: '#d97706', iconChar: '◷',
     title: 'Yêu cầu thanh toán gấp từ CTV',
     bodyHtml: bodyHtml,
-    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin',
+    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin.html',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
   GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
@@ -700,7 +700,7 @@ function handleCTVKickAlert(data) {
     iconBg: '#fff5f5', iconColor: '#dc3545', iconChar: '!',
     title: 'CTV đã bị kick vẫn cố đăng nhập',
     bodyHtml: bodyHtml,
-    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin',
+    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin.html',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
   GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
@@ -724,7 +724,7 @@ function handleAdminSelfDeleteNotice(data) {
     iconBg: '#fff5f5', iconColor: '#a32d2d', iconChar: '!',
     title: 'Một người dùng vừa tự xoá tài khoản',
     bodyHtml: bodyHtml,
-    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin',
+    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin.html',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
   GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });

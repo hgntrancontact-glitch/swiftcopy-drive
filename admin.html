@@ -682,6 +682,13 @@ window.switchAdminTab = (tab) => {
 
 // ── CTV Load ────────────────────────────────────────────────────────
 async function loadCTVs() {
+  const loadingRow = (cols) => `<tr><td colspan="${cols}" class="empty-cell">Đang tải...</td></tr>`;
+  const pb = document.getElementById('ctvPendingBody');
+  const ab = document.getElementById('ctvActiveBody');
+  const pyb = document.getElementById('ctvPaymentBody');
+  if (pb) pb.innerHTML = loadingRow(5);
+  if (ab) ab.innerHTML = loadingRow(8);
+  if (pyb) pyb.innerHTML = loadingRow(5);
   try {
     const snap = await getDocs(query(collection(db, 'affiliates'), orderBy('createdAt', 'desc')));
     allCTVs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -697,6 +704,7 @@ async function loadCTVs() {
     renderCTVPayments(payment);
     const badge = document.getElementById('ctvPendingBadge');
     if (badge) { badge.textContent = pending.length || ''; badge.style.display = pending.length ? 'inline' : 'none'; }
+    toast('Đã làm mới dữ liệu CTV', 'ok');
   } catch(e) { toast('Lỗi tải CTV: ' + e.message, 'err'); }
 }
 window.loadCTVs = loadCTVs;
