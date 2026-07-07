@@ -418,9 +418,9 @@
       </div>
     </div>
     <div style="text-align:center;font-size:15.5px;font-weight:800;color:#212529;margin-bottom:6px;">Phát hiện video trong lựa chọn của bạn</div>
-    <div style="text-align:center;font-size:13px;color:#495057;margin-bottom:16px;line-height:1.5;">Gói Miễn phí không hỗ trợ sao chép video. Vui lòng bỏ chọn các file/thư mục chứa video bên dưới để tiếp tục.</div>
+    <div style="text-align:center;font-size:13px;color:#495057;margin-bottom:16px;line-height:1.5;">Gói Dùng thử không hỗ trợ sao chép video. Vui lòng bỏ chọn các file/thư mục chứa video bên dưới để tiếp tục.</div>
     <div id="freeVideoBlockList" style="max-height:160px;overflow-y:auto;margin-bottom:14px;"></div>
-    <div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#7c5a00;margin-bottom:16px;line-height:1.5;">Nâng cấp Trọn đời để sao chép video không giới hạn — chỉ 250.000đ, dùng mãi mãi.</div>
+    <div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#7c5a00;margin-bottom:16px;line-height:1.5;">Nâng cấp Trọn đời để sao chép video không giới hạn — chỉ 290.000đ, dùng mãi mãi.</div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button onclick="closeFreeVideoBlockModal();openUpgradeModal()" style="background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Nâng cấp Trọn đời</button>
       <button onclick="closeFreeVideoBlockModal()" style="background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f1f3f5'">Đã hiểu, để tôi bỏ chọn video</button>
@@ -606,8 +606,8 @@
       <div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:4px;">Đăng ký gói Trọn đời</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:14px;color:#adb5bd;text-decoration:line-through;">450.000 ₫</span>
-        <span style="font-size:22px;font-weight:900;color:#ffc107;">250.000 ₫</span>
-        <span style="background:#dc3545;color:#fff;font-size:10px;font-weight:900;padding:2px 8px;border-radius:999px;">-44%</span>
+        <span style="font-size:22px;font-weight:900;color:#ffc107;">290.000 ₫</span>
+        <span style="background:#dc3545;color:#fff;font-size:10px;font-weight:900;padding:2px 8px;border-radius:999px;">-36%</span>
       </div>
       <div style="font-size:12px;color:#adb5bd;margin-top:3px;">Mua một lần, sử dụng không giới hạn mãi mãi</div>
     </div>
@@ -671,7 +671,7 @@
   </div>
 </div>
 
-<!-- ══════════════ FREE LIMIT MODAL ══════════════ -->
+<!-- ══════════════ PLAN LOCKED MODAL ══════════════ -->
 <!-- ══════════════ STOP CONFIRM MODAL ══════════════ -->
 <div class="modal-overlay" id="stopConfirmModal">
   <div class="modal-wrapper" style="max-width:360px;padding:28px 24px 24px;border-radius:18px;text-align:center;">
@@ -687,19 +687,43 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="freeLimitModal" onclick="if(event.target===this)closeFreeLimitModal()">
-  <div class="modal-wrapper" style="max-width:400px;padding:0;border-radius:18px;overflow:hidden;text-align:center;">
-    <div style="background:#212529;padding:18px 22px 14px;">
-      <div style="font-size:40px;margin-bottom:6px;">⏳</div>
-      <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:2px;">Đã dùng hết hạn mức miễn phí</div>
-      <div style="font-size:12px;color:#adb5bd;">Hạn mức 150 MB / 5 giờ đã được sử dụng hết</div>
+<div class="modal-overlay" id="planLockedModal" onclick="if(event.target===this)this.classList.remove('active')">
+  <div class="modal-wrapper" style="max-width:520px;padding:0;border-radius:20px;overflow:hidden;position:relative;">
+    <button onclick="document.getElementById('planLockedModal').classList.remove('active')" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;z-index:10;line-height:1;" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">✕</button>
+    <div style="background:#212529;padding:18px 24px 14px;padding-right:52px;">
+      <div id="planLockedTitle" style="font-size:16px;font-weight:900;color:#fff;margin-bottom:3px;">Bạn đã dùng hết lượt sao chép miễn phí</div>
+      <div style="font-size:12px;color:#adb5bd;">Chọn 1 trong 2 gói dưới đây để tiếp tục sao chép</div>
     </div>
-    <div style="padding:22px 24px;">
-      <div style="font-size:13px;color:#495057;margin-bottom:6px;">Đã sử dụng: <b id="freeLimitUsedMB">0</b> MB / 150 MB</div>
-      <div style="font-size:13px;color:#495057;margin-bottom:18px;">Hạn mức tự reset sau: <b id="freeLimitCountdown" style="font-size:18px;color:#212529;font-family:monospace;">0:00:00</b></div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button onclick="openUpgradeFromLimit()" style="background:#ffc107;color:#212529;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Nâng cấp lên Trọn đời — Không giới hạn</button>
-        <button onclick="closeFreeLimitModal()" style="background:#f1f3f5;color:#495057;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f1f3f5'">Chờ reset tự động</button>
+    <!-- 2-col: Credit (left) + Lifetime (right) -->
+    <div class="plan-cols" style="display:grid;grid-template-columns:1fr 1fr;">
+      <!-- Left: Ngắn hạn -->
+      <div style="padding:18px 20px 20px;border-right:1px solid #e9ecef;display:flex;flex-direction:column;">
+        <div style="font-size:10px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;">Ngắn hạn</div>
+        <div style="font-size:24px;font-weight:900;color:#212529;margin-bottom:2px;">39.000 ₫</div>
+        <div style="font-size:11px;color:#adb5bd;margin-bottom:13px;">3 lượt sao chép</div>
+        <ul style="list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;flex:1;">
+          <li style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Sao chép tốc độ cao file & thư mục</li>
+          <li style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Không giới hạn dung lượng</li>
+          <li style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Sao chép video không giới hạn</li>
+          <li style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span>Tự tiếp tục sau mất mạng/máy tắt</li>
+          <li style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#fa5252;font-weight:800;flex-shrink:0;">✗</span><span style="color:#adb5bd;">Giới hạn lượt sao chép — phải mua lại</span></li>
+        </ul>
+        <button onclick="window.requestCreditPurchase()" style="width:100%;background:#f1f3f5;color:#212529;border:1.5px solid #dee2e6;border-radius:10px;padding:10px;font-size:12.5px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e2e5e9'" onmouseout="this.style.background='#f1f3f5'">Mua gói Ngắn hạn</button>
+      </div>
+      <!-- Right: Trọn đời -->
+      <div style="padding:18px 20px 20px;background:#fffbea;position:relative;display:flex;flex-direction:column;">
+        <div class="plan-badge-wobble" style="position:absolute;top:12px;right:12px;background:#ffc107;color:#212529;font-size:9.5px;font-weight:900;padding:2px 8px;border-radius:999px;">TIẾT KIỆM NHẤT</div>
+        <div style="font-size:10px;font-weight:800;color:#868e96;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;">Trọn đời</div>
+        <div style="margin-bottom:2px;"><span style="font-size:14px;font-weight:700;color:#adb5bd;text-decoration:line-through;">450.000 ₫</span> <span style="font-size:24px;font-weight:900;color:#212529;">290.000 ₫</span></div>
+        <div style="font-size:11px;color:#adb5bd;margin-bottom:13px;">Mua 1 lần, dùng mãi mãi</div>
+        <ul style="list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;flex:1;">
+          <li style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Sao chép tốc độ cao file & thư mục</b></li>
+          <li style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Không giới hạn dung lượng</b></li>
+          <li style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Sao chép video không giới hạn</b></li>
+          <li style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Tự tiếp tục sau mất mạng/máy tắt</b></li>
+          <li style="display:flex;align-items:flex-start;gap:6px;"><span style="color:#20c997;font-weight:800;flex-shrink:0;">✓</span><b>Không giới hạn lượt, dùng mãi mãi</b></li>
+        </ul>
+        <button onclick="document.getElementById('planLockedModal').classList.remove('active');openUpgradeModal()" style="width:100%;background:#ffc107;color:#212529;border:1px solid #e6a800;border-radius:10px;padding:10px;font-size:12.5px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Đăng ký gói Trọn đời →</button>
       </div>
     </div>
   </div>
@@ -731,7 +755,7 @@
 
 <!-- ══════════════ GUIDE MODAL ══════════════ -->
 <div id="guideModal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('active')">
-  <div class="modal-wrapper" style="max-width:580px;padding:0;overflow:hidden;border-radius:16px;display:flex;flex-direction:column;">
+  <div class="modal-wrapper" style="max-width:520px;padding:0;overflow:hidden;border-radius:16px;display:flex;flex-direction:column;">
     <div style="background:#ffc107;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:9px;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#212529" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6s1.5-2 5-2 5 2 5 2v14s-1.5-1-5-1-5 1-5 1z"/><path d="M12 6s1.5-2 5-2 5 2 5 2v14s-1.5-1-5-1-5 1-5 1z"/><line x1="12" y1="6" x2="12" y2="20"/></svg>
@@ -739,200 +763,70 @@
       </div>
       <button onclick="document.getElementById('guideModal').classList.remove('active')" style="background:rgba(0,0,0,.12);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;color:#212529;font-size:15px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;line-height:1;" onmouseover="this.style.background='rgba(0,0,0,.22)'" onmouseout="this.style.background='rgba(0,0,0,.12)'">✕</button>
     </div>
-    <div style="display:flex;border-bottom:1px solid #e9ecef;background:#fff;flex-shrink:0;">
-      <button id="guideTab0" onclick="window.openGuideTab(0)" style="flex:1;padding:12px 4px;font-size:11.5px;font-weight:700;color:#212529;background:transparent;border:none;border-bottom:2.5px solid #212529;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='transparent'">Gói Miễn phí</button>
-      <button id="guideTab1" onclick="window.openGuideTab(1)" style="flex:1;padding:12px 4px;font-size:11.5px;font-weight:700;color:#868e96;background:transparent;border:none;border-bottom:2.5px solid transparent;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='transparent'">Gói Trọn đời</button>
-      <button id="guideTab2" onclick="window.openGuideTab(2)" style="flex:1;padding:12px 4px;font-size:11.5px;font-weight:700;color:#868e96;background:transparent;border:none;border-bottom:2.5px solid transparent;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='transparent'">Tính năng</button>
-      <button id="guideTab3" onclick="window.openGuideTab(3)" style="flex:1;padding:12px 4px;font-size:11.5px;font-weight:700;color:#868e96;background:transparent;border:none;border-bottom:2.5px solid transparent;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='transparent'">Giới hạn</button>
-    </div>
-    <div style="overflow-y:auto;flex:1;min-height:0;">
-
-      <!-- Panel 0: Gói Miễn phí -->
-      <div id="guidePanel0" style="background:#fff;padding:20px;">
-        <div style="display:flex;gap:12px;margin-bottom:18px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">1</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Dán link Drive nguồn</div>
-            <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Mở thư mục Google Drive cần sao chép, copy URL trên thanh địa chỉ trình duyệt và dán vào ô <b>Drive Nguồn</b>.</div>
-            <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:8px 10px;font-size:11px;">
-              <div style="color:#adb5bd;font-size:10px;margin-bottom:2px;">Drive Nguồn</div>
-              <div style="color:#495057;font-weight:600;word-break:break-all;">https://drive.google.com/drive/folders/1aBcDeFgHiJ...</div>
-              <div style="color:#099268;font-size:10px;margin-top:3px;">✓ Tài liệu học tập</div>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;margin-bottom:18px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">2</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Dán link Drive đích</div>
-            <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Tạo một thư mục trống mới trên Google Drive của bạn, copy URL và dán vào ô <b>Drive Đích</b>.</div>
-            <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:8px 10px;font-size:11px;">
-              <div style="color:#adb5bd;font-size:10px;margin-bottom:2px;">Drive Đích</div>
-              <div style="color:#495057;font-weight:600;word-break:break-all;">https://drive.google.com/drive/folders/9xYzAbCdEfG...</div>
-              <div style="color:#099268;font-size:10px;margin-top:3px;">✓ Drive của tôi</div>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;margin-bottom:18px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">3</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Tick chọn nội dung cần copy</div>
-            <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Checklist tự động hiện ra. Tick vào các thư mục hoặc file cần sao chép.</div>
-            <div style="background:#fff5f5;border-left:3px solid #dc3545;border-radius:0 6px 6px 0;padding:8px 10px;font-size:12px;color:#c92a2a;line-height:1.5;"><b>⚠</b> Nếu thấy thông báo "Vượt 150MB" — bỏ bớt tick để về dưới giới hạn, nút sao chép sẽ tự mở khoá.</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;margin-bottom:18px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">4</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Kiểm tra trước <span style="font-size:10px;font-weight:600;color:#868e96;margin-left:4px;">(tuỳ chọn)</span></div>
-            <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Nhấn "Kiểm tra trước" để xem danh sách file sẽ được copy và phát hiện lỗi quyền truy cập từ trước.</div>
-            <div style="display:flex;gap:8px;">
-              <div style="flex:1;background:#e6fcf5;border:1px solid #c3fae8;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#099268;">45</div><div style="font-size:10px;color:#0f6e56;">sẽ copy OK</div></div>
-              <div style="flex:1;background:#fff5f5;border:1px solid #ffe3e3;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#dc3545;">2</div><div style="font-size:10px;color:#c92a2a;">sẽ lỗi</div></div>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;margin-bottom:18px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">5</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Bắt đầu sao chép</div>
-            <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Nhấn "Bắt đầu sao chép". Giữ tab này mở trong suốt quá trình — đừng tắt trình duyệt hay chuyển sang tab khác lâu.</div>
-            <div style="background:#fff5f5;border-left:3px solid #dc3545;border-radius:0 6px 6px 0;padding:8px 10px;font-size:12px;color:#c92a2a;line-height:1.5;"><b>⚠</b> Gói Miễn phí không sao chép được video — nếu có video trong danh sách nút sẽ bị khoá, bỏ tick thư mục chứa video để tiếp tục.</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">6</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Xem báo cáo hoàn tất</div>
-            <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Sau khi xong, modal kết quả hiện số THÀNH CÔNG / LỖI / THƯ MỤC. Nhấn vào từng ô để xem chi tiết.</div>
-            <div style="display:flex;gap:6px;margin-bottom:8px;">
-              <div style="flex:1;background:#e6fcf5;border-radius:8px;padding:7px;text-align:center;"><div style="font-size:15px;font-weight:800;color:#099268;">43</div><div style="font-size:9.5px;color:#0f6e56;">THÀNH CÔNG</div></div>
-              <div style="flex:1;background:#fff5f5;border-radius:8px;padding:7px;text-align:center;"><div style="font-size:15px;font-weight:800;color:#dc3545;">2</div><div style="font-size:9.5px;color:#c92a2a;">LỖI</div></div>
-              <div style="flex:1;background:#f8f9fa;border-radius:8px;padding:7px;text-align:center;"><div style="font-size:15px;font-weight:800;color:#212529;">5</div><div style="font-size:9.5px;color:#868e96;">THƯ MỤC</div></div>
-            </div>
-            <div style="background:#fff5f5;border-left:3px solid #dc3545;border-radius:0 6px 6px 0;padding:8px 10px;font-size:12px;color:#c92a2a;line-height:1.5;"><b>⚠</b> Nếu mất mạng hoặc tắt máy giữa chừng — gói Miễn phí không tự tiếp tục, cần copy lại từ đầu.</div>
+    <div style="overflow-y:auto;flex:1;min-height:0;background:#fff;padding:20px;">
+      <!-- Unified panel: 6 steps, plan-agnostic -->
+      <div style="display:flex;gap:12px;margin-bottom:18px;">
+        <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">1</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Dán link Drive nguồn</div>
+          <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Mở thư mục Google Drive cần sao chép, copy URL trên thanh địa chỉ và dán vào ô <b>Drive Nguồn</b>.</div>
+          <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:8px 10px;font-size:11px;">
+            <div style="color:#adb5bd;font-size:10px;margin-bottom:2px;">Drive Nguồn</div>
+            <div style="color:#495057;font-weight:600;word-break:break-all;">https://drive.google.com/drive/folders/1aBcDeFgHiJ...</div>
+            <div style="color:#099268;font-size:10px;margin-top:3px;">✓ Tài liệu học tập</div>
           </div>
         </div>
       </div>
-
-      <!-- Panel 1: Gói Trọn đời -->
-      <div id="guidePanel1" style="display:none;background:#1a1a1a;padding:20px;">
-        <div style="display:flex;gap:12px;margin-bottom:18px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">1</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#ffc107;margin-bottom:4px;">Dán link Drive nguồn</div>
-            <div style="font-size:12.5px;color:#aaa;line-height:1.6;margin-bottom:7px;">Mở thư mục Google Drive cần sao chép, copy URL trên thanh địa chỉ trình duyệt và dán vào ô <b style="color:#ccc;">Drive Nguồn</b>.</div>
-            <div style="background:#252525;border:1px solid #333;border-radius:8px;padding:8px 10px;font-size:11px;">
-              <div style="color:#555;font-size:10px;margin-bottom:2px;">Drive Nguồn</div>
-              <div style="color:#888;font-weight:600;word-break:break-all;">https://drive.google.com/drive/folders/1aBcDeFgHiJ...</div>
-              <div style="color:#099268;font-size:10px;margin-top:3px;">✓ Tài liệu học tập</div>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;margin-bottom:18px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">2</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#ffc107;margin-bottom:4px;">Dán link Drive đích</div>
-            <div style="font-size:12.5px;color:#aaa;line-height:1.6;margin-bottom:7px;">Tạo một thư mục trống mới trên Google Drive của bạn, copy URL và dán vào ô <b style="color:#ccc;">Drive Đích</b>.</div>
-            <div style="background:#252525;border:1px solid #333;border-radius:8px;padding:8px 10px;font-size:11px;">
-              <div style="color:#555;font-size:10px;margin-bottom:2px;">Drive Đích</div>
-              <div style="color:#888;font-weight:600;word-break:break-all;">https://drive.google.com/drive/folders/9xYzAbCdEfG...</div>
-              <div style="color:#099268;font-size:10px;margin-top:3px;">✓ Drive của tôi</div>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;margin-bottom:18px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">3</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#ffc107;margin-bottom:4px;">Tick chọn nội dung cần copy</div>
-            <div style="font-size:12.5px;color:#aaa;line-height:1.6;margin-bottom:7px;">Checklist tự động hiện ra. Tick vào các thư mục hoặc file cần sao chép.</div>
-            <div style="background:rgba(255,193,7,.1);border-left:3px solid #ffc107;border-radius:0 6px 6px 0;padding:8px 10px;font-size:12px;color:#d4a000;line-height:1.5;">💡 Không giới hạn dung lượng — tick thoải mái không cần lo 150MB.</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;margin-bottom:18px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">4</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#ffc107;margin-bottom:4px;">Kiểm tra trước <span style="font-size:10px;font-weight:600;color:#555;margin-left:4px;">(tuỳ chọn)</span></div>
-            <div style="font-size:12.5px;color:#aaa;line-height:1.6;margin-bottom:7px;">Nhấn "Kiểm tra trước" để xem danh sách file sẽ được copy và phát hiện lỗi quyền truy cập từ trước.</div>
-            <div style="display:flex;gap:8px;">
-              <div style="flex:1;background:#0f3527;border:1px solid #1a5a3e;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#099268;">45</div><div style="font-size:10px;color:#0f6e56;">sẽ copy OK</div></div>
-              <div style="flex:1;background:#3a1515;border:1px solid #5a2020;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#dc3545;">2</div><div style="font-size:10px;color:#c92a2a;">sẽ lỗi</div></div>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;margin-bottom:18px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">5</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#ffc107;margin-bottom:4px;">Bắt đầu sao chép</div>
-            <div style="font-size:12.5px;color:#aaa;line-height:1.6;margin-bottom:7px;">Nhấn "Bắt đầu sao chép". Giữ tab này mở trong suốt quá trình — đừng tắt trình duyệt hay chuyển sang tab khác lâu.</div>
-            <div style="background:rgba(255,193,7,.1);border-left:3px solid #ffc107;border-radius:0 6px 6px 0;padding:8px 10px;font-size:12px;color:#d4a000;line-height:1.5;margin-bottom:7px;">💡 Video được xử lý tự động — nếu thấy thông báo "đang xử lý video" là bình thường, không phải lỗi.</div>
-            <div style="background:rgba(255,193,7,.1);border-left:3px solid #ffc107;border-radius:0 6px 6px 0;padding:8px 10px;font-size:12px;color:#d4a000;line-height:1.5;">💡 Nếu mất mạng hoặc tắt máy — mở lại web, hệ thống sẽ hỏi có muốn tiếp tục từ chỗ dừng không.</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;">
-          <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">6</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:800;color:#ffc107;margin-bottom:4px;">Xem báo cáo hoàn tất</div>
-            <div style="font-size:12.5px;color:#aaa;line-height:1.6;margin-bottom:7px;">Sau khi xong, modal kết quả hiện số THÀNH CÔNG / LỖI / THƯ MỤC. Nhấn vào từng ô để xem chi tiết.</div>
-            <div style="display:flex;gap:6px;">
-              <div style="flex:1;background:#0f3527;border-radius:8px;padding:7px;text-align:center;"><div style="font-size:15px;font-weight:800;color:#099268;">43</div><div style="font-size:9.5px;color:#0f6e56;">THÀNH CÔNG</div></div>
-              <div style="flex:1;background:#3a1515;border-radius:8px;padding:7px;text-align:center;"><div style="font-size:15px;font-weight:800;color:#dc3545;">2</div><div style="font-size:9.5px;color:#c92a2a;">LỖI</div></div>
-              <div style="flex:1;background:#252525;border-radius:8px;padding:7px;text-align:center;"><div style="font-size:15px;font-weight:800;color:#888;">5</div><div style="font-size:9.5px;color:#555;">THƯ MỤC</div></div>
-            </div>
+      <div style="display:flex;gap:12px;margin-bottom:18px;">
+        <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">2</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Dán link Drive đích</div>
+          <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Tạo thư mục trống mới trên Drive của bạn, copy URL và dán vào ô <b>Drive Đích</b>.</div>
+          <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:8px 10px;font-size:11px;">
+            <div style="color:#adb5bd;font-size:10px;margin-bottom:2px;">Drive Đích</div>
+            <div style="color:#495057;font-weight:600;word-break:break-all;">https://drive.google.com/drive/folders/9xYzAbCdEfG...</div>
+            <div style="color:#099268;font-size:10px;margin-top:3px;">✓ Drive của tôi</div>
           </div>
         </div>
       </div>
-
-      <!-- Panel 2: Tính năng -->
-      <div id="guidePanel2" style="display:none;background:#fff;padding:20px;">
-        <div style="display:flex;align-items:flex-start;gap:12px;padding-bottom:14px;border-bottom:1px solid #f1f3f5;margin-bottom:14px;">
-          <div style="width:34px;height:34px;background:#fffbea;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706"><use href="#ic-search"/></svg></div>
-          <div><div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:3px;">Kiểm tra trước</div><div style="font-size:12px;color:#868e96;line-height:1.55;">Quét toàn bộ nội dung đã chọn, báo trước số file sẽ copy OK và số sẽ lỗi (thiếu quyền, v.v.) trước khi thực hiện.</div></div>
-        </div>
-        <div style="display:flex;align-items:flex-start;gap:12px;padding-bottom:14px;border-bottom:1px solid #f1f3f5;margin-bottom:14px;">
-          <div style="width:34px;height:34px;background:#fffbea;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706"><use href="#ic-bolt"/></svg></div>
-          <div><div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:3px;">Bắt đầu sao chép</div><div style="font-size:12px;color:#868e96;line-height:1.55;">Copy file và thư mục từ Drive nguồn sang Drive đích với tốc độ cao, chạy nhiều file song song cùng lúc.</div></div>
-        </div>
-        <div style="display:flex;align-items:flex-start;gap:12px;padding-bottom:14px;border-bottom:1px solid #f1f3f5;margin-bottom:14px;">
-          <div style="width:34px;height:34px;background:#fffbea;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706"><use href="#ic-pause"/></svg></div>
-          <div><div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:3px;">Tạm dừng / Tiếp tục</div><div style="font-size:12px;color:#868e96;line-height:1.55;">Tạm dừng job đang chạy và tiếp tục bất cứ lúc nào, không mất tiến trình hiện có.</div></div>
-        </div>
-        <div style="display:flex;align-items:flex-start;gap:12px;padding-bottom:14px;border-bottom:1px solid #f1f3f5;margin-bottom:14px;">
-          <div style="width:34px;height:34px;background:#fffbea;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706"><use href="#ic-reset"/></svg></div>
-          <div><div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:3px;">Reset tiến trình</div><div style="font-size:12px;color:#868e96;line-height:1.55;">Xoá kết quả tiến trình hiện tại để chuẩn bị cho một lượt copy mới, không ảnh hưởng file đã copy.</div></div>
-        </div>
-        <div style="display:flex;align-items:flex-start;gap:12px;">
-          <div style="width:34px;height:34px;background:#fffbea;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#d97706"><use href="#ic-key"/></svg></div>
-          <div><div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:3px;">Cấp quyền Drive</div><div style="font-size:12px;color:#868e96;line-height:1.55;">Khi token Drive hết hạn (sau vài giờ), overlay "Cần xác thực" sẽ hiện — nhấn để cấp lại quyền và tiếp tục.</div></div>
+      <div style="display:flex;gap:12px;margin-bottom:18px;">
+        <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">3</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Tick chọn nội dung cần copy</div>
+          <div style="font-size:12.5px;color:#495057;line-height:1.6;">Checklist tự động hiện ra — tick vào thư mục hoặc file cần sao chép.</div>
         </div>
       </div>
-
-      <!-- Panel 3: Giới hạn & Nâng cấp -->
-      <div id="guidePanel3" style="display:none;background:#fff;padding:20px;">
-        <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:16px;">
-          <thead>
-            <tr>
-              <th style="padding:8px;text-align:left;border-bottom:2px solid #e9ecef;font-size:10.5px;color:#868e96;font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Tính năng</th>
-              <th style="padding:8px;text-align:center;border-bottom:2px solid #e9ecef;font-size:10.5px;color:#868e96;font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Miễn phí</th>
-              <th style="padding:8px;text-align:center;border-bottom:2px solid #ffc107;font-size:10.5px;color:#7a5a00;font-weight:800;text-transform:uppercase;letter-spacing:.4px;background:#fffbea;">Trọn đời</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;color:#495057;">Tốc độ sao chép cao</td><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;text-align:center;color:#099268;font-weight:700;">✓</td><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;text-align:center;color:#099268;font-weight:700;background:#fffbea;">✓</td></tr>
-            <tr><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;color:#495057;">Kiểm tra quyền trước khi copy</td><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;text-align:center;color:#099268;font-weight:700;">✓</td><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;text-align:center;color:#099268;font-weight:700;background:#fffbea;">✓</td></tr>
-            <tr><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;color:#495057;">Dung lượng mỗi 5 giờ</td><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;text-align:center;color:#868e96;font-size:12px;">150 MB</td><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;text-align:center;color:#099268;font-weight:700;background:#fffbea;font-size:12px;">Không giới hạn</td></tr>
-            <tr><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;color:#495057;">Sao chép video</td><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;text-align:center;color:#dc3545;font-weight:700;">✗</td><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;text-align:center;color:#099268;font-weight:700;background:#fffbea;">✓</td></tr>
-            <tr><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;color:#495057;">Tự tiếp tục sau mất mạng</td><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;text-align:center;color:#dc3545;font-weight:700;">✗</td><td style="padding:10px 8px;border-bottom:1px solid #f1f3f5;text-align:center;color:#099268;font-weight:700;background:#fffbea;">✓</td></tr>
-            <tr><td style="padding:10px 8px;color:#495057;">Sao chép file không có nút tải về</td><td style="padding:10px 8px;text-align:center;color:#dc3545;font-weight:700;">✗</td><td style="padding:10px 8px;text-align:center;color:#099268;font-weight:700;background:#fffbea;">✓</td></tr>
-          </tbody>
-        </table>
-        <div style="background:#1a1a1a;border-radius:12px;padding:18px 20px;text-align:center;">
-          <div style="font-size:14px;font-weight:800;color:#ffc107;margin-bottom:5px;">Nâng cấp lên Trọn đời</div>
-          <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.6;">Mua 1 lần, dùng mãi mãi. Không giới hạn dung lượng, không giới hạn video.</div>
-          <button onclick="document.getElementById('guideModal').classList.remove('active');openUpgradeModal()" style="background:#ffc107;color:#212529;border:none;border-radius:10px;padding:10px 26px;font-size:13px;font-weight:800;cursor:pointer;" onmouseover="this.style.background='#e6ac00'" onmouseout="this.style.background='#ffc107'">Nâng cấp ngay →</button>
+      <div style="display:flex;gap:12px;margin-bottom:18px;">
+        <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">4</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Kiểm tra trước <span style="font-size:10px;font-weight:600;color:#868e96;margin-left:4px;">(tuỳ chọn)</span></div>
+          <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Nhấn "Kiểm tra trước" để phát hiện lỗi quyền và xem trước danh sách sẽ được copy.</div>
+          <div style="display:flex;gap:8px;">
+            <div style="flex:1;background:#e6fcf5;border:1px solid #c3fae8;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#099268;">45</div><div style="font-size:10px;color:#0f6e56;">sẽ copy OK</div></div>
+            <div style="flex:1;background:#fff5f5;border:1px solid #ffe3e3;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#dc3545;">2</div><div style="font-size:10px;color:#c92a2a;">sẽ lỗi</div></div>
+          </div>
         </div>
       </div>
-
+      <div style="display:flex;gap:12px;margin-bottom:18px;">
+        <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">5</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Bắt đầu sao chép</div>
+          <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Nhấn "Bắt đầu sao chép" và giữ tab này mở trong suốt quá trình. Theo dõi tiến độ qua Activity Log bên dưới thanh tiến trình.</div>
+          <div style="background:#fffbea;border-left:3px solid #ffc107;border-radius:0 6px 6px 0;padding:8px 10px;font-size:12px;color:#7a5a00;line-height:1.5;">Nếu thấy thông báo "đang sao chép video" — đây là bình thường, video cần xử lý lâu hơn file thông thường.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <div style="min-width:26px;height:26px;background:#ffc107;color:#212529;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;">6</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:4px;">Xem báo cáo hoàn tất</div>
+          <div style="font-size:12.5px;color:#495057;line-height:1.6;margin-bottom:7px;">Sau khi xong, bảng kết quả hiện số THÀNH CÔNG / LỖI / THƯ MỤC — nhấn từng ô để xem chi tiết.</div>
+          <div style="display:flex;gap:6px;">
+            <div style="flex:1;background:#e6fcf5;border-radius:8px;padding:7px;text-align:center;"><div style="font-size:15px;font-weight:800;color:#099268;">43</div><div style="font-size:9.5px;color:#0f6e56;">THÀNH CÔNG</div></div>
+            <div style="flex:1;background:#fff5f5;border-radius:8px;padding:7px;text-align:center;"><div style="font-size:15px;font-weight:800;color:#dc3545;">2</div><div style="font-size:9.5px;color:#c92a2a;">LỖI</div></div>
+            <div style="flex:1;background:#f8f9fa;border-radius:8px;padding:7px;text-align:center;"><div style="font-size:15px;font-weight:800;color:#212529;">5</div><div style="font-size:9.5px;color:#868e96;">THƯ MỤC</div></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1041,23 +935,7 @@
     const wrap = document.getElementById('fabSupportWrap');
     if (wrap && !wrap.contains(e.target)) window.toggleFabSupport(false);
   });
-  window.openGuideTab = function(i) {
-    var borders = ['#212529','#ffc107','#212529','#212529'];
-    var texts   = ['#212529','#ffc107','#212529','#212529'];
-    [0,1,2,3].forEach(function(j) {
-      var btn   = document.getElementById('guideTab'   + j);
-      var panel = document.getElementById('guidePanel' + j);
-      if (j === i) {
-        btn.style.borderBottomColor = borders[i];
-        btn.style.color = texts[i];
-        panel.style.display = 'block';
-      } else {
-        btn.style.borderBottomColor = 'transparent';
-        btn.style.color = '#868e96';
-        panel.style.display = 'none';
-      }
-    });
-  };
+  window.openGuideTab = function() {}; // no-op — unified guide has no tabs
 </script>
 
 <script type="module" src="app.js"></script>

@@ -279,8 +279,9 @@ tbody tr:last-child td{border-bottom:none}
           <button class="filter-btn"        data-f="pending"  onclick="filterUsers('pending')">Chờ kích hoạt</button>
           <button class="filter-btn"        data-f="kicked"   onclick="filterUsers('kicked')"><svg class="ic"><use href="#ic-ban"/></svg> Bị kick</button>
           <button class="filter-btn"        data-f="upgrade"  onclick="filterUsers('upgrade')" style="background:var(--blue-light);border-color:var(--blue-border);color:var(--blue)">⬆ Chờ nâng cấp</button>
-          <button class="filter-btn"        data-f="free"     onclick="filterUsers('free')" style="background:var(--surface2);border-color:var(--border2);color:var(--text2)">Gói Free</button>
-          <button class="filter-btn"        data-f="paid"     onclick="filterUsers('paid')" style="background:var(--green-light);border-color:var(--green-border);color:var(--green)">Trọn đời</button>
+          <button class="filter-btn"        data-f="trial"    onclick="filterUsers('trial')" style="background:var(--surface2);border-color:var(--border2);color:var(--text2)">Dùng thử</button>
+          <button class="filter-btn"        data-f="credit"   onclick="filterUsers('credit')" style="background:var(--blue-light);border-color:var(--blue-border);color:var(--blue)">Ngắn hạn</button>
+          <button class="filter-btn"        data-f="lifetime" onclick="filterUsers('lifetime')" style="background:var(--green-light);border-color:var(--green-border);color:var(--green)">Trọn đời</button>
           <button class="filter-btn"        data-f="readd"    onclick="filterUsers('readd')" style="margin-left:auto;background:var(--yellow-light);border-color:var(--orange-border);color:var(--orange)"><svg class="ic"><use href="#ic-plus"/></svg> Thêm lại</button>
         </div>
         <div style="overflow-x:auto">
@@ -289,15 +290,31 @@ tbody tr:last-child td{border-bottom:none}
               <th>Người dùng</th>
               <th>UID</th>
               <th>Gói</th>
+              <th>Lượt còn lại</th>
               <th>Trạng thái</th>
               <th>Ngày đăng ký</th>
               <th>CTV giới thiệu</th>
               <th>Thao tác</th>
             </tr></thead>
-            <tbody id="usersBody"><tr><td colspan="7" class="empty-cell">Đang tải...</td></tr></tbody>
+            <tbody id="usersBody"><tr><td colspan="8" class="empty-cell">Đang tải...</td></tr></tbody>
           </table>
         </div>
       </div>
+    <!-- Yêu cầu mua gói Ngắn hạn -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-h">
+        <span class="card-t">🎫 Yêu cầu mua gói Ngắn hạn</span>
+        <button class="btn-sm" onclick="loadCreditRequests()"><svg class="ic"><use href="#ic-refresh"/></svg> Làm mới</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Người dùng</th><th>Email</th><th>Ngày yêu cầu</th><th>Thao tác</th>
+          </tr></thead>
+          <tbody id="creditReqBody"><tr><td colspan="4" class="empty-cell">Đang tải...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
     </div><!-- end atab-users -->
 
     <!-- TAB: QUẢN LÝ CTV -->
@@ -991,7 +1008,7 @@ onAuthStateChanged(auth, u => {
   document.getElementById('adminEmailLabel').textContent = u.email;
   const av = document.getElementById('adminAvatar');
   if (av && u.photoURL){ av.src = u.photoURL; av.style.display='block'; av.onerror=()=>av.style.display='none'; }
-  sec('panel'); loadStats(); loadUsers();
+  sec('panel'); loadStats(); loadUsers(); loadCreditRequests();
 });
 
 
@@ -1003,19 +1020,19 @@ async function loadStats(){
     document.getElementById('sApproved').textContent = users.filter(u=>u.approved&&u.status!=='kicked').length;
     document.getElementById('sPending').textContent  = users.filter(u=>!u.approved&&u.status!=='kicked').length;
     document.getElementById('sKicked').textContent   = users.filter(u=>u.status==='kicked').length;
-    document.getElementById('sUpgrade').textContent  = users.filter(u=>u.upgradeRequestedAt&&u.plan!=='paid').length;
+    document.getElementById('sUpgrade').textContent  = users.filter(u=>u.upgradeRequestedAt&&u.plan!=='lifetime'&&u.plan!=='paid').length;
   } catch(e){ console.error(e); }
 }
 
 window.loadUsers = async () => {
-  document.getElementById('usersBody').innerHTML = '<tr><td colspan="7" class="empty-cell">Đang tải...</td></tr>';
+  document.getElementById('usersBody').innerHTML = '<tr><td colspan="8" class="empty-cell">Đang tải...</td></tr>';
   try {
     const snap = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
     // Giữ nguyên tất cả user cũ - chỉ đọc, không ghi đè
     allUsers = snap.docs.map(d => ({ id:d.id, ...d.data() }));
     renderUsers(currentFilter);
   } catch(e){
-    document.getElementById('usersBody').innerHTML = `<tr><td colspan="7" class="empty-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`;
+    document.getElementById('usersBody').innerHTML = `<tr><td colspan="8" class="empty-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`;
   }
 };
 
@@ -1028,12 +1045,13 @@ function renderUsers(filter){
   else if (filter==='pending') list = allUsers.filter(u=>!u.approved&&u.status!=='kicked');
   else if (filter==='kicked') list = allUsers.filter(u=>u.status==='kicked');
   else if (filter==='readd') list = allUsers.filter(u=>u.status==='kicked');
-  else if (filter==='upgrade') list = allUsers.filter(u=>u.upgradeRequestedAt&&u.plan!=='paid');
-  else if (filter==='free') list = allUsers.filter(u=>u.plan==='free'&&u.status!=='kicked');
-  else if (filter==='paid') list = allUsers.filter(u=>u.plan==='paid'||(u.upgradeRequestedAt&&u.plan!=='paid'&&u.status!=='kicked'));
+  else if (filter==='upgrade') list = allUsers.filter(u=>u.upgradeRequestedAt&&u.plan!=='lifetime'&&u.plan!=='paid');
+  else if (filter==='trial') list = allUsers.filter(u=>(u.plan==='trial'||u.plan==='free')&&u.status!=='kicked');
+  else if (filter==='credit') list = allUsers.filter(u=>u.plan==='credit'&&u.status!=='kicked');
+  else if (filter==='lifetime') list = allUsers.filter(u=>(u.plan==='lifetime'||u.plan==='paid')&&u.status!=='kicked');
 
   const tbody = document.getElementById('usersBody');
-  if (!list.length){ tbody.innerHTML='<tr><td colspan="7" class="empty-cell">Không có người dùng nào.</td></tr>'; return; }
+  if (!list.length){ tbody.innerHTML='<tr><td colspan="8" class="empty-cell">Không có người dùng nào.</td></tr>'; return; }
 
   tbody.innerHTML = list.map(u => {
     const dt = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleString('vi-VN') : '—';
@@ -1042,15 +1060,23 @@ function renderUsers(filter){
       : '<span style="color:var(--text3)">—</span>';
 
     // Gói badge
-    const planBadge = u.plan==='paid'
-      ? `<span class="badge green"><span class="badge-dot"></span>Trọn đời</span>`
-      : `<span class="badge gray">Miễn phí</span>`;
-    const upgradeBadge = (u.upgradeRequestedAt && u.plan!=='paid')
+    const planLabel = { trial:'Dùng thử', credit:'Ngắn hạn', lifetime:'Trọn đời', free:'Miễn phí', paid:'Trọn đời' };
+    const planClass = { lifetime:'green', paid:'green', credit:'blue', trial:'gray', free:'gray' };
+    const planBadge = `<span class="badge ${planClass[u.plan]||'gray'}"><span class="badge-dot"></span>${planLabel[u.plan]||u.plan}</span>`;
+    const upgradeBadge = (u.upgradeRequestedAt && u.plan!=='lifetime' && u.plan!=='paid')
       ? `<span class="badge yellow" style="margin-top:2px"><span class="badge-dot"></span>⬆ Chờ nâng cấp</span>`
       : '';
-    const planSelect = (u.status !== 'kicked')
-      ? `<select style="margin-top:5px;font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit" onchange="changePlan('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}',this.value)"><option value="free"${u.plan==='free'?' selected':''}>Miễn phí</option><option value="paid"${u.plan==='paid'?' selected':''}>Trọn đời</option></select>`
+    const creditBadge = (u.plan==='credit' && u.creditsRemaining != null)
+      ? `<span class="badge blue" style="margin-top:2px"><span class="badge-dot"></span>+3 Lượt chờ duyệt</span>`
       : '';
+    const planSelect = (u.status !== 'kicked')
+      ? `<select style="margin-top:5px;font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit" onchange="changePlan('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}',this.value)"><option value="trial"${(u.plan==='trial'||u.plan==='free')?' selected':''}>Dùng thử</option><option value="credit"${u.plan==='credit'?' selected':''}>Ngắn hạn</option><option value="lifetime"${(u.plan==='lifetime'||u.plan==='paid')?' selected':''}>Trọn đời</option></select>`
+      : '';
+    // Lượt còn lại cell
+    const creditsCell = (u.plan === 'credit')
+      ? `<span style="font-size:13px;font-weight:800;color:${(u.creditsRemaining>0)?'var(--blue)':'#adb5bd'}">${u.creditsRemaining ?? 0}</span> <span style="font-size:10px;color:var(--text3)">lượt</span>` +
+        `<br><button class="act-btn act-btn-blue" style="margin-top:4px;font-size:10px;padding:3px 8px" onclick="addCredits('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}')">+3 Lượt</button>`
+      : `<span style="color:var(--text3);font-size:12px;">—</span>`;
 
     // Trạng thái badge
     let statusBadge = '';
@@ -1073,7 +1099,7 @@ function renderUsers(filter){
         ${deleteBtn}
       </div>`;
     } else if (u.approved){
-      const upgradeBtn = (u.upgradeRequestedAt && u.plan!=='paid')
+      const upgradeBtn = (u.upgradeRequestedAt && u.plan!=='lifetime' && u.plan!=='paid')
         ? `<button class="act-btn act-upgrade" onclick="openApprovePaymentModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}','upgrade')">
              ⬆ Duyệt nâng cấp
            </button>`
@@ -1086,7 +1112,7 @@ function renderUsers(filter){
         </button>
         ${deleteBtn}
       </div>`;
-    } else if (u.upgradeRequestedAt && u.plan !== 'paid'){
+    } else if (u.upgradeRequestedAt && u.plan !== 'lifetime' && u.plan !== 'paid'){
       actions = `<div class="act-row">
         <button class="act-btn act-upgrade" onclick="openApprovePaymentModal('${u.id}','${esc(u.email)}','${esc(u.displayName||u.email)}','upgrade')">
           ⬆ Duyệt nâng cấp
@@ -1119,6 +1145,7 @@ function renderUsers(filter){
       </td>
       <td><span class="uid-txt">${u.id.slice(0,10)}…</span></td>
       <td><div style="display:flex;flex-direction:column;gap:2px">${planBadge}${upgradeBadge}${planSelect}</div></td>
+      <td>${creditsCell}</td>
       <td>${statusBadge}</td>
       <td><span class="dt-txt">${dt}</span></td>
       <td>${ctvCell}</td>
@@ -1364,7 +1391,7 @@ window.approveUpgrade = async (uid, email, name, paymentNote) => {
   const btns = document.querySelectorAll(`tr[data-uid="${uid}"] .act-btn`);
   btns.forEach(b=>b.disabled=true);
   try {
-    const upd = { approved:true, status:'approved', plan:'paid', upgradeRequestedAt:null, upgradedAt:serverTimestamp() };
+    const upd = { approved:true, status:'approved', plan:'lifetime', upgradeRequestedAt:null, upgradedAt:serverTimestamp() };
     if (paymentNote) upd.paymentNote = paymentNote;
     await updateDoc(doc(db,'users',uid), upd);
     toast('✓ Đã nâng cấp lên Trọn đời!','ok');
@@ -1378,14 +1405,14 @@ window.approveUpgrade = async (uid, email, name, paymentNote) => {
           const ctv = ctvDoc.data();
           await addDoc(collection(db,'affiliates',ctvDoc.id,'commissions'), {
             userId: uid, userEmail: upgradedUser.email,
-            amount: 125000, status: 'pending',
+            amount: 145000, status: 'pending',
             createdAt: serverTimestamp(), paidAt: null
           });
           await updateDoc(doc(db,'affiliates',ctvDoc.id), {
-            totalEarned: increment(125000), totalConverted: increment(1)
+            totalEarned: increment(145000), totalConverted: increment(1)
           });
           callGAS({ type:'ctv_commission_earned', toEmail:ctv.email, ctvName:ctv.name,
-            clientEmail:maskEmail(upgradedUser.email), amount:125000, siteUrl:SITE_URL });
+            clientEmail:maskEmail(upgradedUser.email), amount:145000, siteUrl:SITE_URL });
         }
       } catch(e) { console.warn('[CTV] Commission update failed:', e); }
     }
@@ -1439,7 +1466,7 @@ window.doReadd = async () => {
   closeReaddModal();
   try {
     await updateDoc(doc(db,'users',_readdUid),{
-      approved:true, status:'approved', plan:'paid',
+      approved:true, status:'approved', plan:'lifetime',
       readdedAt:serverTimestamp(), readdNote:note||''
     });
     toast('✓ Đã thêm lại người dùng','ok');
@@ -1513,12 +1540,81 @@ window.doReaddCTV = async () => {
 window.changePlan = async (uid, email, name, newPlan) => {
   if (!newPlan) return;
   try {
-    await updateDoc(doc(db,'users',uid),{ plan: newPlan });
-    const type = newPlan === 'paid' ? 'plan_upgraded_by_admin' : 'plan_downgraded_by_admin';
-    await callGAS({ type, toEmail: email, userName: name, siteUrl: SITE_URL });
-    toast(newPlan==='paid' ? '✓ Đã nâng cấp lên Trọn đời' : '✓ Đã hạ xuống gói Miễn phí', 'ok');
+    const upd = { plan: newPlan };
+    if (newPlan === 'credit') { upd.creditsRemaining = (upd.creditsRemaining || 0); } // preserve existing if any
+    await updateDoc(doc(db,'users',uid), upd);
+    const planRank = { trial:1, free:1, credit:2, lifetime:3, paid:3 };
+    const user = allUsers.find(u => u.id === uid);
+    const oldRank = planRank[user?.plan] || 1;
+    const newRank = planRank[newPlan] || 1;
+    const type = newRank >= oldRank ? 'plan_upgraded_by_admin' : 'plan_downgraded_by_admin';
+    const planLabel = { trial:'Dùng thử', credit:'Ngắn hạn', lifetime:'Trọn đời' };
+    await callGAS({ type, toEmail: email, userName: name, newPlan: planLabel[newPlan]||newPlan, oldPlan: planLabel[user?.plan]||user?.plan, siteUrl: SITE_URL });
+    toast(`✓ Đã đổi gói sang ${planLabel[newPlan]||newPlan}`, 'ok');
     await loadUsers(); await loadStats();
   } catch(e){ toast('Lỗi đổi gói: '+e.message,'err'); }
+};
+
+window.addCredits = async (uid, email, name) => {
+  if (!confirm(`Thêm 3 lượt sao chép cho ${name}?`)) return;
+  try {
+    const userDoc = allUsers.find(u => u.id === uid);
+    const cur = userDoc?.creditsRemaining ?? 0;
+    const upd = { creditsRemaining: cur + 3 };
+    if (cur + 3 > 0) delete upd.creditsLockedAt; // unlock if was locked
+    await updateDoc(doc(db,'users',uid), { creditsRemaining: cur + 3, creditsLockedAt: null });
+    await callGAS({ type: 'credit_added', toEmail: email, userName: name, creditsAdded: 3, creditsTotal: cur + 3, siteUrl: SITE_URL });
+    toast(`✓ Đã thêm 3 lượt cho ${name}`, 'ok');
+    await loadUsers();
+  } catch(e){ toast('Lỗi: '+e.message,'err'); }
+};
+
+// ── Credit Requests ──────────────────────────────────────────────────────
+window.loadCreditRequests = async () => {
+  const tbody = document.getElementById('creditReqBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">Đang tải...</td></tr>';
+  try {
+    const snap = await getDocs(query(collection(db,'creditRequests'), where('status','==','pending'), orderBy('requestedAt','desc')));
+    if (snap.empty) { tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">Không có yêu cầu nào.</td></tr>'; return; }
+    tbody.innerHTML = snap.docs.map(d => {
+      const r = d.data();
+      const dt = r.requestedAt?.toDate ? r.requestedAt.toDate().toLocaleString('vi-VN') : '—';
+      return `<tr>
+        <td><span style="font-weight:700">${esc(r.displayName||'—')}</span></td>
+        <td><span class="u-email">${esc(r.email)}</span></td>
+        <td><span class="dt-txt">${dt}</span></td>
+        <td><div class="act-row">
+          <button class="act-btn act-approve" onclick="approveCreditRequest('${d.id}','${esc(r.uid)}','${esc(r.email)}','${esc(r.displayName||r.email)}')">
+            <svg class="ic"><use href="#ic-check"/></svg> Duyệt +3 lượt
+          </button>
+          <button class="act-btn" style="background:#fff5f5;color:#fa5252;border:1px solid #ffe3e3" onclick="rejectCreditRequest('${d.id}')">Từ chối</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  } catch(e){ tbody.innerHTML = `<tr><td colspan="4" class="empty-cell" style="color:var(--red)">Lỗi: ${e.message}</td></tr>`; }
+};
+
+window.approveCreditRequest = async (reqId, uid, email, name) => {
+  try {
+    const userSnap = await getDoc(doc(db,'users',uid));
+    const cur = userSnap.exists() ? (userSnap.data().creditsRemaining ?? 0) : 0;
+    const newTotal = cur + 3;
+    await updateDoc(doc(db,'users',uid), { plan: 'credit', creditsRemaining: newTotal, creditsLockedAt: null });
+    await deleteDoc(doc(db,'creditRequests',reqId));
+    await callGAS({ type: 'credit_added', toEmail: email, userName: name, creditsAdded: 3, creditsTotal: newTotal, siteUrl: SITE_URL });
+    toast(`✓ Đã duyệt +3 lượt cho ${name}`, 'ok');
+    await loadCreditRequests(); await loadUsers(); await loadStats();
+  } catch(e){ toast('Lỗi: '+e.message,'err'); }
+};
+
+window.rejectCreditRequest = async (reqId) => {
+  if (!confirm('Từ chối yêu cầu này?')) return;
+  try {
+    await deleteDoc(doc(db,'creditRequests',reqId));
+    toast('Đã từ chối yêu cầu.','ok');
+    await loadCreditRequests();
+  } catch(e){ toast('Lỗi: '+e.message,'err'); }
 };
 
 function sec(name){ ['login','denied','panel'].forEach(s=>{ const el=document.getElementById('s-'+s); if(el) el.style.display=s===name?'block':'none'; }); }

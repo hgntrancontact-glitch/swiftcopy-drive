@@ -3,7 +3,7 @@
    Drive API   → drive-api.js
    Shared state → state.js
    ══════════════════════════════════════════════════════════════════ */
-import { st, IS_DASHBOARD, FMIME, FREE_MB_LIMIT, FREE_MB_MARGIN, FREE_RESET_MS, pausePoint, releasePauseWaiters, ns } from './state.js';
+import { st, IS_DASHBOARD, FMIME, TRIAL_MB_LIMIT, pausePoint, releasePauseWaiters, ns } from './state.js';
 import {
   isAuthExpiredErr, fid, fname,
   listItems, existNames, mkFolder,
@@ -343,7 +343,7 @@ async function fastVideoScan(scanId, rootItem) {
   if (rootItem.mimeType !== FMIME) return;
   let queue = [rootItem];
   while (queue.length > 0) {
-    if (st._deepScanId !== scanId || st.gUserData?.plan !== 'free') return;
+    if (st._deepScanId !== scanId || st.gUserData?.plan !== 'trial') return;
     const batch = queue.splice(0, FAST_VIDEO_CONCUR);
     let foundVideo = false;
     const nextFolders = [];
@@ -426,7 +426,7 @@ function buildClRow(item) {
 }
 
 function _maybeFastVideoScan(item, turningOn) {
-  if (turningOn && item.mimeType === FMIME && st.gUserData?.plan === 'free') fastVideoScan(st._deepScanId, item);
+  if (turningOn && item.mimeType === FMIME && st.gUserData?.plan === 'trial') fastVideoScan(st._deepScanId, item);
 }
 
 window.clRowClick = (e, id) => {
@@ -571,7 +571,7 @@ function updateClInfo() {
   // Tính lại theo đúng selection hiện tại mỗi lần checklist thay đổi (tick/bỏ tick) —
   // tránh Y trong "X/Y mục" bị kẹt ở số cũ từ lần deep-load đầu tiên (lúc mọi mục còn checked mặc định).
   if (st.clLoaded) st._totalDeepCount = countAllDeepItems();
-  refreshFreeQuotaLock();
+  refreshPlanLock();
   refreshFreeVideoLock();
   const total    = st.clItems.length;
   const selected = st.clItems.filter(i => i.checked || i.indeterminate).length;
@@ -594,13 +594,12 @@ function updateClInfo() {
   const sizeStr = mb >= 1024 ? (mb / 1024).toFixed(2) + ' GB' : mb.toFixed(1) + ' MB';
   const exts    = collectSelectedExtensions();
   const extTip  = exts.length > 0 ? ` <span style="color:#adb5bd;font-size:11px">(${exts.join(', ')})</span>` : '';
-  if (st.gUserData?.plan === 'free') {
-    const remainMB = Math.max(0, FREE_MB_LIMIT - (st.gUserData.freeUsedMB || 0));
-    if (mb > remainMB) {
-      const over = Math.ceil(mb - remainMB);
-      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip} &nbsp;<span style="color:#e67700;font-weight:700;">⚠ Vượt ${over}MB còn lại — <a href="#" onclick="openUpgradeModal();return false;" style="color:#d97706;text-decoration:underline">Nâng cấp gói</a></span>`;
+  if (st.gUserData?.plan === 'trial' && !st.gUserData.trialUsed) {
+    if (mb > TRIAL_MB_LIMIT) {
+      const over = Math.ceil(mb - TRIAL_MB_LIMIT);
+      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip} &nbsp;<span style="color:#e67700;font-weight:700;">⚠ Vượt giới hạn 2GB của lượt dùng thử ${over > 0 ? '(' + over + 'MB)' : ''} — <a href="#" onclick="window.openPlanLockedModal('trial');return false;" style="color:#d97706;text-decoration:underline">Chọn gói</a></span>`;
     } else {
-      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip} <span style="color:#adb5bd;">(còn ${Math.round(remainMB)}MB / 150MB)</span>`;
+      sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip} <span style="color:#adb5bd;">(tối đa 2GB cho lượt thử)</span>`;
     }
   } else {
     sizeEl.innerHTML = `Đã chọn: <b>${sizeStr}</b>${extTip}`;
@@ -1149,7 +1148,23 @@ window.startCopy = async (isResume) => {
   const dv = document.getElementById('destInput').value.trim();
   if (!sv || !dv) { toast('Nhập đủ Drive nguồn và đích!', 'warn'); return; }
   if (!isResume) { st.stopFlag = false; setBtnMode('copy'); }
-  if (!isResume && !(await checkFreeLimit())) { setBtnMode('idle'); return; }
+  if (!isResume) {
+    const plan = st.gUserData?.plan;
+    if (plan === 'trial' && st.gUserData.trialUsed) {
+      window.openPlanLockedModal?.('trial'); setBtnMode('idle'); return;
+    }
+    if (plan === 'credit' && !(st.gUserData?.creditsRemaining > 0)) {
+      window.openPlanLockedModal?.('credit'); setBtnMode('idle'); return;
+    }
+    if (plan === 'trial' && !st.gUserData.trialUsed) {
+      const rawMb = calcSelectedBytes() / (1024 * 1024);
+      const selMb = isNaN(rawMb) ? 0 : rawMb;
+      if (selMb > TRIAL_MB_LIMIT) {
+        toast('Gói Dùng thử chỉ hỗ trợ tối đa 2GB. Vui lòng bỏ bớt file hoặc chọn gói khác.', 'warn');
+        setBtnMode('idle'); return;
+      }
+    }
+  }
   await _runCopyInternal(isResume);
 };
 
@@ -1168,7 +1183,7 @@ async function _runCopyInternal(isResume) {
   if (_videoNotifShowTimer) { clearTimeout(_videoNotifShowTimer); _videoNotifShowTimer = null; }
   if (_videoNotifPollTimer) { clearInterval(_videoNotifPollTimer); _videoNotifPollTimer = null; }
   _videoNotifPollTimer = setInterval(_pollVideoActive, 800);
-  if (!isResume) { st.stats = ns(); st._sessionCopiedMB = 0; }
+  if (!isResume) { st.stats = ns(); }
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('scanRepModal')?.classList.remove('active');
   hideScanSummaryBanner();
@@ -1207,9 +1222,9 @@ async function _runCopyInternal(isResume) {
     if (_startDone > 0) updateProgInfo('', false);
     setStatus('Đang sao chép...');
 
-    if (st.gUserData?.plan === 'free') {
+    if (st.gUserData?.plan === 'trial') {
       const hasTopVideo = top.some(i => isVideoItem(i));
-      if (hasTopVideo) { addLog('⚠ Phát hiện video — gói miễn phí sẽ bỏ qua file video', 'warn'); toast('Gói miễn phí bỏ qua video. Nâng cấp để copy toàn bộ', 'warn'); }
+      if (hasTopVideo) { addLog('⚠ Phát hiện video — gói Dùng thử sẽ bỏ qua file video', 'warn'); toast('Gói Dùng thử bỏ qua video. Chọn gói Ngắn hạn hoặc Trọn đời để copy video', 'warn'); }
     }
     addLog((isResume ? 'Tiếp tục sao chép' : 'Bắt đầu sao chép') + ' (' + CONCUR + ' luồng song song)...', 'info');
 
@@ -1230,7 +1245,7 @@ async function _runCopyInternal(isResume) {
           const item = topFiles[i];
           await pausePoint(); if (st.stopFlag) return;
           if (dex.has(item.name)) { addLog('Đã có: ' + item.name, 'skip'); updateProgInfo(item.name); updStats(); continue; }
-          if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
+          if (st.gUserData?.plan === 'trial' && isVideoItem(item)) { addLog('Bỏ qua video (dùng thử): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
           const res = await copyFileSingle(item, destId);
           if (st.stopFlag) return;
           const node = { name: item.name, path: item.name, type: 'file', depth: 0, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
@@ -1238,7 +1253,7 @@ async function _runCopyInternal(isResume) {
           // Rebuild rootFiles from indexed array to keep Drive order (push = completion order).
           st.stats.rootFiles = topFileNodes.filter(Boolean);
           (node.error ? st.stats.failedFiles : st.stats.copiedFiles).push(node);
-          if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
+          if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); if (st.gUserData?.plan !== 'trial' && isVideoItem(item)) st._videoFilesCount++; }
           else        { st.stats.failed++; addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
           progInc(); updateProgInfo(item.name);
           updStats(); saveSession();
@@ -1290,6 +1305,7 @@ async function _runCopyInternal(isResume) {
       setStatus('Hoàn thành ' + elapsed + 's');
       clearSession();
       await saveHist(elapsed);
+      await _handleCopyCompletion();
       showComplModal(elapsed, st._videoFilesCount);
     } else if (!st._authExpiredHandled) {
       setStatus('Đã dừng sao chép');
@@ -1303,11 +1319,6 @@ async function _runCopyInternal(isResume) {
     addLog('Lỗi nghiêm trọng: ' + (e.message || e), 'err'); setStatus('Lỗi sao chép');
     if (e.message === 'NO_TOKEN') showNoAuth('Chưa cấp quyền Drive!', 'Nhấn nút bên dưới để cấp quyền.');
   } finally {
-    // Deduct quota for whatever copied successfully before any interruption
-    // (stop/abort/auth-expired/error) — never the in-flight/aborted file, since
-    // _sessionCopiedMB is only incremented after a confirmed successful copy.
-    // Runs on every exit path so a dropped connection still counts real usage.
-    if (st.gUserData?.plan === 'free' && st._sessionCopiedMB > 0) await updateFreeUsedMB();
     if (_videoNotifPollTimer) { clearInterval(_videoNotifPollTimer); _videoNotifPollTimer = null; }
     const _vm = document.getElementById('videoWarnModal'); if (_vm) _vm.style.display = 'none';
     st.runMode = 'idle'; setBtnMode('idle');
@@ -1334,12 +1345,12 @@ async function copyRecTree(srcId, destId, path, depth, parentChildren, isResume)
       const item = files[i];
       await pausePoint(); if (st.stopFlag) return;
       const fp = path ? path + ' > ' + item.name : item.name;
-      if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
+      if (st.gUserData?.plan === 'trial' && isVideoItem(item)) { addLog('Bỏ qua video (dùng thử): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
       const res = await copyFileSingle(item, destId);
       if (st.stopFlag) return;
       const node = { name: item.name, path: fp, type: 'file', depth, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
       fileNodes[i] = node;
-      if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
+      if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); if (st.gUserData?.plan !== 'trial' && isVideoItem(item)) st._videoFilesCount++; }
       else        { st.stats.failed++; addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
       progInc(); updateProgInfo(item.name);
       updStats(); saveSession();
@@ -1404,12 +1415,12 @@ async function copyRecTreeFiltered(srcId, destId, path, depth, parentChildren, c
       const item = files[i];
       await pausePoint(); if (st.stopFlag) return;
       const fp = path ? path + ' > ' + item.name : item.name;
-      if (st.gUserData?.plan === 'free' && isVideoItem(item)) { addLog('Bỏ qua video (miễn phí): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
+      if (st.gUserData?.plan === 'trial' && isVideoItem(item)) { addLog('Bỏ qua video (dùng thử): ' + item.name, 'skip'); progInc(); updateProgInfo(item.name); updStats(); continue; }
       const res = await copyFileSingle(item, destId);
       if (st.stopFlag) return;
       const node = { name: item.name, path: fp, type: 'file', depth, error: res.ok ? null : (res.reason || 'Lỗi'), children: [], link: res.ok ? null : 'https://drive.google.com/file/d/' + item.id + '/view' };
       fileNodes[i] = node;
-      if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); st._sessionCopiedMB += (res.sizeMB || 0); if (st.gUserData?.plan !== 'free' && isVideoItem(item)) st._videoFilesCount++; }
+      if (res.ok) { st.stats.copied++; addLog('OK: ' + item.name, 'ok'); if (st.gUserData?.plan !== 'trial' && isVideoItem(item)) st._videoFilesCount++; }
       else        { st.stats.failed++; addLog('Lỗi: ' + item.name + ' - ' + res.reason, 'err'); }
       progInc(); updateProgInfo(item.name);
       updStats(); saveSession();
@@ -1492,9 +1503,8 @@ function getSession()       { try { return JSON.parse(localStorage.getItem(SK) |
 function clearSession()     { localStorage.removeItem(SK); document.getElementById('resumeBanner').style.display = 'none'; }
 function checkResume() {
   const s = getSession(); if (!s) return;
-  // Auto-resume is a paid-only feature — Free plan must stop hard on interruption
-  // and have the user restart manually, never offer to continue a stale session.
-  if (st.gUserData?.plan === 'free') { clearSession(); return; }
+  // Auto-resume is a lifetime-only feature — trial and credit plans cannot resume.
+  if (st.gUserData?.plan !== 'lifetime') { clearSession(); return; }
   if ((Date.now() - s.ts) / 1000 / 60 > 120) { clearSession(); return; }
   const b = document.getElementById('resumeBanner'); b.style.display = 'flex';
   document.getElementById('srcInput').value  = s.sv || '';
@@ -1503,7 +1513,7 @@ function checkResume() {
   if (s.dv) window.onInputChange('dest');
 }
 window.resumeSession = async () => {
-  if (st.gUserData?.plan === 'free') { clearSession(); return; }
+  if (st.gUserData?.plan !== 'lifetime') { clearSession(); return; }
   const s = getSession(); if (!s) { clearSession(); return; }
   if (s.stats) { st.stats = s.stats; updStats(); document.getElementById('statsRow').style.display = 'grid'; }
   if (s.progDone) st.progDone = s.progDone;
@@ -1622,47 +1632,21 @@ window.closeModal = () => document.getElementById('modalOv').classList.remove('a
 // Real-time lock for "Bắt đầu sao chép": locked if the cycle quota is already
 // exhausted (usedMB >= 150, regardless of current selection — quota used is
 // quota used, even if the user later unticks files), OR if used+selected would
-// push the cycle past the 20MB margin (usedMB + selMB > 170). "Kiểm tra trước"
-// is never touched by this — only btnStart, and only while runMode is idle.
-let _freeQuotaLockTimer = null;
-function refreshFreeQuotaLock() {
-  const box = document.getElementById('freeQuotaLockBox');
+// Khoá/mở khoá nút "Bắt đầu sao chép" theo trạng thái gói:
+// - trial đã xài xong (trialUsed=true): khoá
+// - credit hết lượt (creditsRemaining<=0): khoá
+// - lifetime: không khoá bao giờ
+// Chỉ áp dụng khi runMode==='idle', không đụng btnScan.
+function refreshPlanLock() {
   const bst = document.getElementById('btnStart');
-  if (!bst) return;
-  if (!st.gUserData || st.gUserData.plan !== 'free') {
-    if (box) box.style.display = 'none';
-    if (_freeQuotaLockTimer) { clearInterval(_freeQuotaLockTimer); _freeQuotaLockTimer = null; }
-    return;
-  }
-  const usedMB = st.gUserData.freeUsedMB || 0;
-  let selMB = 0;
-  if (st.clLoaded && st.clItems.length && countUnloadedSelectedFolders() === 0) {
-    const raw = calcSelectedBytes() / (1024 * 1024);
-    selMB = isNaN(raw) ? 0 : raw;
-  }
-  const locked = usedMB >= FREE_MB_LIMIT || (usedMB + selMB) > (FREE_MB_LIMIT + FREE_MB_MARGIN);
-  if (st.runMode === 'idle') bst.disabled = locked;
-  if (!box) return;
-  if (!locked) {
-    box.style.display = 'none';
-    if (_freeQuotaLockTimer) { clearInterval(_freeQuotaLockTimer); _freeQuotaLockTimer = null; }
-    return;
-  }
-  const remainMB    = Math.max(0, FREE_MB_LIMIT - usedMB);
-  const pct          = Math.min(100, (usedMB / FREE_MB_LIMIT) * 100);
-  const resetAt       = st.gUserData.freeResetAt?.toMillis ? st.gUserData.freeResetAt.toMillis() : Date.now();
-  const remainingMs   = Math.max(0, resetAt + FREE_RESET_MS - Date.now());
-  const h = Math.floor(remainingMs / 3600000), m = Math.floor((remainingMs % 3600000) / 60000);
-  box.style.display = 'block';
-  box.innerHTML = `
-    <div style="display:flex;align-items:center;gap:7px;color:#c92a2a;font-weight:800;font-size:13.5px;margin-bottom:4px;"><span>⚠</span><span>Đã đạt giới hạn gói Miễn phí</span></div>
-    <div style="font-size:12.5px;color:#862e2e;margin-bottom:8px;">Bạn đã sao chép <b>${Math.round(usedMB)}</b>/150 MB trong chu kỳ 5 giờ hiện tại</div>
-    <div style="height:6px;background:#ffe3e3;border-radius:999px;overflow:hidden;margin-bottom:8px;"><div style="height:100%;width:${pct}%;background:#e03131;border-radius:999px;"></div></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-      <span style="font-size:11.5px;color:#a14b4b;">${Math.round(remainMB)} MB còn lại trong chu kỳ này — reset sau ${h}h${String(m).padStart(2, '0')}p</span>
-      <button onclick="openUpgradeModal()" style="flex-shrink:0;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:800;cursor:pointer;">Nâng cấp Trọn đời — Không giới hạn dung lượng</button>
-    </div>`;
-  if (!_freeQuotaLockTimer) _freeQuotaLockTimer = setInterval(refreshFreeQuotaLock, 60000);
+  if (!bst || st.runMode !== 'idle') return;
+  const plan = st.gUserData?.plan;
+  const locked = (plan === 'trial' && st.gUserData?.trialUsed) ||
+                 (plan === 'credit' && !(st.gUserData?.creditsRemaining > 0));
+  bst.disabled = locked;
+  bst.style.opacity = locked ? '.4' : '1';
+  const box = document.getElementById('freeQuotaLockBox');
+  if (box) box.style.display = 'none'; // no longer used — lock signalled via planLockedModal
 }
 
 // Real-time lock for "Kiểm tra trước" + "Bắt đầu sao chép" khi gói Free đang
@@ -1688,7 +1672,7 @@ function refreshFreeVideoLock() {
   const bs  = document.getElementById('btnScan');
   const bst = document.getElementById('btnStart');
   if (!bs || !bst) return;
-  if (!st.gUserData || st.gUserData.plan !== 'free') { _freeVideoBlockShown = false; return; }
+  if (!st.gUserData || st.gUserData.plan !== 'trial') { _freeVideoBlockShown = false; return; }
   const videoFiles = collectSelectedVideoFiles();
   const locked = videoFiles.length > 0;
   if (st.runMode === 'idle') {
@@ -1717,92 +1701,84 @@ window.closeFreeVideoBlockModal = () => {
 };
 
 function updateFreeBanner() {
-  refreshFreeQuotaLock();
+  refreshPlanLock();
   refreshFreeVideoLock();
   const banner       = document.getElementById('freeBanner');
   const premiumBadge = document.getElementById('premiumBadge');
   if (!banner) return;
-  if (st.gUserData?.plan === 'paid') {
+  const plan = st.gUserData?.plan;
+  if (plan === 'lifetime') {
     banner.style.display = 'none';
     if (premiumBadge) premiumBadge.style.display = 'flex';
     return;
   }
   if (premiumBadge) premiumBadge.style.display = 'none';
-  if (!st.gUserData || st.gUserData.plan !== 'free') { banner.style.display = 'none'; return; }
-  if (st.gUserData.upgradeRequestedAt) {
-    banner.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;flex:1;"><span>⏳</span><span>Gói Trọn đời — Đang chờ admin xác nhận thanh toán</span></div>
-      <div style="font-size:11px;color:#adb5bd;font-weight:500;flex-shrink:0;">Sẽ được kích hoạt sau khi xác nhận</div>`;
-    banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;';
+  if (!st.gUserData) { banner.style.display = 'none'; return; }
+
+  if (plan === 'trial') {
+    if (st.gUserData.trialUsed) {
+      banner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#862e2e;font-weight:700;flex:1;"><span>⛔</span><span>Gói Dùng thử — Đã hết lượt sao chép</span></div>
+        <button onclick="window.openPlanLockedModal('trial')" style="flex-shrink:0;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Chọn gói tiếp theo →</button>`;
+      banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff5f5;border:1.5px solid #ffe3e3;border-radius:12px;padding:10px 16px;margin-bottom:12px;';
+    } else {
+      banner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;"><span>⚡</span><span>Gói Dùng thử — 2 GB / 1 lượt sao chép duy nhất (không copy video)</span></div>
+        <button onclick="window.openPlanLockedModal('trial')" style="flex-shrink:0;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Xem các gói →</button>`;
+      banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;';
+    }
     return;
   }
-  const usedMB   = st.gUserData.freeUsedMB || 0;
-  const remainMB = Math.max(0, FREE_MB_LIMIT - usedMB).toFixed(0);
-  const resetAt  = st.gUserData.freeResetAt?.toMillis ? st.gUserData.freeResetAt.toMillis() : Date.now();
-  const resetStr = new Date(resetAt + FREE_RESET_MS).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-  banner.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;"><span>⚡</span><span>Gói Miễn phí — Còn <b>${remainMB}</b> MB / 150 MB (reset lúc <b>${resetStr}</b>)</span></div>
-    <button onclick="openUpgradeModal()" style="flex-shrink:0;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Nâng cấp lên Trọn đời →</button>`;
-  banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;';
-}
 
-async function checkFreeLimit() {
-  if (!st.gUserData || st.gUserData.plan !== 'free') return true;
-  const now     = Date.now();
-  const resetAt = st.gUserData.freeResetAt?.toMillis ? st.gUserData.freeResetAt.toMillis() : 0;
-  if (now - resetAt > FREE_RESET_MS) {
-    try {
-      await updateDoc(doc(db, 'users', st.gUser.uid), { freeUsedMB: 0, freeResetAt: serverTimestamp() });
-      st.gUserData.freeUsedMB = 0;
-      st.gUserData.freeResetAt = { toMillis: () => Date.now() };
-      updateFreeBanner();
-    } catch (e) { console.warn('checkFreeLimit reset', e); }
-    return true;
+  if (plan === 'credit') {
+    const rem = st.gUserData.creditsRemaining || 0;
+    if (rem <= 0) {
+      banner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#862e2e;font-weight:700;flex:1;"><span>⛔</span><span>Gói Ngắn hạn — Đã hết ${rem <= 0 ? 'lượt' : rem + ' lượt'} sao chép</span></div>
+        <button onclick="window.openPlanLockedModal('credit')" style="flex-shrink:0;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Mua thêm lượt →</button>`;
+      banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff5f5;border:1.5px solid #ffe3e3;border-radius:12px;padding:10px 16px;margin-bottom:12px;';
+    } else {
+      banner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7a5a00;font-weight:700;"><span>⚡</span><span>Gói Ngắn hạn — Còn <b>${rem}</b> lượt sao chép (không giới hạn dung lượng, bao gồm video)</span></div>
+        <button onclick="window.openPlanLockedModal('credit')" style="flex-shrink:0;background:#ffc107;color:#212529;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Mua thêm lượt →</button>`;
+      banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffbea;border:1.5px solid #ffd43b;border-radius:12px;padding:10px 16px;margin-bottom:12px;';
+    }
+    return;
   }
-  if ((st.gUserData.freeUsedMB || 0) >= FREE_MB_LIMIT) { showFreeLimitModal(); return false; }
-  return true;
+
+  // Fallback: unknown plan → hide banner
+  banner.style.display = 'none';
 }
 
-async function updateFreeUsedMB() {
-  if (!st.gUserData || st.gUserData.plan !== 'free' || !st.gUser) return;
-  const newUsed = (st.gUserData.freeUsedMB || 0) + st._sessionCopiedMB;
-  try {
-    await updateDoc(doc(db, 'users', st.gUser.uid), { freeUsedMB: newUsed });
-    st.gUserData.freeUsedMB = newUsed;
-    st._sessionCopiedMB = 0; // guard against double-deducting the same copied bytes on a later call
-    updateFreeBanner();
-  } catch (e) { console.warn('updateFreeUsedMB', e); }
+// ── POST-COPY PLAN LOCKING ────────────────────────────────────
+// Called once per completed copy session (after saveHist, before showComplModal).
+// Decrements creditsRemaining for credit plan, or sets trialUsed for trial plan.
+function _sendEmail(payload) {
+  fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
 }
 
-function showFreeLimitModal() {
-  const modal = document.getElementById('freeLimitModal');
-  if (!modal) return;
-  updateFreeLimitCountdown();
-  modal.classList.add('active');
-  if (st._freeLimitTimer) clearInterval(st._freeLimitTimer);
-  st._freeLimitTimer = setInterval(updateFreeLimitCountdown, 1000);
-}
-window.closeFreeLimitModal = () => {
-  const modal = document.getElementById('freeLimitModal');
-  if (modal) modal.classList.remove('active');
-  if (st._freeLimitTimer) { clearInterval(st._freeLimitTimer); st._freeLimitTimer = null; }
-};
-function updateFreeLimitCountdown() {
-  if (!st.gUserData) return;
-  const resetAt    = st.gUserData.freeResetAt?.toMillis ? st.gUserData.freeResetAt.toMillis() : Date.now();
-  const remaining  = Math.max(0, resetAt + FREE_RESET_MS - Date.now());
-  const h = Math.floor(remaining / 3600000);
-  const m = Math.floor((remaining % 3600000) / 60000);
-  const s = Math.floor((remaining % 60000) / 1000);
-  const el = document.getElementById('freeLimitCountdown');
-  if (el) el.textContent = `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  const elMB = document.getElementById('freeLimitUsedMB');
-  if (elMB) elMB.textContent = Math.round(st.gUserData.freeUsedMB || 0);
-  if (remaining === 0) {
-    window.closeFreeLimitModal();
-    st.gUserData.freeUsedMB = 0;
-    updateFreeBanner();
-    toast('Đã hết thời gian chờ — bạn có thể sao chép tiếp!', 'ok');
+async function _handleCopyCompletion() {
+  if (!st.gUser || !st.gUserData) return;
+  const plan = st.gUserData.plan;
+  if (plan === 'trial' && !st.gUserData.trialUsed) {
+    try {
+      await updateDoc(doc(db, 'users', st.gUser.uid), { trialUsed: true, trialLockedAt: serverTimestamp() });
+      st.gUserData.trialUsed = true;
+      updateFreeBanner();
+      _sendEmail({ type: 'trial_used_up', toEmail: st.gUser.email, userName: st.gUser.displayName || st.gUser.email, siteUrl: 'https://swiftcopydrive.vercel.app' });
+    } catch (e) { console.warn('_handleCopyCompletion trial', e); }
+  } else if (plan === 'credit' && st.gUserData.creditsRemaining > 0) {
+    const newRem = (st.gUserData.creditsRemaining || 0) - 1;
+    try {
+      const upd = { creditsRemaining: newRem };
+      if (newRem <= 0) upd.creditsLockedAt = serverTimestamp();
+      await updateDoc(doc(db, 'users', st.gUser.uid), upd);
+      st.gUserData.creditsRemaining = newRem;
+      updateFreeBanner();
+      if (newRem <= 0) {
+        _sendEmail({ type: 'credit_used_up', toEmail: st.gUser.email, userName: st.gUser.displayName || st.gUser.email, siteUrl: 'https://swiftcopydrive.vercel.app' });
+      }
+    } catch (e) { console.warn('_handleCopyCompletion credit', e); }
   }
 }
 
@@ -1854,7 +1830,7 @@ function setBtnMode(mode) {
     bst.className = BTN_BASE.start + ' ' + BTN_STYLE.startCopy; bstT.textContent = 'Dừng sao chép';
     bp.style.display = 'block'; br.style.display = 'none'; bR.disabled = true; bR.style.opacity = '.4';
   }
-  refreshFreeQuotaLock();
+  refreshPlanLock();
   refreshFreeVideoLock();
 }
 

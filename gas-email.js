@@ -62,8 +62,11 @@ function doPost(e) {
       case 'ctv_readded':                  handleCTVReadded(data);                 break;
       case 'ctv_kick_alert':               handleCTVKickAlert(data);               break;
       case 'upgrade_request_received':     handleUpgradeRequestReceived(data);     break;
-      case 'upgrade_reminder':             handleUpgradeReminder(data);            break;
       case 'admin_self_delete_notice':     handleAdminSelfDeleteNotice(data);      break;
+      case 'trial_used_up':               handleTrialUsedUp(data);                break;
+      case 'credit_used_up':              handleCreditUsedUp(data);               break;
+      case 'credit_purchase_request':     handleCreditPurchaseRequest(data);      break;
+      case 'credit_added':               handleCreditAdded(data);                break;
       default:
         throw new Error('Unknown type: ' + data.type);
     }
@@ -281,31 +284,31 @@ function handleReadd(data) {
 // Gửi khi: user hoàn tất đăng ký gói Free (createFreeUser trong auth.js)
 // Payload: { type, toEmail, userName, siteUrl }
 function handleRegisterFreeSuccess(data) {
-  const subject = 'Đăng ký thành công gói Miễn phí!';
-  const compareRow = (label, freeVal, freeColor, paidVal) =>
+  const subject = 'Đăng ký thành công gói Dùng thử!';
+  const compareRow = (label, trialVal, trialColor, paidVal) =>
     '<tr>' +
       '<td style="padding:7px 6px;color:#495057;font-size:12.5px;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + label + '</td>' +
-      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;color:' + freeColor + ';border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + freeVal + '</td>' +
+      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;color:' + trialColor + ';border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + trialVal + '</td>' +
       '<td style="padding:7px 6px;text-align:center;font-size:12.5px;font-weight:700;color:#a07820;background:#fffdf5;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + paidVal + '</td>' +
     '</tr>';
   const bodyHtml =
-    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>, tài khoản của bạn trên ' + SITE_NAME + ' đã sẵn sàng với gói <b>Miễn phí</b>!</p>' +
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>, tài khoản của bạn trên ' + SITE_NAME + ' đã sẵn sàng với gói <b>Dùng thử</b>!</p>' +
     '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:14px">' +
       '<tr>' +
         '<td style="padding:8px 6px;border-bottom:1px solid #e9ecef"></td>' +
-        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#495057;font-weight:700;border-bottom:1px solid #e9ecef;font-family:Arial,sans-serif">Miễn phí</td>' +
+        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#495057;font-weight:700;border-bottom:1px solid #e9ecef;font-family:Arial,sans-serif">Dùng thử</td>' +
         '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#a07820;font-weight:800;background:#fffdf5;border-bottom:1px solid #f0d060;font-family:Arial,sans-serif">Trọn đời</td>' +
       '</tr>' +
       compareRow('Sao chép file &amp; thư mục', '✓', '#495057', '✓') +
-      compareRow('Dung lượng', '150MB / 5 giờ', '#495057', 'Không giới hạn') +
+      compareRow('Dung lượng', '2 GB / 1 lần dùng', '#495057', 'Không giới hạn') +
       compareRow('Copy video', '✕', '#dc3545', '✓ Không giới hạn') +
       compareRow('File không có nút tải', '✕', '#dc3545', '✓') +
       compareRow('Tự resume mất mạng', '✕', '#dc3545', '✓') +
     '</table>' +
-    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Nâng cấp lên <b>Trọn đời</b> chỉ <b>250.000đ</b> — dùng mãi mãi, không giới hạn dung lượng &amp; video.</div>';
+    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Nâng cấp lên <b>Trọn đời</b> chỉ <b>290.000đ</b> — dùng mãi mãi, không giới hạn dung lượng &amp; video.</div>';
   const html = buildEmailHtml({
     iconBg: '#e6fcf5', iconColor: '#099268', iconChar: '✓',
-    title: 'Đăng ký thành công gói Miễn phí!',
+    title: 'Đăng ký thành công gói Dùng thử!',
     bodyHtml: bodyHtml,
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL),
     ctaBg: '#ffc107', ctaColor: '#212529'
@@ -335,13 +338,16 @@ function handleAccountDeletedPermanently(data) {
 // Gửi khi: admin đổi plan từ Free → Paid qua dropdown trong admin.html
 // Payload: { type, toEmail, userName, siteUrl }
 function handlePlanUpgradedByAdmin(data) {
-  const subject = 'Bạn vừa được nâng cấp lên gói Trọn đời!';
+  const newPlan = data.newPlan || 'Trọn đời';
+  const subject = 'Gói của bạn đã được nâng cấp lên ' + newPlan + '!';
+  const isLifetime = newPlan === 'Trọn đời';
   const bodyHtml =
     '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
-    '<p style="margin:0;font-family:Arial,sans-serif">Tài khoản của bạn trên ' + SITE_NAME + ' vừa được admin nâng cấp lên gói <b>Trọn đời</b>. Từ bây giờ bạn có thể sao chép không giới hạn, bao gồm video và tự tiếp tục sau mất mạng/máy tắt.</p>';
+    '<p style="margin:0;font-family:Arial,sans-serif">Tài khoản của bạn trên ' + SITE_NAME + ' vừa được admin nâng cấp lên gói <b>' + _esc(newPlan) + '</b>.' +
+    (isLifetime ? ' Từ bây giờ bạn có thể sao chép không giới hạn, bao gồm video và tự tiếp tục sau mất mạng/máy tắt.' : ' Bạn đã có 3 lượt sao chép mới — vào dashboard để sử dụng ngay.') + '</p>';
   const html = buildEmailHtml({
     iconBg: '#e6fcf5', iconColor: '#099268', iconChar: '★',
-    title: 'Bạn vừa được nâng cấp lên Trọn đời!',
+    title: 'Gói của bạn đã được nâng cấp lên ' + newPlan + '!',
     bodyHtml: bodyHtml,
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
     ctaBg: '#ffc107', ctaColor: '#212529'
@@ -349,20 +355,22 @@ function handlePlanUpgradedByAdmin(data) {
   GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
-// ── 12. THÔNG BÁO USER: admin hạ cấp xuống Miễn phí ─────────────────
-// Gửi khi: admin đổi plan từ Paid → Free qua dropdown trong admin.html
-// Payload: { type, toEmail, userName, siteUrl }
+// ── 12. THÔNG BÁO USER: admin hạ cấp ─────────────────────────────────
+// Gửi khi: admin đổi plan qua dropdown trong admin.html (hướng xuống theo rank)
+// Payload: { type, toEmail, userName, newPlan, oldPlan, siteUrl }
 function handlePlanDowngradedByAdmin(data) {
-  const subject = 'Tài khoản của bạn đã được chuyển về gói Miễn phí';
-  const compareRow = (label, freeVal, freeColor, paidVal) =>
+  const newPlan = data.newPlan || 'Dùng thử';
+  const oldPlan = data.oldPlan || 'Trọn đời';
+  const subject = 'Tài khoản của bạn đã được chuyển về gói ' + newPlan;
+  const compareRow = (label, trialVal, trialColor, paidVal) =>
     '<tr>' +
       '<td style="padding:7px 6px;color:#495057;font-size:12.5px;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + label + '</td>' +
-      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;color:' + freeColor + ';border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + freeVal + '</td>' +
+      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;color:' + trialColor + ';border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + trialVal + '</td>' +
       '<td style="padding:7px 6px;text-align:center;font-size:12.5px;font-weight:700;color:#a07820;background:#fffdf5;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + paidVal + '</td>' +
     '</tr>';
   const bodyHtml =
     '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
-    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Tài khoản của bạn vừa được admin hạ từ gói <b>Trọn đời</b> về gói <b>Miễn phí</b>.</p>' +
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Tài khoản của bạn vừa được admin hạ từ gói <b>' + _esc(oldPlan) + '</b> về gói <b>' + _esc(newPlan) + '</b>.</p>' +
     '<div style="background:#fff5f5;border:1px solid #ffe3e3;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-family:Arial,sans-serif">' +
       '<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#dc3545;font-family:Arial,sans-serif">Một số tính năng đã bị cắt giảm như:</p>' +
       '<ul style="margin:0;padding-left:16px;color:#dc3545;font-size:13px;line-height:1.8">' +
@@ -375,19 +383,19 @@ function handlePlanDowngradedByAdmin(data) {
     '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:14px">' +
       '<tr>' +
         '<td style="padding:8px 6px;border-bottom:1px solid #e9ecef"></td>' +
-        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#495057;font-weight:700;border-bottom:1px solid #e9ecef;font-family:Arial,sans-serif">Miễn phí</td>' +
+        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#495057;font-weight:700;border-bottom:1px solid #e9ecef;font-family:Arial,sans-serif">Dùng thử</td>' +
         '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#a07820;font-weight:800;background:#fffdf5;border-bottom:1px solid #f0d060;font-family:Arial,sans-serif">Trọn đời</td>' +
       '</tr>' +
       compareRow('Sao chép file &amp; thư mục', '✓', '#495057', '✓') +
-      compareRow('Dung lượng', '150MB / 5 giờ', '#495057', 'Không giới hạn') +
+      compareRow('Dung lượng', '2 GB / 1 lần dùng', '#495057', 'Không giới hạn') +
       compareRow('Copy video', '✕', '#dc3545', '✓ Không giới hạn') +
       compareRow('File không có nút tải', '✕', '#dc3545', '✓') +
       compareRow('Tự resume mất mạng', '✕', '#dc3545', '✓') +
     '</table>' +
-    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Quay lại <b>Trọn đời</b> chỉ <b>250.000đ</b> — dùng mãi mãi, không lo giới hạn lần nữa.</div>';
+    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Quay lại <b>Trọn đời</b> chỉ <b>290.000đ</b> — dùng mãi mãi, không lo giới hạn lần nữa.</div>';
   const html = buildEmailHtml({
     iconBg: '#fffbea', iconColor: '#d97706', iconChar: '↓',
-    title: 'Bạn vừa được hạ cấp xuống tài khoản Miễn phí',
+    title: 'Gói của bạn đã được chuyển về ' + newPlan,
     bodyHtml: bodyHtml,
     ctaText: 'Đăng nhập ngay', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
     ctaBg: '#ffc107', ctaColor: '#212529'
@@ -648,37 +656,93 @@ function handleUpgradeRequestReceived(data) {
   GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
 }
 
-// ── 25. EMAIL NHẮC NÂNG CẤP ĐỊNH KỲ (gửi bởi Vercel Cron Job) ───────────────
-// Gửi định kỳ cho user Free mỗi 3 ngày kể từ ngày đăng ký, dừng sau 2 năm
+// ── MỚI: THÔNG BÁO USER: đã dùng hết lượt Dùng thử ─────────────────────────
+// Gửi khi: showComplModal() với plan=trial (sau 1 lần copy hoàn tất)
 // Payload: { type, toEmail, userName, siteUrl }
-function handleUpgradeReminder(data) {
-  const subject = 'Hãy nâng cấp gói trọn đời để Copy dữ liệu Drive';
-  const compareRow = (label, freeVal, freeColor, paidVal) =>
-    '<tr>' +
-      '<td style="padding:7px 6px;color:#495057;font-size:12.5px;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + label + '</td>' +
-      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;color:' + freeColor + ';border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + freeVal + '</td>' +
-      '<td style="padding:7px 6px;text-align:center;font-size:12.5px;font-weight:700;color:#a07820;background:#fffdf5;border-bottom:1px solid #f1f3f5;font-family:Arial,sans-serif">' + paidVal + '</td>' +
-    '</tr>';
+function handleTrialUsedUp(data) {
+  const subject = 'Bạn đã dùng hết lượt Dùng thử';
   const bodyHtml =
-    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,<br>Bạn đang sử dụng gói miễn phí sẽ giảm trải nghiệm sao chép Drive và làm giảm suất công việc của bạn. Đây là những gì bạn đang bỏ lỡ nếu chưa nâng cấp:</p>' +
-    '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:14px">' +
-      '<tr>' +
-        '<td style="padding:8px 6px;border-bottom:1px solid #e9ecef"></td>' +
-        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#495057;font-weight:700;border-bottom:1px solid #e9ecef;font-family:Arial,sans-serif">Miễn phí</td>' +
-        '<td style="padding:8px 6px;text-align:center;font-size:12.5px;color:#a07820;font-weight:800;background:#fffdf5;border-bottom:1px solid #f0d060;font-family:Arial,sans-serif">Trọn đời</td>' +
-      '</tr>' +
-      compareRow('Sao chép file &amp; thư mục', '✓', '#495057', '✓') +
-      compareRow('Dung lượng', '150MB / 5 giờ', '#495057', 'Không giới hạn') +
-      compareRow('Copy video', '✕', '#dc3545', '✓ Không giới hạn') +
-      compareRow('File không có nút tải', '✕', '#dc3545', '✓') +
-      compareRow('Tự resume mất mạng', '✕', '#dc3545', '✓') +
-    '</table>' +
-    '<div style="background:#fffbea;border:1px solid #f0d060;border-radius:10px;padding:12px 14px;font-size:13px;color:#856404;line-height:1.6;font-family:Arial,sans-serif">Gói Trọn đời: không giới hạn dung lượng, copy cả video, tự tiếp tục nếu mất mạng — chỉ <b>250.000đ</b>, dùng một lần mãi mãi.</div>';
+    '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Bạn vừa hoàn thành lượt sao chép Dùng thử trên ' + SITE_NAME + '. Tài khoản của bạn đã được khoá sau 1 lần sử dụng — theo đúng điều khoản gói Dùng thử.</p>' +
+    '<div style="background:#fff5f5;border:1px solid #ffe3e3;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-family:Arial,sans-serif">' +
+      '<p style="margin:0;font-size:13px;color:#c0392b;line-height:1.6">Để tiếp tục sao chép dữ liệu Drive, bạn cần nâng cấp tài khoản.</p>' +
+    '</div>' +
+    '<p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#495057">Chọn gói phù hợp với nhu cầu của bạn trong trang dashboard — <b>Ngắn hạn</b> (39.000đ/3 lượt) hoặc <b>Trọn đời</b> (290.000đ, không giới hạn mãi mãi).</p>';
   const html = buildEmailHtml({
     iconBg: '#fffbea', iconColor: '#d97706', iconChar: '◷',
-    title: 'Hãy nâng cấp gói trọn đời để Copy dữ liệu Drive',
+    title: 'Lượt Dùng thử đã hết',
     bodyHtml: bodyHtml,
-    ctaText: 'Nâng cấp trọn đời ngay', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
+    ctaText: 'Xem gói nâng cấp', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── MỚI: THÔNG BÁO USER: đã dùng hết lượt Ngắn hạn ─────────────────────────
+// Gửi khi: showComplModal() với plan=credit và creditsRemaining==0 sau khi trừ
+// Payload: { type, toEmail, userName, siteUrl }
+function handleCreditUsedUp(data) {
+  const subject = 'Bạn đã dùng hết lượt Ngắn hạn';
+  const bodyHtml =
+    '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Bạn vừa dùng hết toàn bộ lượt sao chép trong gói <b>Ngắn hạn</b> trên ' + SITE_NAME + '.</p>' +
+    '<div style="background:#fff5f5;border:1px solid #ffe3e3;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-family:Arial,sans-serif">' +
+      '<p style="margin:0;font-size:13px;color:#c0392b;line-height:1.6">Nút "Bắt đầu sao chép" sẽ bị khoá cho đến khi bạn mua thêm lượt hoặc nâng cấp lên Trọn đời.</p>' +
+    '</div>' +
+    '<p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#495057">Mua thêm <b>3 lượt (39.000đ)</b> hoặc nâng lên <b>Trọn đời (290.000đ)</b> để tiếp tục sử dụng không giới hạn.</p>';
+  const html = buildEmailHtml({
+    iconBg: '#fff5f5', iconColor: '#dc3545', iconChar: '!',
+    title: 'Hết lượt Ngắn hạn',
+    bodyHtml: bodyHtml,
+    ctaText: 'Mua thêm lượt', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── MỚI: THÔNG BÁO ADMIN: user yêu cầu mua lượt Ngắn hạn ───────────────────
+// Gửi khi: user bấm "Tôi đã chuyển khoản" trong #planLockedModal (credit flow)
+// Payload: { type, toEmail (admin), userName, userEmail, plan, siteUrl }
+function handleCreditPurchaseRequest(data) {
+  const subject = 'Yêu cầu mua lượt Ngắn hạn mới';
+  const bodyHtml =
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Có yêu cầu mua lượt Ngắn hạn mới từ một user:</p>' +
+    _fieldTable([
+      { label: 'Email', value: data.userEmail || data.userName || '—' },
+      { label: 'Tên', value: data.userName || '—' },
+      { label: 'Gói hiện tại', value: data.plan || 'credit' },
+    ]) +
+    '<p style="margin:14px 0 0;font-family:Arial,sans-serif;font-size:13px;color:#495057">Vào trang quản trị để duyệt yêu cầu và thêm 3 lượt cho user này.</p>';
+  const html = buildEmailHtml({
+    iconBg: '#fffbea', iconColor: '#d97706', iconChar: '◷',
+    title: 'Yêu cầu mua lượt Ngắn hạn',
+    bodyHtml: bodyHtml,
+    ctaText: 'Vào trang quản trị', ctaUrl: (data.siteUrl || SITE_URL) + '/admin.html',
+    ctaBg: '#ffc107', ctaColor: '#212529'
+  });
+  GmailApp.sendEmail(ADMIN_EMAIL, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });
+}
+
+// ── MỚI: THÔNG BÁO USER: admin đã thêm lượt Ngắn hạn ───────────────────────
+// Gửi khi: admin bấm "Duyệt +3 lượt" hoặc "+3 Lượt" trong admin.html
+// Payload: { type, toEmail, userName, creditsAdded, creditsTotal, siteUrl }
+function handleCreditAdded(data) {
+  const added = data.creditsAdded || 3;
+  const total = data.creditsTotal;
+  const subject = 'Đã thêm ' + added + ' lượt sao chép vào tài khoản của bạn';
+  const bodyHtml =
+    '<p style="margin:0 0 10px;font-family:Arial,sans-serif">Xin chào <b>' + _esc(data.userName || data.toEmail) + '</b>,</p>' +
+    '<p style="margin:0 0 14px;font-family:Arial,sans-serif">Admin vừa thêm <b>' + added + ' lượt</b> sao chép vào tài khoản <b>Ngắn hạn</b> của bạn trên ' + SITE_NAME + '.</p>' +
+    (total != null ? '<div style="background:#e6fcf5;border:1px solid #c3fae8;border-radius:10px;padding:12px 14px;margin-bottom:14px;text-align:center;font-family:Arial,sans-serif">' +
+      '<p style="margin:0;font-size:24px;font-weight:800;color:#099268">' + total + ' lượt</p>' +
+      '<p style="margin:4px 0 0;font-size:12.5px;color:#0f6e56">Lượt còn lại trong tài khoản</p>' +
+    '</div>' : '') +
+    '<p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#495057">Vào dashboard để bắt đầu sao chép ngay.</p>';
+  const html = buildEmailHtml({
+    iconBg: '#e6fcf5', iconColor: '#099268', iconChar: '✓',
+    title: 'Đã thêm ' + added + ' lượt sao chép',
+    bodyHtml: bodyHtml,
+    ctaText: 'Vào dashboard', ctaUrl: (data.siteUrl || SITE_URL) + '/copy-drive',
     ctaBg: '#ffc107', ctaColor: '#212529'
   });
   GmailApp.sendEmail(data.toEmail, subject, '', { htmlBody: html, name: 'SwiftCopy.Drive' });

@@ -1,17 +1,19 @@
 ﻿CHÍNH SÁCH HOÀN TIỀN
-SwiftCopy.Drive | Cập nhật lần cuối: 22/06/2026
+SwiftCopy.Drive | Cập nhật lần cuối: 07/07/2026
 1. Tổng quan
-SwiftCopy.Drive áp dụng mô hình thanh toán một lần, trọn đời. Chúng tôi cam kết hỗ trợ kỹ thuật tận tình và xem xét hoàn tiền trong các trường hợp hợp lý được quy định dưới đây.
+SwiftCopy.Drive cung cấp các gói dịch vụ theo lượt (Ngắn hạn) và trọn đời (Trọn đời). Chúng tôi cam kết hỗ trợ kỹ thuật tận tình và xem xét hoàn tiền trong các trường hợp hợp lý được quy định dưới đây.
 
 2. Các trường hợp được xem xét hoàn tiền
 Bạn có thể yêu cầu hoàn tiền trong các trường hợp sau:
     • Lỗi kỹ thuật nghiêm trọng từ phía hệ thống khiến Dịch vụ không hoạt động và không thể khắc phục trong vòng 72 giờ kể từ khi báo cáo
     • Tài khoản không được kích hoạt sau 24 giờ kể từ khi xác nhận thanh toán mà không có lý do hợp lệ
-    • Yêu cầu hoàn tiền được gửi trong vòng 7 ngày kể từ ngày thanh toán VÀ chưa sử dụng Dịch vụ thành công lần nào
+    • Yêu cầu hoàn tiền được gửi trong vòng 7 ngày kể từ ngày thanh toán VÀ chưa sử dụng lượt nào của gói đã thanh toán
 
 3. Các trường hợp KHÔNG được hoàn tiền
 Chúng tôi sẽ không hoàn tiền trong các trường hợp sau:
-    • Đã sử dụng Dịch vụ thành công ít nhất một lần (dù chỉ copy 1 file)
+    • Gói Dùng thử (miễn phí) — không áp dụng hoàn tiền vì không mất phí
+    • Gói Ngắn hạn: đã sử dụng ít nhất 1 lượt trong 3 lượt đã mua
+    • Gói Trọn đời: đã sử dụng Dịch vụ thành công ít nhất một lần
     • Lỗi phát sinh do quyền truy cập Google Drive bị hạn chế bởi chủ Drive gốc (ngoài tầm kiểm soát của chúng tôi)
     • Lỗi do tài khoản Google của bạn bị hạn chế hoặc bị Google tạm khóa
     • Thay đổi ý định hoặc không còn nhu cầu sử dụng sau khi đã kích hoạt tài khoản

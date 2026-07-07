@@ -4,9 +4,7 @@
 export const IS_DASHBOARD = !!document.getElementById('s-app');
 
 // ── Shared constants ──────────────────────────────────────────
-export const FREE_MB_LIMIT = 150;
-export const FREE_MB_MARGIN = 20; // allowed overshoot for a fresh selection vs. the 150MB cycle limit
-export const FREE_RESET_MS = 5 * 60 * 60 * 1000;
+export const TRIAL_MB_LIMIT = 2048; // 2 GB — max size for a single trial copy session
 export const FMIME = 'application/vnd.google-apps.folder';
 
 // ── Stats factory ─────────────────────────────────────────────
@@ -22,7 +20,7 @@ export const st = {
   _paymentContext: null, _loginMode: 'register',
   _kickPollTimer: null, _maintenancePromise: null,
   _authExpiredHandled: false, _resumeAfterReauth: null,
-  _pendingPlanChoice: null,  // 'free' | 'paid' | null — plan chosen from auto-popup before auth
+  _pendingPlanChoice: null,  // 'trial' | 'credit' | 'lifetime' | null — plan chosen from auto-popup before auth
   _planModalSource: null,    // 'auto' | null — 'auto' when the 30s timer opens planSelectModal
 
   // Execution control (read/written by app.js + drive-api.js)
@@ -38,7 +36,7 @@ export const st = {
   _dragActive: false, _dragCheckValue: null,
 
   // Copy session (app.js only)
-  _sessionCopiedMB: 0, _freeLimitTimer: null,
+  _freeLimitTimer: null,
 
   // Progress (app.js only)
   progDone: 0, _maxPct: 0, _progTotal: 0,

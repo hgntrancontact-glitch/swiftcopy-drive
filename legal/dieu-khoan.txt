@@ -9,23 +9,28 @@ Dịch vụ bao gồm các tính năng:
     • Sao chép thư mục và file Google Drive với tốc độ cao
     • Kiểm tra quyền truy cập trước khi sao chép
     • Chọn lọc thư mục/file cụ thể cần sao chép
-    • Theo dõi tiến trình và tự động tiếp tục nếu mất kết nối
+    • Theo dõi tiến trình và tự động tiếp tục nếu mất kết nối (gói Trọn đời)
 
 3. Điều kiện sử dụng
 Để sử dụng Dịch vụ, bạn phải:
     • Có tài khoản Google hợp lệ
-    • Được Quản trị viên phê duyệt sau khi thanh toán thành công
+    • Đăng ký tài khoản và chọn gói dịch vụ phù hợp
     • Không sử dụng Dịch vụ cho các mục đích vi phạm pháp luật
 
 Người dùng cam kết chỉ sử dụng Dịch vụ để sao chép dữ liệu thuộc quyền sở hữu hợp pháp của mình, hoặc dữ liệu đã được bên thứ ba chia sẻ/cấp quyền hợp lệ cho người dùng truy cập. SwiftCopy.Drive hoàn toàn không chịu trách nhiệm đối với bất kỳ hành vi vi phạm bản quyền hay sở hữu trí tuệ nào do người dùng thực hiện.
 
 SwiftCopy.Drive không uỷ quyền cho bất kỳ cộng tác viên hay bên thứ ba nào đại diện phát ngôn hoặc cam kết các tính năng nằm ngoài phạm vi mô tả chính thức trên website. Chúng tôi hoàn toàn miễn trừ trách nhiệm đối với các giao dịch, phát ngôn giả mạo hoặc lừa đảo từ các đại lý/kênh không chính thức.
 
-4. Tài khoản và Thanh toán
-SwiftCopy.Drive áp dụng mô hình thanh toán một lần — bạn chỉ trả tiền một lần duy nhất và được sử dụng không giới hạn thời gian theo vòng đời hoạt động của sản phẩm, trừ trường hợp có thay đổi từ chính sách Google Drive API hoặc các nguyên nhân bất khả kháng khác. Tài khoản được kích hoạt thủ công bởi Quản trị viên sau khi xác nhận thanh toán thành công.
+4. Tài khoản và Gói dịch vụ
+SwiftCopy.Drive cung cấp ba gói dịch vụ:
+
+    • Gói Dùng thử (Miễn phí): Cho phép sử dụng 1 lần duy nhất với tối đa 2 GB dữ liệu. Sau khi hoàn thành 1 phiên sao chép, tài khoản sẽ bị khoá và cần nâng cấp để tiếp tục sử dụng. Không hỗ trợ sao chép video.
+    • Gói Ngắn hạn (39.000đ / 3 lượt): Mỗi lần thanh toán cung cấp 3 lượt sao chép. Mỗi lượt tương ứng một phiên sao chép hoàn chỉnh, không giới hạn dung lượng. Không hỗ trợ sao chép video hay tự tiếp tục sau mất mạng. Tài khoản được kích hoạt thủ công bởi Quản trị viên sau khi xác nhận thanh toán.
+    • Gói Trọn đời (290.000đ): Thanh toán một lần duy nhất, sử dụng không giới hạn thời gian theo vòng đời hoạt động của sản phẩm. Không giới hạn dung lượng, hỗ trợ video, tự tiếp tục sau mất mạng/máy tắt. Tài khoản được kích hoạt thủ công bởi Quản trị viên sau khi xác nhận thanh toán.
+
 Bạn có trách nhiệm:
     • Bảo mật thông tin tài khoản Google của mình
-    • Không chia sẻ quyền truy cập tài khoản ${BRAND} cho người khác
+    • Không chia sẻ quyền truy cập tài khoản SwiftCopy.Drive cho người khác
     • Thông báo ngay cho chúng tôi nếu phát hiện sử dụng trái phép
 
 5. Quyền sở hữu trí tuệ

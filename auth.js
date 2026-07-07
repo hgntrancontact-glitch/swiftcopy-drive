@@ -9,9 +9,9 @@ import { initializeApp }
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, onSnapshot,
-         collection, getDocs, where, query, increment }
+         collection, getDocs, where, query, increment, addDoc }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { st, IS_DASHBOARD, FREE_MB_LIMIT, FREE_RESET_MS, releasePauseWaiters } from './state.js';
+import { st, IS_DASHBOARD, releasePauseWaiters } from './state.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDu5D6bB-FxJl2E71Ls17GwHVtqZV0FwF8",
@@ -391,16 +391,22 @@ function _stopUserDocListener() {
   if (_userDocUnsubscribe) { _userDocUnsubscribe(); _userDocUnsubscribe = null; }
 }
 
+let _userDocListenerFirst = true;
 function _startUserDocListener(uid) {
   _stopUserDocListener();
+  _userDocListenerFirst = true;
   _userDocUnsubscribe = onSnapshot(
     doc(db, 'users', uid),
     (snap) => {
-      // First snapshot fires immediately after subscribe — user is already approved at this point,
-      // so we skip it to avoid false positive. Only react to subsequent changes.
+      if (_userDocListenerFirst) { _userDocListenerFirst = false; return; }
       if (!snap.exists()) { _stopUserDocListener(); _reactToKick(null); return; }
       const d = snap.data();
-      if (d.status === 'kicked' || !d.approved) { _stopUserDocListener(); _reactToKick(d); }
+      if (d.status === 'kicked' || !d.approved) { _stopUserDocListener(); _reactToKick(d); return; }
+      // Sync plan/credits changes (e.g. admin approves credit, changes plan)
+      if (st.gUser && st.gUserData) {
+        st.gUserData = { id: uid, ...d };
+        st.updateFreeBanner?.();
+      }
     },
     (err) => { console.warn('userDoc listener:', err.code); }
   );
@@ -422,13 +428,13 @@ async function checkApproval(u) {
   const snap = await getDoc(doc(db, 'users', u.uid));
   if (!snap.exists()) return false;
   const d = snap.data();
-  st.gUserData = { id: u.uid, ...d };
-  if (d.plan === 'free' && d.approved && (d.freeUsedMB === undefined || !d.freeResetAt)) {
-    const upd = {};
-    if (d.freeUsedMB === undefined) { upd.freeUsedMB = 0; st.gUserData.freeUsedMB = 0; }
-    if (!d.freeResetAt) { upd.freeResetAt = serverTimestamp(); st.gUserData.freeResetAt = { toMillis: () => Date.now() }; }
-    try { await updateDoc(doc(db, 'users', u.uid), upd); } catch (e) { console.warn('migration', e); }
+  // Migrate legacy plan values 'free'→'trial', 'paid'→'lifetime'
+  const legacyMap = { free: 'trial', paid: 'lifetime' };
+  if (legacyMap[d.plan]) {
+    d.plan = legacyMap[d.plan];
+    try { await updateDoc(doc(db, 'users', u.uid), { plan: d.plan }); } catch (e) { console.warn('plan migration', e); }
   }
+  st.gUserData = { id: u.uid, ...d };
   return d.status !== 'kicked' && d.approved === true;
 }
 
@@ -436,7 +442,7 @@ async function checkApproval(u) {
 function _gasPost(payload) {
   fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
 }
-export function sendRegEmail(u)           { _gasPost({ type: 'new_registration', userEmail: u.email, userName: u.displayName || u.email, plan: 'free' }); }
+export function sendRegEmail(u)           { _gasPost({ type: 'new_registration', userEmail: u.email, userName: u.displayName || u.email, plan: 'trial' }); }
 export function sendUpgradeRequestEmail(u){ _gasPost({ type: 'upgrade_request',  userEmail: u.email, userName: u.displayName || u.email }); }
 function _notifyAdminKicked(u, reason)    { _gasPost({ type: 'kick_alert',       userEmail: u.email, userName: u.displayName || u.email, reason: reason || '?' }); }
 function _sendRegisterFreeSuccessEmail(u) { _gasPost({ type: 'register_free_success', toEmail: u.email, userName: u.displayName || u.email, siteUrl: SITE_URL }); }
@@ -493,7 +499,7 @@ window.closePlanSelect = async () => {
 // so _routeLandingAuthedUser can skip the second planSelectModal and act directly.
 window.choosePlanFree = () => {
   if (!st.gUser) {
-    st._pendingPlanChoice = 'free';
+    st._pendingPlanChoice = 'trial';
     st._planModalSource = null;
     document.getElementById('planSelectModal')?.classList.remove('active');
     window.openLoginModal('register');
@@ -503,7 +509,7 @@ window.choosePlanFree = () => {
 };
 window.choosePlanPaid = () => {
   if (!st.gUser) {
-    st._pendingPlanChoice = 'paid';
+    st._pendingPlanChoice = 'lifetime';
     st._planModalSource = null;
     document.getElementById('planSelectModal')?.classList.remove('active');
     window.openLoginModal('register');
@@ -519,8 +525,8 @@ window.createFreeUser = async () => {
     const affFields = _getAffiliateFields();
     const userData = {
       email: st.gUser.email, displayName: st.gUser.displayName, photoURL: st.gUser.photoURL,
-      approved: true, status: 'approved', plan: 'free',
-      freeUsedMB: 0, freeResetAt: serverTimestamp(),
+      approved: true, status: 'approved', plan: 'trial',
+      trialUsed: false,
       upgradeRequestedAt: null, createdAt: serverTimestamp(),
       ...affFields
     };
@@ -555,8 +561,8 @@ async function createPaidPendingUser() {
     const affFields = _getAffiliateFields();
     const userData = {
       email: st.gUser.email, displayName: st.gUser.displayName, photoURL: st.gUser.photoURL,
-      approved: false, status: 'pending', plan: 'free',
-      freeUsedMB: 0, freeResetAt: serverTimestamp(),
+      approved: false, status: 'pending', plan: 'trial',
+      trialUsed: false,
       upgradeRequestedAt: serverTimestamp(), createdAt: serverTimestamp(),
       ...affFields
     };
@@ -657,5 +663,34 @@ async function _doUpgradeRequestInternal() {
 }
 
 window.doUpgradeRequest = () => window.showPaymentConfirm();
+
+// ── Credit purchase request (Ngắn hạn plan) ───────────────────
+window.openPlanLockedModal = (ctx) => {
+  const modal = document.getElementById('planLockedModal');
+  if (!modal) return;
+  const titleEl = document.getElementById('planLockedTitle');
+  if (titleEl) titleEl.textContent = ctx === 'credit' ? 'Hết lượt sao chép' : 'Đã dùng hết lượt thử';
+  modal.classList.add('active');
+};
+
+window.requestCreditPurchase = async () => {
+  if (!st.gUser || !st.gUserData) return;
+  const btn = document.getElementById('btnRequestCredit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Đang gửi...'; }
+  try {
+    await addDoc(collection(db, 'creditRequests'), {
+      uid: st.gUser.uid, email: st.gUser.email,
+      displayName: st.gUser.displayName || st.gUser.email,
+      requestedAt: serverTimestamp(), status: 'pending'
+    });
+    _gasPost({ type: 'credit_purchase_request', toEmail: st.gUser.email,
+      userName: st.gUser.displayName || st.gUser.email, siteUrl: SITE_URL });
+    document.getElementById('planLockedModal')?.classList.remove('active');
+    st.toast?.('Đã gửi yêu cầu mua gói Ngắn hạn! Admin sẽ kích hoạt sớm nhất.', 'ok');
+  } catch (e) {
+    st.toast?.('Lỗi: ' + e.message, 'err');
+    if (btn) { btn.disabled = false; btn.textContent = 'Gửi yêu cầu mua — 39.000đ / 3 lượt'; }
+  }
+};
 
 export { handleAuthExpired as _handleAuthExpired };
