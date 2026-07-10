@@ -987,7 +987,12 @@ window.markCTVPaid = async (affiliateId, code, name, email, amount) => {
 
 async function callGAS(data){
   try {
-    await fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const token = await auth.currentUser?.getIdToken?.();
+    await fetch('/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
+      body: JSON.stringify(data)
+    });
   } catch(e){
     console.error('[SwiftCopy] Lỗi gửi email:', e);
   }

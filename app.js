@@ -10,7 +10,7 @@ import {
   isVideoItem, copyFileSingle, testFileCopy
 } from './drive-api.js';
 import { db, _handleAuthExpired as handleAuthExpired } from './auth.js';
-import { doc, addDoc, updateDoc, collection, serverTimestamp }
+import { doc, getDoc, addDoc, updateDoc, collection, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ── Module constants (app.js only) ───────────────────────────
@@ -697,8 +697,27 @@ function progFinish() {
 }
 
 // ── SCAN ──────────────────────────────────────────────────────
+// Đọc lại doc user TƯƠI từ Firestore (không tin st.gUserData cache) ngay trước
+// khi cho phép scan/copy thật chạy — chặn trường hợp tài khoản pending/kicked
+// tự lộ #s-app qua DevTools rồi dùng được tính năng dù chưa/không còn được duyệt.
+async function _verifyStillApproved() {
+  try {
+    const snap = await getDoc(doc(db, 'users', st.gUser.uid));
+    if (!snap.exists()) return { ok: false, sec: 'pend' };
+    const d = snap.data();
+    st.gUserData = d;
+    if (d.status === 'kicked') return { ok: false, sec: 'kicked' };
+    if (d.approved !== true) return { ok: false, sec: 'pend' };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, sec: 'pend' };
+  }
+}
+
 async function startScan() {
   if (!st.gToken) { showNoAuth('Chưa cấp quyền Drive!', 'Bạn cần cấp quyền truy cập Google Drive trước khi kiểm tra.'); return; }
+  const _chk = await _verifyStillApproved();
+  if (!_chk.ok) { toast('Tài khoản chưa được duyệt hoặc đã bị khoá.', 'err'); st.sec?.(_chk.sec); return; }
   const sv = document.getElementById('srcInput').value.trim();
   const dv = document.getElementById('destInput').value.trim();
   if (!sv || !dv) { toast('Nhập đủ Drive nguồn và đích!', 'warn'); return; }
@@ -1147,6 +1166,8 @@ window.startCopy = async (isResume) => {
   const sv = document.getElementById('srcInput').value.trim();
   const dv = document.getElementById('destInput').value.trim();
   if (!sv || !dv) { toast('Nhập đủ Drive nguồn và đích!', 'warn'); return; }
+  const _chk = await _verifyStillApproved();
+  if (!_chk.ok) { toast('Tài khoản chưa được duyệt hoặc đã bị khoá.', 'err'); st.sec?.(_chk.sec); return; }
   if (!isResume) { st.stopFlag = false; setBtnMode('copy'); }
   if (!isResume) {
     const plan = st.gUserData?.plan;
@@ -1753,8 +1774,15 @@ function updateFreeBanner() {
 // ── POST-COPY PLAN LOCKING ────────────────────────────────────
 // Called once per completed copy session (after saveHist, before showComplModal).
 // Decrements creditsRemaining for credit plan, or sets trialUsed for trial plan.
-function _sendEmail(payload) {
-  fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
+async function _sendEmail(payload) {
+  try {
+    const token = await st.gUser?.getIdToken?.();
+    await fetch('/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
+      body: JSON.stringify(payload)
+    });
+  } catch (_) { /* best-effort */ }
 }
 
 async function _handleCopyCompletion() {

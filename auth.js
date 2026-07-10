@@ -439,8 +439,16 @@ async function checkApproval(u) {
 }
 
 // ── Email helpers ─────────────────────────────────────────────
-function _gasPost(payload) {
-  fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
+// api/email.js yêu cầu Firebase ID token — đính kèm token của user hiện tại.
+async function _gasPost(payload) {
+  try {
+    const token = await st.gUser?.getIdToken?.();
+    await fetch('/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
+      body: JSON.stringify(payload)
+    });
+  } catch (_) { /* best-effort — email là phụ, không để crash flow chính */ }
 }
 export function sendRegEmail(u)           { _gasPost({ type: 'new_registration', userEmail: u.email, userName: u.displayName || u.email, plan: 'trial' }); }
 export function sendUpgradeRequestEmail(u){ _gasPost({ type: 'upgrade_request',  userEmail: u.email, userName: u.displayName || u.email }); }

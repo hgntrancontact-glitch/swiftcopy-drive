@@ -89,9 +89,10 @@ window.submitCTVForm = async function() {
     });
 
     // Gửi email thông báo admin
+    const _tok1 = await auth.currentUser?.getIdToken?.();
     fetch('/api/email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (_tok1 || '') },
       body: JSON.stringify({
         type: 'admin_ctv_applied',
         userName: name, userEmail: currentUser.email,
@@ -457,9 +458,10 @@ if (document.getElementById('dash-loading')) {
       await updateDoc(doc(db, 'affiliates', _dash.id), { urgentRequest: true });
       _dash.urgentRequest = true;
       // Thông báo admin
+      const _tok2 = await auth.currentUser?.getIdToken?.();
       fetch('/api/email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (_tok2 || '') },
         body: JSON.stringify({
           type: 'ctv_urgent_payment',
           ctvName: _dash.name, toCTVEmail: _dash.email,
@@ -530,9 +532,10 @@ if (document.getElementById('dash-loading')) {
         if (reasonEl) reasonEl.textContent = d.kickReason || '(Không có lý do)';
         _showScreen('dash-kicked');
         // Báo admin fire-and-forget
+        const _tok3 = await user.getIdToken().catch(() => '');
         fetch('/api/email', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (_tok3 || '') },
           body: JSON.stringify({
             type: 'ctv_kick_alert',
             ctvName: d.name, ctvEmail: d.email, ctvCode: d.code,

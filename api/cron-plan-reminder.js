@@ -81,6 +81,14 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Chỉ chấp nhận request có header Authorization khớp CRON_SECRET —
+  // Vercel tự động gắn header này khi gọi cron thật theo lịch trong vercel.json.
+  // Chặn việc ai đó tự curl endpoint này để kích hoạt thủ công ngoài lịch.
+  const authHeader = req.headers.authorization || '';
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey  = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
   const gasUrl      = process.env.GAS_URL;
